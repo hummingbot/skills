@@ -32,32 +32,33 @@ After installing, ask your AI agent:
 | [keys-manager](./skills/keys-manager/) | Manage exchange API credentials |
 | [executor-creator](./skills/executor-creator/) | Create trading executors (position, grid, DCA, TWAP) |
 | [candles-feed](./skills/candles-feed/) | Fetch market data and technical indicators |
+| [portfolio](./skills/portfolio/) | View balances and positions across exchanges |
 
 ## Prerequisites
 
-Skills interact with the Hummingbot API server:
-- **URL**: `http://localhost:8000`
-- **Credentials**: `admin:admin`
-- **Docs**: `http://localhost:8000/docs`
+Skills interact with the Hummingbot API server. Use the `hummingbot-api-setup` skill to deploy it.
 
-Use the `hummingbot-api-setup` skill to deploy the API server.
+Configure credentials via `.env` file (see `.env.example`):
+```bash
+API_URL=http://localhost:8000
+API_USER=admin
+API_PASS=admin
+```
+
+API docs available at `http://localhost:8000/docs`.
 
 ## Repository Structure
 
 ```
 hummingbot/skills/
-├── skills/                     # Skill definitions
-│   ├── hummingbot-api-setup/   # Infrastructure setup
-│   │   ├── SKILL.md
-│   │   └── scripts/
-│   ├── keys-manager/           # API credentials
-│   ├── executor-creator/       # Trading executors
-│   └── candles-feed/           # Market data
-└── skills.json                 # Skill metadata (for webapp)
+├── skills/                     # Skill definitions (SKILL.md + scripts/)
+├── app/                        # Next.js webapp (skills.hummingbot.org)
+├── skills.json                 # Skill metadata
+└── .env.example                # API configuration template
 ```
 
 ## Links
 
+- [Skills Webapp](https://skills.hummingbot.org)
 - [Hummingbot](https://hummingbot.org)
-- [skills.sh](https://skills.sh)
 - [Agent Skills Spec](https://agentskills.io)
