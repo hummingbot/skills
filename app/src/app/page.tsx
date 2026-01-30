@@ -1,6 +1,7 @@
 import { getSkillsData, formatNumber } from "@/lib/skills";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { CopyButton } from "@/components/copy-button";
 import Link from "next/link";
 
 export default async function Home() {
@@ -34,12 +35,7 @@ export default async function Home() {
             <span className="text-white/40">$ </span>
             <span className="text-white">npx skills add hummingbot/skills</span>
           </code>
-          <button className="text-white/40 hover:text-white p-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" strokeWidth="2"/>
-            </svg>
-          </button>
+          <CopyButton text="npx skills add hummingbot/skills" />
         </div>
       </div>
 
