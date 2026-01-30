@@ -2,24 +2,9 @@
 
 AI agent skills for [Hummingbot](https://hummingbot.org) algorithmic trading infrastructure.
 
+Built on the [Agent Skills](https://agentskills.io) open standard.
+
 ## Installation
-
-### Option 1: Claude Code Plugin
-
-Add the marketplace:
-```
-/plugin marketplace add hummingbot/skills
-```
-
-Then install individual skills:
-```
-/plugin install hummingbot-api-setup@hummingbot-skills
-/plugin install keys-manager@hummingbot-skills
-/plugin install executor-creator@hummingbot-skills
-/plugin install candles-feed@hummingbot-skills
-```
-
-### Option 2: skills.sh CLI
 
 ```bash
 npx skills add hummingbot/skills
@@ -61,19 +46,18 @@ Use the `hummingbot-api-setup` skill to deploy the API server.
 
 ```
 hummingbot/skills/
-├── .claude-plugin/             # Claude Code marketplace config
-│   └── marketplace.json
 ├── skills/                     # Skill definitions
 │   ├── hummingbot-api-setup/   # Infrastructure setup
+│   │   ├── SKILL.md
+│   │   └── scripts/
 │   ├── keys-manager/           # API credentials
 │   ├── executor-creator/       # Trading executors
 │   └── candles-feed/           # Market data
-├── webapp/                     # skills.hummingbot.org
-└── skills.json                 # Registry for skills.sh
+└── skills.json                 # Skill metadata (for webapp)
 ```
 
 ## Links
 
 - [Hummingbot](https://hummingbot.org)
 - [skills.sh](https://skills.sh)
-- [skills.hummingbot.org](https://skills.hummingbot.org)
+- [Agent Skills Spec](https://agentskills.io)
