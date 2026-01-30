@@ -12,7 +12,7 @@ const fallbackData: SkillsData = {
     {
       id: "hummingbot-api-setup",
       name: "hummingbot-api-setup",
-      description: "Deploy Hummingbot infrastructure (Docker, API server, Gateway)",
+      description: "Deploy Hummingbot API infrastructure",
       category: "infrastructure",
       triggers: ["install hummingbot", "setup trading", "deploy api", "docker setup"],
       path: "skills/hummingbot-api-setup",
@@ -24,7 +24,7 @@ const fallbackData: SkillsData = {
     {
       id: "keys-manager",
       name: "keys-manager",
-      description: "Manage exchange API credentials with progressive disclosure",
+      description: "Manage spot and perpetual exchange API keys",
       category: "configuration",
       triggers: ["add api key", "configure exchange", "setup binance", "add credentials"],
       path: "skills/keys-manager",
