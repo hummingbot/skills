@@ -4,7 +4,7 @@ description: Deploy Hummingbot infrastructure including API server, Condor Teleg
 license: Apache-2.0
 ---
 
-# Hummingbot Setup Skill
+# hummingbot-api-setup
 
 Deploy Hummingbot infrastructure using the official installer from [hummingbot/deploy](https://github.com/hummingbot/deploy).
 

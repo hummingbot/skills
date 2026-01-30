@@ -4,7 +4,7 @@ description: Fetch market data (OHLCV candles) and calculate technical indicator
 license: Apache-2.0
 ---
 
-# Hummingbot Candles Skill
+# candles-feed
 
 This skill fetches candlestick (OHLCV) data from exchanges and calculates technical indicators. It provides the data foundation for strategy development and market analysis.
 

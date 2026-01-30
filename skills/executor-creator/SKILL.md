@@ -4,7 +4,7 @@ description: Create and manage Hummingbot trading executors (position, grid, DCA
 license: Apache-2.0
 ---
 
-# Hummingbot Executors Skill
+# executor-creator
 
 This skill manages **executors** - lightweight trading components that run directly via the Hummingbot API. Executors are the recommended starting point for new users.
 

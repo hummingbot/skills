@@ -4,7 +4,7 @@ description: Manage exchange API keys and credentials for Hummingbot trading. Us
 license: Apache-2.0
 ---
 
-# Hummingbot Keys Skill
+# keys-manager
 
 This skill manages exchange API keys and credentials for Hummingbot. It uses **progressive disclosure** to guide users through the setup process step by step.
 

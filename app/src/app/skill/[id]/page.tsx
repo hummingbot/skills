@@ -1,7 +1,17 @@
-import { getSkillsData, formatNumber } from "@/lib/skills";
+import { getSkillsData, getSkillReadme, formatNumber } from "@/lib/skills";
 import { Badge } from "@/components/ui/badge";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -24,33 +34,26 @@ export default async function SkillPage({ params }: Props) {
   }
 
   const category = data.categories.find((c) => c.id === skill.category);
+  const readme = await getSkillReadme(skill.path);
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-12">
       {/* Breadcrumb */}
-      <nav className="mb-8">
-        <ol className="flex items-center gap-2 text-sm text-white/50">
-          <li>
-            <Link href="/" className="hover:text-white">
-              skills
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link href="/" className="hover:text-white">
-              hummingbot
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link href="/" className="hover:text-white">
-              skills
-            </Link>
-          </li>
-          <li>/</li>
-          <li className="text-white">{skill.name}</li>
-        </ol>
-      </nav>
+      <Breadcrumb className="mb-8">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/" className="text-white/50 hover:text-white">
+                skills
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator className="text-white/30">/</BreadcrumbSeparator>
+          <BreadcrumbItem>
+            <BreadcrumbPage className="text-white">{skill.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       {/* Header */}
       <div className="mb-12">
@@ -76,59 +79,45 @@ export default async function SkillPage({ params }: Props) {
             GitHub
           </a>
         </div>
-        <p className="text-white/70 text-lg max-w-2xl">{skill.description}</p>
+
+        {/* Install Command */}
+        <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 font-mono text-sm mb-6">
+          <code>
+            <span className="text-white/40">$ </span>
+            <span className="text-white">npx skills add hummingbot/skills --skill {skill.name}</span>
+          </code>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-12">
-        {/* Main Content */}
+        {/* Main Content - SKILL.md */}
         <div className="lg:col-span-2">
-          {/* Install */}
-          <section className="mb-12">
-            <h2 className="text-white/50 font-mono text-xs tracking-widest uppercase mb-4">
-              Install
-            </h2>
-            <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 font-mono text-sm">
-              <code>
-                <span className="text-white/40">$ </span>
-                <span className="text-white">npx skills add hummingbot/skills --skill {skill.name}</span>
-              </code>
-            </div>
-          </section>
+          <div className="flex items-center gap-2 text-white/50 mb-4">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span className="font-mono text-xs">SKILL.md</span>
+          </div>
 
-          {/* Triggers */}
-          <section className="mb-12">
-            <h2 className="text-white/50 font-mono text-xs tracking-widest uppercase mb-4">
-              Example Prompts
-            </h2>
-            <div className="grid gap-2">
-              {skill.triggers.map((trigger, i) => (
-                <div
-                  key={i}
-                  className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white/70"
-                >
-                  &ldquo;{trigger}&rdquo;
-                </div>
-              ))}
+          {readme ? (
+            <article className="prose prose-invert prose-sm max-w-none prose-headings:text-white prose-p:text-white/70 prose-li:text-white/70 prose-code:text-white/90 prose-code:bg-white/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10 prose-a:text-blue-400 prose-strong:text-white prose-th:text-white/70 prose-td:text-white/60 prose-table:text-sm">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {readme}
+              </ReactMarkdown>
+            </article>
+          ) : (
+            <div className="text-white/50">
+              <p>No documentation available.</p>
+              <a
+                href={`${data.repo.url}/tree/main/${skill.path}/SKILL.md`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 mt-4 text-white hover:underline"
+              >
+                View on GitHub
+              </a>
             </div>
-          </section>
-
-          {/* Documentation Link */}
-          <section>
-            <h2 className="text-white/50 font-mono text-xs tracking-widest uppercase mb-4">
-              Documentation
-            </h2>
-            <a
-              href={`${data.repo.url}/tree/main/${skill.path}/SKILL.md`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white hover:bg-white/10 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              View SKILL.md
-            </a>
-          </section>
+          )}
         </div>
 
         {/* Sidebar */}

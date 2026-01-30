@@ -4,7 +4,7 @@ description: View portfolio balances, positions, and history across all connecte
 license: Apache-2.0
 ---
 
-# Hummingbot Portfolio Skill
+# portfolio
 
 This skill provides portfolio visibility across all connected exchanges and accounts.
 

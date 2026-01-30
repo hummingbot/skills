@@ -83,3 +83,23 @@ export function formatNumber(num: number): string {
   }
   return num.toString();
 }
+
+export async function getSkillReadme(skillPath: string): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://raw.githubusercontent.com/hummingbot/skills/main/${skillPath}/SKILL.md`,
+      { next: { revalidate: 60 } }
+    );
+
+    if (!response.ok) {
+      return "";
+    }
+
+    const content = await response.text();
+    // Remove frontmatter (YAML between ---)
+    const frontmatterRegex = /^---[\s\S]*?---\n*/;
+    return content.replace(frontmatterRegex, "");
+  } catch {
+    return "";
+  }
+}
