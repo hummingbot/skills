@@ -2,6 +2,7 @@
 name: candles-feed
 description: Fetch market data (OHLCV candles) and calculate technical indicators (RSI, EMA, MACD, Bollinger Bands) from exchanges via Hummingbot API. Use this skill when the user needs price data, candlestick charts, or technical analysis.
 license: Apache-2.0
+creator-github-handle: fengtality
 ---
 
 # candles-feed

@@ -1,4 +1,6 @@
 import { SkillsData } from "./types";
+import { promises as fs } from "fs";
+import path from "path";
 
 const fallbackData: SkillsData = {
   repo: {
@@ -16,7 +18,8 @@ const fallbackData: SkillsData = {
       path: "skills/hummingbot-api-setup",
       installs: { total: 0, weekly: 0, by_agent: {} },
       first_seen: "2026-01-26T00:00:00Z",
-      status: "active"
+      status: "active",
+      creatorGithubHandle: "david-hummingbot"
     },
     {
       id: "keys-manager",
@@ -27,7 +30,8 @@ const fallbackData: SkillsData = {
       path: "skills/keys-manager",
       installs: { total: 0, weekly: 0, by_agent: {} },
       first_seen: "2026-01-26T00:00:00Z",
-      status: "active"
+      status: "active",
+      creatorGithubHandle: "cardosofede"
     },
     {
       id: "executor-creator",
@@ -38,7 +42,8 @@ const fallbackData: SkillsData = {
       path: "skills/executor-creator",
       installs: { total: 0, weekly: 0, by_agent: {} },
       first_seen: "2026-01-26T00:00:00Z",
-      status: "active"
+      status: "active",
+      creatorGithubHandle: "cardosofede"
     },
     {
       id: "candles-feed",
@@ -49,7 +54,20 @@ const fallbackData: SkillsData = {
       path: "skills/candles-feed",
       installs: { total: 0, weekly: 0, by_agent: {} },
       first_seen: "2026-01-26T00:00:00Z",
-      status: "active"
+      status: "active",
+      creatorGithubHandle: "fengtality"
+    },
+    {
+      id: "portfolio",
+      name: "portfolio",
+      description: "View portfolio balances, positions, and history across all connected exchanges",
+      category: "data",
+      triggers: ["show balance", "portfolio", "positions", "check balance"],
+      path: "skills/portfolio",
+      installs: { total: 0, weekly: 0, by_agent: {} },
+      first_seen: "2026-01-26T00:00:00Z",
+      status: "active",
+      creatorGithubHandle: "fengtality"
     }
   ],
   categories: [
@@ -62,16 +80,10 @@ const fallbackData: SkillsData = {
 
 export async function getSkillsData(): Promise<SkillsData> {
   try {
-    const response = await fetch(
-      "https://raw.githubusercontent.com/hummingbot/skills/main/skills.json",
-      { next: { revalidate: 60 } }
-    );
-
-    if (!response.ok) {
-      return fallbackData;
-    }
-
-    return response.json();
+    // Read from local skills.json file (one level up from app/)
+    const skillsPath = path.join(process.cwd(), "..", "skills.json");
+    const content = await fs.readFile(skillsPath, "utf-8");
+    return JSON.parse(content);
   } catch {
     return fallbackData;
   }

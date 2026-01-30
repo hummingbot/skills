@@ -69,6 +69,9 @@ export default async function Home() {
               <th className="text-left px-4 py-3 text-white/50 font-mono text-xs tracking-widest uppercase hidden sm:table-cell">
                 Category
               </th>
+              <th className="text-left px-4 py-3 text-white/50 font-mono text-xs tracking-widest uppercase hidden md:table-cell">
+                Creator
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -89,6 +92,23 @@ export default async function Home() {
                   <Badge variant="secondary" className="bg-white/10 text-white/70 hover:bg-white/10 font-mono text-xs">
                     {skill.category}
                   </Badge>
+                </td>
+                <td className="px-4 py-4 hidden md:table-cell">
+                  {skill.creatorGithubHandle && (
+                    <a
+                      href={`https://github.com/${skill.creatorGithubHandle}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-white/70 hover:text-white"
+                    >
+                      <img
+                        src={`https://github.com/${skill.creatorGithubHandle}.png?size=24`}
+                        alt={skill.creatorGithubHandle}
+                        className="w-5 h-5 rounded-full"
+                      />
+                      <span className="text-sm">{skill.creatorGithubHandle}</span>
+                    </a>
+                  )}
                 </td>
               </tr>
             ))}

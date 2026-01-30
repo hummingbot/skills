@@ -2,6 +2,7 @@
 name: portfolio
 description: View portfolio balances, positions, and history across all connected exchanges. Use this skill when the user wants to check their balance, see positions, view portfolio distribution, or track portfolio history.
 license: Apache-2.0
+creator-github-handle: fengtality
 ---
 
 # portfolio

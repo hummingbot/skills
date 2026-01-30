@@ -12,6 +12,7 @@ export interface Skill {
   };
   first_seen: string;
   status: "active" | "planned";
+  creatorGithubHandle?: string;
 }
 
 export interface Category {

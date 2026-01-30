@@ -18,7 +18,8 @@
         "by_agent": {}
       },
       "first_seen": "2026-01-26T00:00:00Z",
-      "status": "active"
+      "status": "active",
+      "creatorGithubHandle": "david-hummingbot"
     },
     {
       "id": "keys-manager",
@@ -33,7 +34,8 @@
         "by_agent": {}
       },
       "first_seen": "2026-01-26T00:00:00Z",
-      "status": "active"
+      "status": "active",
+      "creatorGithubHandle": "cardosofede"
     },
     {
       "id": "executor-creator",
@@ -48,7 +50,8 @@
         "by_agent": {}
       },
       "first_seen": "2026-01-26T00:00:00Z",
-      "status": "active"
+      "status": "active",
+      "creatorGithubHandle": "cardosofede"
     },
     {
       "id": "candles-feed",
@@ -63,7 +66,8 @@
         "by_agent": {}
       },
       "first_seen": "2026-01-26T00:00:00Z",
-      "status": "active"
+      "status": "active",
+      "creatorGithubHandle": "fengtality"
     },
     {
       "id": "portfolio",
@@ -78,7 +82,8 @@
         "by_agent": {}
       },
       "first_seen": "2026-01-29T00:00:00Z",
-      "status": "active"
+      "status": "active",
+      "creatorGithubHandle": "fengtality"
     },
     {
       "id": "spot-connector-tester",

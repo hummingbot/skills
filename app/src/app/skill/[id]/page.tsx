@@ -157,6 +157,26 @@ export default async function SkillPage({ params }: Props) {
                   </a>
                 </dd>
               </div>
+              {skill.creatorGithubHandle && (
+                <div>
+                  <dt className="text-white/50 text-sm mb-1">Creator</dt>
+                  <dd>
+                    <a
+                      href={`https://github.com/${skill.creatorGithubHandle}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-white/70 hover:text-white"
+                    >
+                      <img
+                        src={`https://github.com/${skill.creatorGithubHandle}.png?size=32`}
+                        alt={skill.creatorGithubHandle}
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <span className="text-sm">{skill.creatorGithubHandle}</span>
+                    </a>
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
         </div>
