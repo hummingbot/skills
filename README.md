@@ -6,9 +6,17 @@ AI agent skills for [Hummingbot](https://hummingbot.org) algorithmic trading inf
 
 ### Option 1: Claude Code Plugin
 
+Add the marketplace:
 ```
 /plugin marketplace add hummingbot/skills
-/plugin install hummingbot-skills@hummingbot-skills
+```
+
+Then install individual skills:
+```
+/plugin install hummingbot-api-setup@hummingbot-skills
+/plugin install keys-manager@hummingbot-skills
+/plugin install executor-creator@hummingbot-skills
+/plugin install candles-feed@hummingbot-skills
 ```
 
 ### Option 2: skills.sh CLI

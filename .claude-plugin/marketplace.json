@@ -10,26 +10,32 @@
   },
   "plugins": [
     {
-      "name": "hummingbot-skills",
-      "description": "Core Hummingbot trading skills: API setup, credential management, executor creation, and market data feeds",
+      "name": "hummingbot-api-setup",
+      "description": "Deploy Hummingbot infrastructure (Docker, API server, Gateway)",
       "source": "./",
       "strict": false,
-      "version": "1.0.0",
-      "author": {
-        "name": "Hummingbot Foundation",
-        "email": "dev@hummingbot.org"
-      },
-      "homepage": "https://skills.hummingbot.org",
-      "repository": "https://github.com/hummingbot/skills",
-      "license": "Apache-2.0",
-      "keywords": ["hummingbot", "trading", "crypto", "defi", "executors", "market-data"],
-      "category": "trading",
-      "skills": [
-        "./skills/hummingbot-api-setup",
-        "./skills/keys-manager",
-        "./skills/executor-creator",
-        "./skills/candles-feed"
-      ]
+      "skills": ["./skills/hummingbot-api-setup"]
+    },
+    {
+      "name": "keys-manager",
+      "description": "Manage exchange API credentials",
+      "source": "./",
+      "strict": false,
+      "skills": ["./skills/keys-manager"]
+    },
+    {
+      "name": "executor-creator",
+      "description": "Create trading executors (position, grid, DCA, TWAP)",
+      "source": "./",
+      "strict": false,
+      "skills": ["./skills/executor-creator"]
+    },
+    {
+      "name": "candles-feed",
+      "description": "Fetch market data and technical indicators",
+      "source": "./",
+      "strict": false,
+      "skills": ["./skills/candles-feed"]
     }
   ]
 }
