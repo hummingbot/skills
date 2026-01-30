@@ -41,6 +41,30 @@ Skills check for `.env` in: current directory → `~/.hummingbot/` → `~/`
 - **Option A:** Create a GitHub Release → auto-publishes to npm
 - **Option B:** Go to Actions → "Publish to npm" → Run workflow (choose patch/minor/major)
 
+## Vercel Deployment
+
+**Live site:** https://skills.hummingbot.org
+
+### Manual Deploy
+```bash
+vercel --prod
+```
+
+### Automatic Deploys (GitHub Integration)
+
+To enable auto-deploy on push to GitHub:
+
+1. Go to [Vercel Dashboard](https://vercel.com/botcamps-projects/hummingbot-skills/settings/git)
+2. Under "Connected Git Repository", connect `hummingbot/skills` if not already
+3. Configure branches:
+   - **Production Branch:** `main` → deploys to skills.hummingbot.org
+   - **Preview Branches:** `dev`, PRs → deploys to preview URLs
+
+Once connected:
+- Push to `main` → auto-deploys to production
+- Push to `dev` → creates preview deployment
+- Open PR → creates preview deployment with comment link
+
 ## Project Structure
 
 ```
