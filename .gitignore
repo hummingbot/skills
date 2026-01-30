@@ -8,9 +8,14 @@ build/
 .next/
 out/
 
-# IDE
+# IDE and AI tools
 .idea/
 .vscode/
+.cursor/
+.claude/
+.codex/
+.agents/
+.gemini/
 *.swp
 *.swo
 
