@@ -19,7 +19,7 @@ export default async function Home() {
             </pre>
           </div>
           <p className="text-muted-foreground text-lg lg:text-xl max-w-md lg:text-right">
-            AI agent skills for algorithmic trading. Install them with a single command to enhance your agents.
+            Skills for algorithmic trading powered by <a href="https://github.com/hummingbot/hummingbot-api" target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">Hummingbot API</a>. Install them with a single command to enhance your agents.
           </p>
         </div>
       </div>
