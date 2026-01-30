@@ -1,17 +1,7 @@
 ---
-name: hummingbot-executors
-description: Create and manage trading executors directly via API - no Docker bots required
-version: 1.0.0
-author: Hummingbot Foundation
-triggers:
-  - create executor
-  - run executor
-  - position executor
-  - grid executor
-  - dca executor
-  - stop loss
-  - take profit
-  - simple trading
+name: executor-creator
+description: Create and manage Hummingbot trading executors (position, grid, DCA, TWAP) directly via API. Use this skill when the user wants to create trading positions, set up grid trading, dollar-cost averaging, or any automated trading execution.
+license: Apache-2.0
 ---
 
 # Hummingbot Executors Skill

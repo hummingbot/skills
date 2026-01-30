@@ -1,16 +1,7 @@
 ---
-name: hummingbot-keys
-description: Manage exchange API keys and credentials for Hummingbot trading accounts
-version: 1.0.0
-author: Hummingbot Foundation
-triggers:
-  - add api key
-  - remove api key
-  - list exchanges
-  - setup exchange
-  - connect binance
-  - connect coinbase
-  - add credentials
+name: keys-manager
+description: Manage exchange API keys and credentials for Hummingbot trading. Use this skill when the user wants to add, remove, or list API credentials for exchanges like Binance, Coinbase, Kraken, etc.
+license: Apache-2.0
 ---
 
 # Hummingbot Keys Skill

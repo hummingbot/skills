@@ -1,21 +1,36 @@
 # Hummingbot Skills
 
-Reusable capabilities for AI agents to interact with [Hummingbot](https://hummingbot.org) trading infrastructure.
+AI agent skills for [Hummingbot](https://hummingbot.org) algorithmic trading infrastructure.
+
+## Claude Code Plugin (Recommended)
+
+Add Hummingbot as a Claude Code plugin marketplace:
+
+```
+/plugin marketplace add hummingbot/skills
+```
+
+Then install the trading skills:
+
+```
+/plugin install trading-skills@hummingbot-skills
+```
+
+After installing, just ask Claude:
+- "Create a BTC position with 2% stop loss"
+- "Show me the RSI for ETH on Binance"
+- "Add my Binance API keys"
+- "Set up Hummingbot with Docker"
+
+## Alternative: skills.sh CLI
+
+You can also install via the [skills.sh](https://skills.sh) CLI:
 
 ```bash
 npx skills add hummingbot/skills --skill executor-creator
 ```
 
 Browse skills at [skills.hummingbot.org](https://skills.hummingbot.org)
-
-## What are Skills?
-
-Skills are instruction sets that extend AI agent capabilities. Instead of loading thousands of tokens of tool definitions, skills load on-demand when relevant to your task.
-
-**How it works:**
-1. Install skills using the [skills.sh](https://skills.sh) CLI
-2. Skills are copied to your agent's skills directory
-3. When you ask about trading, your agent loads the relevant skill
 
 ## Available Skills
 
@@ -26,32 +41,9 @@ Skills are instruction sets that extend AI agent capabilities. Instead of loadin
 | [executor-creator](./skills/executor-creator/) | Create trading executors (position, grid, DCA, TWAP) | Trading |
 | [candles-feed](./skills/candles-feed/) | Fetch market data and technical indicators | Data |
 
-## Installation
-
-Install all Hummingbot skills:
-```bash
-npx skills add hummingbot/skills
-```
-
-Install a specific skill:
-```bash
-npx skills add hummingbot/skills --skill executor-creator
-```
-
-## Usage
-
-After installation, ask your AI agent:
-
-```
-"Create a BTC position with 2% stop loss and 4% take profit"
-"Show me the RSI for ETH on Binance"
-"Add my Binance API keys"
-"Set up Hummingbot with Docker"
-```
-
 ## Supported AI Agents
 
-- Claude Code
+- Claude Code (via plugin marketplace)
 - Cursor
 - Windsurf
 - VS Code (GitHub Copilot)
@@ -64,21 +56,16 @@ After installation, ask your AI agent:
 
 ```
 skills/
+├── .claude-plugin/             # Claude Code plugin config
+│   └── marketplace.json        # Plugin marketplace definition
 ├── skills/                     # Skill definitions
 │   ├── hummingbot-api-setup/   # Infrastructure setup
 │   ├── keys-manager/           # API credentials
 │   ├── executor-creator/       # Trading executors
 │   └── candles-feed/           # Market data & indicators
 ├── webapp/                     # skills.hummingbot.org
-├── docs/                       # Documentation
 └── skills.json                 # Skills registry
 ```
-
-## Web App
-
-Browse and discover skills at [skills.hummingbot.org](https://skills.hummingbot.org)
-
-See [docs/webapp-design.md](./docs/webapp-design.md) for the web application design.
 
 ## Development
 
@@ -86,8 +73,12 @@ See [docs/webapp-design.md](./docs/webapp-design.md) for the web application des
 git clone https://github.com/hummingbot/skills.git
 cd skills
 
-# Test a skill
-./skills/executor-creator/scripts/create_position.sh --help
+# Test a skill script
+./skills/executor-creator/scripts/list_executor_types.sh
+
+# Test marketplace locally in Claude Code
+/plugin marketplace add ./
+/plugin install trading-skills@hummingbot-skills
 ```
 
 ## License
@@ -98,4 +89,4 @@ Apache-2.0
 
 - [Hummingbot](https://hummingbot.org)
 - [skills.sh](https://skills.sh) - The open agent skills ecosystem
-- [Agent Skills Specification](https://agentskills.io)
+- [Claude Code Plugins](https://code.claude.com/docs/en/discover-plugins)

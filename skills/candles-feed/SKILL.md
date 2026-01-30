@@ -1,17 +1,7 @@
 ---
-name: hummingbot-candles
-description: Fetch candlestick data and calculate technical indicators for trading analysis
-version: 1.0.0
-author: Hummingbot Foundation
-triggers:
-  - get candles
-  - fetch price data
-  - calculate RSI
-  - calculate EMA
-  - calculate MACD
-  - technical analysis
-  - market data
-  - OHLCV
+name: candles-feed
+description: Fetch market data (OHLCV candles) and calculate technical indicators (RSI, EMA, MACD, Bollinger Bands) from exchanges via Hummingbot API. Use this skill when the user needs price data, candlestick charts, or technical analysis.
+license: Apache-2.0
 ---
 
 # Hummingbot Candles Skill

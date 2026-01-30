@@ -1,15 +1,7 @@
 ---
-name: hummingbot-setup
-description: Deploy and configure Hummingbot infrastructure including Condor, API server, Gateway, and all required services
-version: 1.0.0
-author: Hummingbot Foundation
-triggers:
-  - deploy hummingbot
-  - setup hummingbot
-  - install hummingbot
-  - start api server
-  - configure gateway
-  - install condor
+name: hummingbot-api-setup
+description: Deploy Hummingbot infrastructure including API server, Condor Telegram bot, PostgreSQL, and Gateway for DEX trading. Use this skill when the user wants to install, deploy, or set up Hummingbot.
+license: Apache-2.0
 ---
 
 # Hummingbot Setup Skill
