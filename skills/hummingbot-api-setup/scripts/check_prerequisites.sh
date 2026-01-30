@@ -38,9 +38,17 @@ check_port() {
 }
 
 check_disk_space() {
-    # Check for at least 5GB free space
-    local free_space=$(df -BG . | awk 'NR==2 {print $4}' | sed 's/G//')
-    if [ "$free_space" -ge 5 ]; then
+    # Check for at least 5GB free space (works on both Linux and macOS)
+    local free_space_kb
+    if [[ "$(uname)" == "Darwin" ]]; then
+        # macOS: df outputs 512-byte blocks by default, use -k for KB
+        free_space_kb=$(df -k . | awk 'NR==2 {print $4}')
+    else
+        # Linux
+        free_space_kb=$(df -k . | awk 'NR==2 {print $4}')
+    fi
+    local free_space_gb=$((free_space_kb / 1024 / 1024))
+    if [ "$free_space_gb" -ge 5 ]; then
         echo "true"
     else
         echo "false"

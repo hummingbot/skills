@@ -117,11 +117,18 @@ EOF
     "type": "grid_executor",
     "connector_name": "hyperliquid_perpetual",
     "trading_pair": "BTC-USD",
-    "start_price": "80000",
-    "end_price": "90000",
-    "total_amount_quote": "1000",
-    "total_levels": 10,
-    "side": "BUY"
+    "side": "BUY",
+    "start_price": "81645",
+    "end_price": "84944",
+    "limit_price": "78347",
+    "total_amount_quote": "100",
+    "leverage": 10,
+    "max_open_orders": 5,
+    "triple_barrier_config": {
+        "stop_loss": 0.05,
+        "take_profit": 0.03,
+        "time_limit": 86400
+    }
 }'
         elif [ "$EXECUTOR_TYPE" = "dca_executor" ]; then
             EXAMPLE_CONFIG='{
@@ -156,18 +163,25 @@ EOF
         # Ensure type is in the config
         CONFIG_WITH_TYPE=$(echo "$CONFIG" | jq --arg type "$EXECUTOR_TYPE" '. + {type: $type}')
 
+        # Convert side from string to numeric (API requires: 1=BUY, 2=SELL)
+        CONFIG_WITH_TYPE=$(echo "$CONFIG_WITH_TYPE" | jq '
+            if .side == "BUY" or .side == "buy" then .side = 1
+            elif .side == "SELL" or .side == "sell" then .side = 2
+            else . end
+        ')
+
         # Build request
         REQUEST=$(jq -n \
             --argjson config "$CONFIG_WITH_TYPE" \
             --arg account "$ACCOUNT" \
             '{executor_config: $config, account_name: $account}')
 
-        # Create executor
+        # Create executor (note: trailing slash required)
         RESPONSE=$(curl -s -X POST \
             -u "$API_USER:$API_PASS" \
             -H "Content-Type: application/json" \
             -d "$REQUEST" \
-            "$API_URL/executors")
+            "$API_URL/executors/")
 
         if echo "$RESPONSE" | jq -e '.detail' > /dev/null 2>&1; then
             echo "{\"error\": \"Failed to create executor\", \"detail\": $RESPONSE}"

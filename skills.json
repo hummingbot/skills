@@ -66,6 +66,21 @@
       "status": "active"
     },
     {
+      "id": "portfolio",
+      "name": "portfolio",
+      "description": "View portfolio balances, positions, and history across all connected exchanges",
+      "category": "data",
+      "triggers": ["check balance", "portfolio", "show positions", "account balance", "my balance"],
+      "path": "skills/portfolio",
+      "installs": {
+        "total": 0,
+        "weekly": 0,
+        "by_agent": {}
+      },
+      "first_seen": "2026-01-29T00:00:00Z",
+      "status": "active"
+    },
+    {
       "id": "spot-connector-tester",
       "name": "spot-connector-tester",
       "description": "QA skill to test spot connectors - add keys, get prices, get candles",

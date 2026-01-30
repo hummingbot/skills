@@ -75,13 +75,28 @@ Automated grid trading with multiple buy/sell levels:
 ./scripts/setup_executor.sh --type grid_executor --config '{
     "connector_name": "hyperliquid_perpetual",
     "trading_pair": "BTC-USD",
-    "start_price": "80000",
-    "end_price": "90000",
-    "total_amount_quote": "1000",
-    "total_levels": 10,
-    "side": "BUY"
+    "side": "BUY",
+    "start_price": "81645",
+    "end_price": "84944",
+    "limit_price": "78347",
+    "total_amount_quote": "100",
+    "leverage": 10,
+    "max_open_orders": 5,
+    "triple_barrier_config": {
+        "stop_loss": 0.05,
+        "take_profit": 0.03,
+        "time_limit": 86400
+    }
 }'
 ```
+
+Grid executor parameters:
+- `start_price`: Price where grid begins (e.g., -1% below current)
+- `end_price`: Price where grid ends / take profit level (e.g., +3% above current)
+- `limit_price`: Stop loss price level (e.g., -5% below current)
+- `total_amount_quote`: Total capital in quote currency (USDT)
+- `leverage`: Position leverage (default: 20)
+- `max_open_orders`: Maximum concurrent orders (default: 5)
 
 ### 3. DCA Executor
 
@@ -202,6 +217,30 @@ The position exits when ANY barrier is hit first.
 | `/executors/{id}/stop` | POST | Stop executor |
 | `/executors/positions/summary` | GET | Get held positions |
 
+## API Quirks
+
+The scripts handle these API requirements automatically:
+
+| Issue | Detail | Script Handling |
+|-------|--------|-----------------|
+| **Trailing slash** | POST `/executors/` requires trailing slash | Scripts add it automatically |
+| **Side as numeric** | API requires `1` for BUY, `2` for SELL | Scripts convert "BUY"/"SELL" strings |
+| **executor_config wrapper** | Config must be wrapped in `executor_config` field | Scripts wrap automatically |
+
+If calling the API directly:
+```bash
+curl -X POST -u admin:admin \
+  -H "Content-Type: application/json" \
+  "http://localhost:8000/executors/" \
+  -d '{
+    "executor_config": {
+        "type": "grid_executor",
+        "side": 1,
+        ...
+    }
+}'
+```
+
 ## Error Handling
 
 | Error | Cause | Solution |
@@ -210,3 +249,5 @@ The position exits when ANY barrier is hit first.
 | "Insufficient balance" | Not enough funds | Reduce amount or add funds |
 | "Invalid trading pair" | Pair not on exchange | Check exchange for valid pairs |
 | "Connector not configured" | Missing API keys | Use keys skill to add credentials |
+| "Input should be 1, 2 or 3" | Side must be numeric | Use 1 for BUY, 2 for SELL (scripts handle this) |
+| "307 Temporary Redirect" | Missing trailing slash | Add `/` to endpoint URL |

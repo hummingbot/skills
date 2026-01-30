@@ -62,18 +62,25 @@ else
     CONFIG=$(echo "$CONFIG" | jq --arg type "$EXECUTOR_TYPE" '. + {type: $type}')
 fi
 
+# Convert side from string to numeric (API requires: 1=BUY, 2=SELL)
+CONFIG=$(echo "$CONFIG" | jq '
+    if .side == "BUY" or .side == "buy" then .side = 1
+    elif .side == "SELL" or .side == "sell" then .side = 2
+    else . end
+')
+
 # Build request
 REQUEST=$(jq -n \
     --argjson config "$CONFIG" \
     --arg account "$ACCOUNT" \
     '{executor_config: $config, account_name: $account}')
 
-# Create executor
+# Create executor (note: trailing slash required)
 RESPONSE=$(curl -s -X POST \
     -u "$API_USER:$API_PASS" \
     -H "Content-Type: application/json" \
     -d "$REQUEST" \
-    "$API_URL/executors")
+    "$API_URL/executors/")
 
 # Check for error
 if echo "$RESPONSE" | jq -e '.detail' > /dev/null 2>&1; then
