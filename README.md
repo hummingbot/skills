@@ -53,7 +53,6 @@ API docs available at `http://localhost:8000/docs`.
 hummingbot/skills/
 ├── skills/                     # Skill definitions (SKILL.md + scripts/)
 ├── app/                        # Next.js webapp (skills.hummingbot.org)
-├── skills.json                 # Skill metadata
 └── .env.example                # API configuration template
 ```
 
