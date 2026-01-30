@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Hummingbot Skills",
   description: "AI agent skills for Hummingbot algorithmic trading infrastructure",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -30,9 +34,7 @@ export default function RootLayout({
         <header className="border-b border-white/10">
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <a href="/" className="flex items-center gap-2 text-white hover:text-white/80">
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none"/>
-              </svg>
+              <Image src="/logo.png" alt="Hummingbot" width={28} height={28} />
               <span className="font-mono text-sm tracking-wide">Skills</span>
             </a>
             <nav className="flex items-center gap-6">
