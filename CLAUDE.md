@@ -11,32 +11,32 @@ Skills repository for AI agents to interact with Hummingbot trading infrastructu
 npx skills add hummingbot/skills
 
 # Install specific skill
-npx skills add hummingbot/skills --skill executors
+npx skills add hummingbot/skills --skill executor-creator
 
 # Development
-./skills/executors/scripts/create_position.sh --help
+./skills/executor-creator/scripts/create_position.sh --help
 ```
 
 ## Project Structure
 
 ```
 skills/
-├── skills/                 # Skill definitions (each has SKILL.md + scripts/)
-│   ├── executors/          # Trading executors
-│   ├── candles/            # Market data & indicators
-│   ├── keys/               # API credentials management
-│   └── setup/              # Infrastructure deployment
-├── webapp/                 # skills.hummingbot.org (Next.js)
+├── skills/                     # Skill definitions (each has SKILL.md + scripts/)
+│   ├── hummingbot-api-setup/   # Infrastructure deployment
+│   ├── keys-manager/           # API credentials management
+│   ├── executor-creator/       # Trading executors
+│   └── candles-feed/           # Market data & indicators
+├── webapp/                     # skills.hummingbot.org (Next.js)
 ├── docs/
-│   └── webapp-design.md    # Web app design spec
-└── skills.json             # Skills registry
+│   └── webapp-design.md        # Web app design spec
+└── skills.json                 # Skills registry
 ```
 
 ## Naming Conventions
 
 - **Repo**: `hummingbot/skills`
 - **Web URL**: `skills.hummingbot.org`
-- **Skills**: Named by function (e.g., `executors`, `candles`, `keys`)
+- **Skills**: Noun-based names (e.g., `executor-creator`, `candles-feed`, `keys-manager`)
 - **Install**: `npx skills add hummingbot/skills --skill <name>`
 
 ## Skill Structure
@@ -55,7 +55,7 @@ skills/<name>/
 
 ```markdown
 ---
-name: hummingbot-<name>
+name: <skill-name>
 description: What this skill does
 version: 1.0.0
 author: Hummingbot Foundation
@@ -100,11 +100,11 @@ Instructions for the AI agent...
 ## TODO
 
 ### Skills (`skills/`)
-- [ ] Complete `setup/` scripts (steps 3-8 not implemented)
-- [ ] Add `test-spot/` skill for spot connector QA
-- [ ] Add `test-perp/` skill for perpetual connector QA
-- [ ] Add `test-gateway/` skill for Gateway connector QA
-- [ ] Add `create-pmm/` skill for PMM controller bots
+- [ ] Complete `hummingbot-api-setup/` scripts (steps 3-8 not implemented)
+- [ ] Add `spot-connector-tester/` skill for spot connector QA
+- [ ] Add `perp-connector-tester/` skill for perpetual connector QA
+- [ ] Add `gateway-connector-tester/` skill for Gateway connector QA
+- [ ] Add `pmm-bot-creator/` skill for PMM controller bots
 
 ### Webapp (`webapp/`)
 - [ ] Initialize Next.js 15 with App Router
@@ -135,10 +135,10 @@ The skills interact with the Hummingbot API server:
 
 | Category | Description |
 |----------|-------------|
-| `trading` | Executors, strategies |
-| `configuration` | API keys, credentials |
-| `data` | Market data, indicators |
 | `infrastructure` | Deployment, setup, Docker |
+| `configuration` | API keys, credentials |
+| `trading` | Executors, strategies |
+| `data` | Market data, indicators |
 | `qa` | Testing, validation |
 | `bots` | Controller bots |
 

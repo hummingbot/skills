@@ -6,57 +6,12 @@
   },
   "skills": [
     {
-      "id": "executors",
-      "name": "executors",
-      "description": "Create and manage trading executors (position, grid, DCA, TWAP)",
-      "category": "trading",
-      "triggers": ["create executor", "position executor", "grid trading", "dca order", "start trading"],
-      "path": "skills/executors",
-      "installs": {
-        "total": 0,
-        "weekly": 0,
-        "by_agent": {}
-      },
-      "first_seen": "2026-01-26T00:00:00Z",
-      "status": "active"
-    },
-    {
-      "id": "candles",
-      "name": "candles",
-      "description": "Market data and technical indicators (RSI, EMA, MACD, Bollinger Bands)",
-      "category": "data",
-      "triggers": ["get candles", "calculate rsi", "market data", "technical analysis"],
-      "path": "skills/candles",
-      "installs": {
-        "total": 0,
-        "weekly": 0,
-        "by_agent": {}
-      },
-      "first_seen": "2026-01-26T00:00:00Z",
-      "status": "active"
-    },
-    {
-      "id": "keys",
-      "name": "keys",
-      "description": "Manage exchange API credentials with progressive disclosure",
-      "category": "configuration",
-      "triggers": ["add api key", "configure exchange", "setup binance", "add credentials"],
-      "path": "skills/keys",
-      "installs": {
-        "total": 0,
-        "weekly": 0,
-        "by_agent": {}
-      },
-      "first_seen": "2026-01-26T00:00:00Z",
-      "status": "active"
-    },
-    {
-      "id": "setup",
-      "name": "setup",
+      "id": "hummingbot-api-setup",
+      "name": "hummingbot-api-setup",
       "description": "Deploy Hummingbot infrastructure (Docker, API server, Gateway)",
       "category": "infrastructure",
       "triggers": ["install hummingbot", "setup trading", "deploy api", "docker setup"],
-      "path": "skills/setup",
+      "path": "skills/hummingbot-api-setup",
       "installs": {
         "total": 0,
         "weekly": 0,
@@ -66,12 +21,57 @@
       "status": "active"
     },
     {
-      "id": "test-spot",
-      "name": "test-spot",
+      "id": "keys-manager",
+      "name": "keys-manager",
+      "description": "Manage exchange API credentials with progressive disclosure",
+      "category": "configuration",
+      "triggers": ["add api key", "configure exchange", "setup binance", "add credentials"],
+      "path": "skills/keys-manager",
+      "installs": {
+        "total": 0,
+        "weekly": 0,
+        "by_agent": {}
+      },
+      "first_seen": "2026-01-26T00:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "executor-creator",
+      "name": "executor-creator",
+      "description": "Create and manage trading executors (position, grid, DCA, TWAP)",
+      "category": "trading",
+      "triggers": ["create executor", "position executor", "grid trading", "dca order", "start trading"],
+      "path": "skills/executor-creator",
+      "installs": {
+        "total": 0,
+        "weekly": 0,
+        "by_agent": {}
+      },
+      "first_seen": "2026-01-26T00:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "candles-feed",
+      "name": "candles-feed",
+      "description": "Fetch market data and calculate technical indicators (RSI, EMA, MACD, Bollinger Bands)",
+      "category": "data",
+      "triggers": ["get candles", "calculate rsi", "market data", "technical analysis"],
+      "path": "skills/candles-feed",
+      "installs": {
+        "total": 0,
+        "weekly": 0,
+        "by_agent": {}
+      },
+      "first_seen": "2026-01-26T00:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "spot-connector-tester",
+      "name": "spot-connector-tester",
       "description": "QA skill to test spot connectors - add keys, get prices, get candles",
       "category": "qa",
       "triggers": ["test spot", "verify spot connector", "spot qa"],
-      "path": "skills/test-spot",
+      "path": "skills/spot-connector-tester",
       "installs": {
         "total": 0,
         "weekly": 0,
@@ -81,12 +81,12 @@
       "status": "planned"
     },
     {
-      "id": "test-perp",
-      "name": "test-perp",
+      "id": "perp-connector-tester",
+      "name": "perp-connector-tester",
       "description": "QA skill to test perpetual connectors",
       "category": "qa",
       "triggers": ["test perp", "verify perpetual", "perp qa"],
-      "path": "skills/test-perp",
+      "path": "skills/perp-connector-tester",
       "installs": {
         "total": 0,
         "weekly": 0,
@@ -96,12 +96,12 @@
       "status": "planned"
     },
     {
-      "id": "test-gateway",
-      "name": "test-gateway",
-      "description": "QA skill to test Gateway/router connectors",
+      "id": "gateway-connector-tester",
+      "name": "gateway-connector-tester",
+      "description": "QA skill to test Gateway/DEX router connectors",
       "category": "qa",
       "triggers": ["test gateway", "verify router", "gateway qa"],
-      "path": "skills/test-gateway",
+      "path": "skills/gateway-connector-tester",
       "installs": {
         "total": 0,
         "weekly": 0,
@@ -111,12 +111,12 @@
       "status": "planned"
     },
     {
-      "id": "create-pmm",
-      "name": "create-pmm",
+      "id": "pmm-bot-creator",
+      "name": "pmm-bot-creator",
       "description": "Create a Pure Market Making (PMM) controller bot",
       "category": "bots",
       "triggers": ["create pmm", "market making bot", "pmm controller"],
-      "path": "skills/create-pmm",
+      "path": "skills/pmm-bot-creator",
       "installs": {
         "total": 0,
         "weekly": 0,
@@ -127,10 +127,10 @@
     }
   ],
   "categories": [
+    {"id": "infrastructure", "name": "Infrastructure", "icon": "server"},
+    {"id": "configuration", "name": "Configuration", "icon": "settings"},
     {"id": "trading", "name": "Trading", "icon": "chart-line"},
     {"id": "data", "name": "Data", "icon": "database"},
-    {"id": "configuration", "name": "Configuration", "icon": "settings"},
-    {"id": "infrastructure", "name": "Infrastructure", "icon": "server"},
     {"id": "qa", "name": "QA & Testing", "icon": "check-circle"},
     {"id": "bots", "name": "Bots", "icon": "bot"}
   ]

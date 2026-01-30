@@ -3,7 +3,7 @@
 Reusable capabilities for AI agents to interact with [Hummingbot](https://hummingbot.org) trading infrastructure.
 
 ```bash
-npx skills add hummingbot/skills --skill executors
+npx skills add hummingbot/skills --skill executor-creator
 ```
 
 Browse skills at [skills.hummingbot.org](https://skills.hummingbot.org)
@@ -21,10 +21,10 @@ Skills are instruction sets that extend AI agent capabilities. Instead of loadin
 
 | Skill | Description | Category |
 |-------|-------------|----------|
-| [executors](./skills/executors/) | Create trading executors (position, grid, DCA, TWAP) | Trading |
-| [candles](./skills/candles/) | Market data and technical indicators | Data |
-| [keys](./skills/keys/) | Manage exchange API credentials | Configuration |
-| [setup](./skills/setup/) | Deploy Hummingbot infrastructure (Docker, API, Gateway) | Infrastructure |
+| [hummingbot-api-setup](./skills/hummingbot-api-setup/) | Deploy Hummingbot infrastructure (Docker, API, Gateway) | Infrastructure |
+| [keys-manager](./skills/keys-manager/) | Manage exchange API credentials | Configuration |
+| [executor-creator](./skills/executor-creator/) | Create trading executors (position, grid, DCA, TWAP) | Trading |
+| [candles-feed](./skills/candles-feed/) | Fetch market data and technical indicators | Data |
 
 ## Installation
 
@@ -35,7 +35,7 @@ npx skills add hummingbot/skills
 
 Install a specific skill:
 ```bash
-npx skills add hummingbot/skills --skill executors
+npx skills add hummingbot/skills --skill executor-creator
 ```
 
 ## Usage
@@ -64,14 +64,14 @@ After installation, ask your AI agent:
 
 ```
 skills/
-├── skills/                 # Skill definitions
-│   ├── executors/          # Trading executors
-│   ├── candles/            # Market data & indicators
-│   ├── keys/               # API credentials
-│   └── setup/              # Infrastructure setup
-├── webapp/                 # skills.hummingbot.org
-├── docs/                   # Documentation
-└── skills.json             # Skills registry
+├── skills/                     # Skill definitions
+│   ├── hummingbot-api-setup/   # Infrastructure setup
+│   ├── keys-manager/           # API credentials
+│   ├── executor-creator/       # Trading executors
+│   └── candles-feed/           # Market data & indicators
+├── webapp/                     # skills.hummingbot.org
+├── docs/                       # Documentation
+└── skills.json                 # Skills registry
 ```
 
 ## Web App
@@ -87,7 +87,7 @@ git clone https://github.com/hummingbot/skills.git
 cd skills
 
 # Test a skill
-./skills/executors/scripts/create_position.sh --help
+./skills/executor-creator/scripts/create_position.sh --help
 ```
 
 ## License
