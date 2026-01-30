@@ -1,4 +1,4 @@
-import { getSkillsData, formatNumber } from "@/lib/skills";
+import { getSkillsData } from "@/lib/skills";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { CopyButton } from "@/components/copy-button";
@@ -7,7 +7,6 @@ import Link from "next/link";
 export default async function Home() {
   const data = await getSkillsData();
   const activeSkills = data.skills.filter((s) => s.status === "active");
-  const totalInstalls = data.skills.reduce((sum, s) => sum + s.installs.total, 0);
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-12">
@@ -45,10 +44,6 @@ export default async function Home() {
           <p className="text-white/50 font-mono text-xs tracking-widest uppercase mb-1">Skills</p>
           <p className="text-white font-mono text-2xl">{activeSkills.length}</p>
         </div>
-        <div>
-          <p className="text-white/50 font-mono text-xs tracking-widest uppercase mb-1">Total Installs</p>
-          <p className="text-white font-mono text-2xl">{formatNumber(totalInstalls)}</p>
-        </div>
       </div>
 
       {/* Search */}
@@ -74,9 +69,6 @@ export default async function Home() {
               <th className="text-left px-4 py-3 text-white/50 font-mono text-xs tracking-widest uppercase hidden sm:table-cell">
                 Category
               </th>
-              <th className="text-right px-4 py-3 text-white/50 font-mono text-xs tracking-widest uppercase">
-                Installs
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -97,11 +89,6 @@ export default async function Home() {
                   <Badge variant="secondary" className="bg-white/10 text-white/70 hover:bg-white/10 font-mono text-xs">
                     {skill.category}
                   </Badge>
-                </td>
-                <td className="px-4 py-4 text-right">
-                  <span className="text-white/70 font-mono text-sm">
-                    {formatNumber(skill.installs.total)}
-                  </span>
                 </td>
               </tr>
             ))}

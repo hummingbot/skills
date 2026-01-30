@@ -1,4 +1,4 @@
-import { getSkillsData, getSkillReadme, formatNumber } from "@/lib/skills";
+import { getSkillsData, getSkillReadme } from "@/lib/skills";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -61,12 +61,6 @@ export default async function SkillPage({ params }: Props) {
           {skill.name}
         </h1>
         <div className="flex flex-wrap items-center gap-4 text-sm text-white/50 mb-6">
-          <span className="flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            {formatNumber(skill.installs.total)} installs
-          </span>
           <a
             href={`${data.repo.url}/tree/main/${skill.path}`}
             target="_blank"
@@ -148,18 +142,6 @@ export default async function SkillPage({ params }: Props) {
                   >
                     {skill.status}
                   </Badge>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-white/50 text-sm mb-1">Weekly Installs</dt>
-                <dd className="text-white font-mono">
-                  {formatNumber(skill.installs.weekly)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-white/50 text-sm mb-1">Total Installs</dt>
-                <dd className="text-white font-mono">
-                  {formatNumber(skill.installs.total)}
                 </dd>
               </div>
               <div>
