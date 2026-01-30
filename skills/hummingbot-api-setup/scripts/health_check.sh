@@ -2,9 +2,11 @@
 # Health check for all Hummingbot services
 # Usage: ./health_check.sh [--api-url URL] [--api-user USERNAME] [--api-pass PASSWORD]
 
-API_URL="${API_URL:-http://localhost:8000}"
-API_USER="${API_USER:-admin}"
-API_PASS="${API_PASS:-admin}"
+# Load .env if present (check current dir, ~/.hummingbot/, ~/)
+for f in .env ~/.hummingbot/.env ~/.env; do [ -f "$f" ] && source "$f" && break; done
+API_URL="${HUMMINGBOT_API_URL:-${API_URL:-http://localhost:8000}}"
+API_USER="${HUMMINGBOT_API_USER:-${API_USER:-admin}}"
+API_PASS="${HUMMINGBOT_API_PASS:-${API_PASS:-admin}}"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do

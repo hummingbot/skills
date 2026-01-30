@@ -18,9 +18,23 @@ npx skills add hummingbot/skills
 | `candles-feed` | Fetch market data and indicators |
 | `portfolio` | View balances, positions, and history |
 
-## API Server
+## API Configuration
 
-Skills call the Hummingbot API at `http://localhost:8000` with Basic Auth (`admin:admin`).
+Skills connect to the Hummingbot API using environment variables. Configure once:
+
+```bash
+# Create ~/.hummingbot/.env with your settings
+./skills/hummingbot-api-setup/scripts/configure_env.sh --url http://localhost:8000 --user admin --pass admin
+```
+
+Or set environment variables directly:
+```bash
+export HUMMINGBOT_API_URL=http://localhost:8000
+export HUMMINGBOT_API_USER=admin
+export HUMMINGBOT_API_PASS=admin
+```
+
+Skills check for `.env` in: current directory → `~/.hummingbot/` → `~/`
 
 ## Publishing to npm
 

@@ -232,6 +232,36 @@ After installation:
 - Docs: http://localhost:8000/docs
 - Default credentials: admin/admin
 
+### Configure API Credentials
+
+All Hummingbot skills use environment variables for API connection. Configure them once:
+
+```bash
+# Show current configuration
+./scripts/configure_env.sh --show
+
+# Configure with defaults (admin:admin @ localhost:8000)
+./scripts/configure_env.sh
+
+# Configure with custom settings
+./scripts/configure_env.sh --url http://myserver:8000 --user myuser --pass mypass
+
+# Specify output path
+./scripts/configure_env.sh --output ~/.env
+```
+
+The script creates `~/.hummingbot/.env` with:
+```bash
+HUMMINGBOT_API_URL=http://localhost:8000
+HUMMINGBOT_API_USER=admin
+HUMMINGBOT_API_PASS=admin
+```
+
+Skills check for `.env` in these locations (first found wins):
+1. Current directory (`.env`)
+2. `~/.hummingbot/.env`
+3. `~/.env`
+
 ### Gateway (Optional)
 
 For DEX trading, Gateway provides blockchain connectivity:
