@@ -35,7 +35,7 @@ export default function RootLayout({
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <a href="/" className="flex items-center gap-2 text-white hover:text-white/80">
               <Image src="/logo.png" alt="Hummingbot" width={28} height={28} />
-              <span className="font-mono text-sm tracking-wide">Skills</span>
+              <span className="font-mono text-lg tracking-wide">Hummingbot Skills</span>
             </a>
             <nav className="flex items-center gap-6">
               <a href="https://github.com/hummingbot/skills" target="_blank" rel="noopener noreferrer" className="text-sm text-white/60 hover:text-white">
