@@ -34,14 +34,6 @@ function parseFrontmatter(content: string): SkillFrontmatter | null {
   return result;
 }
 
-const categoryMap: Record<string, { id: string; name: string }> = {
-  "hummingbot-api-setup": { id: "infrastructure", name: "Infrastructure" },
-  "keys-manager": { id: "configuration", name: "Configuration" },
-  "executor-creator": { id: "trading", name: "Trading" },
-  "candles-feed": { id: "data", name: "Data" },
-  "portfolio": { id: "data", name: "Data" },
-};
-
 export async function getSkillsData(): Promise<SkillsData> {
   try {
     const skillsDir = path.join(process.cwd(), "..", "skills");
@@ -58,18 +50,12 @@ export async function getSkillsData(): Promise<SkillsData> {
         const frontmatter = parseFrontmatter(content);
 
         if (frontmatter && frontmatter.name) {
-          const category = categoryMap[entry.name] || { id: "other", name: "Other" };
           skills.push({
             id: entry.name,
             name: frontmatter.name,
             description: frontmatter.description,
-            category: category.id,
-            triggers: [],
             path: `skills/${entry.name}`,
-            installs: { total: 0, weekly: 0, by_agent: {} },
-            first_seen: "2026-01-26T00:00:00Z",
-            status: "active",
-            creatorGithubHandle: frontmatter.metadata?.author,
+            author: frontmatter.metadata?.author,
           });
         }
       } catch {
@@ -87,12 +73,6 @@ export async function getSkillsData(): Promise<SkillsData> {
         url: "https://github.com/hummingbot/skills"
       },
       skills,
-      categories: [
-        { id: "infrastructure", name: "Infrastructure", icon: "server" },
-        { id: "configuration", name: "Configuration", icon: "settings" },
-        { id: "trading", name: "Trading", icon: "chart-line" },
-        { id: "data", name: "Data", icon: "database" }
-      ]
     };
   } catch {
     return {
@@ -102,7 +82,6 @@ export async function getSkillsData(): Promise<SkillsData> {
         url: "https://github.com/hummingbot/skills"
       },
       skills: [],
-      categories: []
     };
   }
 }

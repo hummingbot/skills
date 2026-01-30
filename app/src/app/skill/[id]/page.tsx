@@ -1,5 +1,4 @@
 import { getSkillsData, getSkillReadme } from "@/lib/skills";
-import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -33,7 +32,6 @@ export default async function SkillPage({ params }: Props) {
     notFound();
   }
 
-  const category = data.categories.find((c) => c.id === skill.category);
   const readme = await getSkillReadme(skill.path);
 
   return (
@@ -109,29 +107,6 @@ export default async function SkillPage({ params }: Props) {
             </h3>
             <dl className="space-y-4">
               <div>
-                <dt className="text-muted-foreground text-sm mb-1">Category</dt>
-                <dd>
-                  <Badge variant="secondary" className="font-mono text-xs">
-                    {category?.name || skill.category}
-                  </Badge>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground text-sm mb-1">Status</dt>
-                <dd>
-                  <Badge
-                    variant={skill.status === "active" ? "default" : "outline"}
-                    className={
-                      skill.status === "active"
-                        ? "bg-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-500/20"
-                        : "text-muted-foreground border-border"
-                    }
-                  >
-                    {skill.status}
-                  </Badge>
-                </dd>
-              </div>
-              <div>
                 <dt className="text-muted-foreground text-sm mb-1">GitHub</dt>
                 <dd>
                   <a
@@ -144,22 +119,22 @@ export default async function SkillPage({ params }: Props) {
                   </a>
                 </dd>
               </div>
-              {skill.creatorGithubHandle && (
+              {skill.author && (
                 <div>
                   <dt className="text-muted-foreground text-sm mb-1">Creator</dt>
                   <dd>
                     <a
-                      href={`https://github.com/${skill.creatorGithubHandle}`}
+                      href={`https://github.com/${skill.author}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <img
-                        src={`https://github.com/${skill.creatorGithubHandle}.png?size=32`}
-                        alt={skill.creatorGithubHandle}
+                        src={`https://github.com/${skill.author}.png?size=32`}
+                        alt={skill.author}
                         className="w-6 h-6 rounded-full"
                       />
-                      <span className="text-sm">{skill.creatorGithubHandle}</span>
+                      <span className="text-sm">{skill.author}</span>
                     </a>
                   </dd>
                 </div>
