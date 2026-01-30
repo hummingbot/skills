@@ -6,11 +6,22 @@ license: Apache-2.0
 
 # Hummingbot Setup Skill
 
-This skill handles the complete deployment and configuration of Hummingbot infrastructure. It provides step-by-step guidance through the installation process, based on the official [hummingbot/deploy](https://github.com/hummingbot/deploy) setup script.
+Deploy Hummingbot infrastructure using the official installer from [hummingbot/deploy](https://github.com/hummingbot/deploy).
 
-## Installation Overview
+## Quick Start
 
-The Hummingbot stack consists of:
+```bash
+# Fresh install (Condor + API)
+./scripts/setup.sh
+
+# Install API only
+./scripts/setup.sh --api
+
+# Upgrade existing installation
+./scripts/setup.sh --upgrade
+```
+
+## What Gets Installed
 
 | Component | Description |
 |-----------|-------------|
@@ -18,321 +29,93 @@ The Hummingbot stack consists of:
 | **Hummingbot API** | REST API server for bot management |
 | **PostgreSQL** | Database for configurations and history |
 | **EMQX** | MQTT broker for real-time communication |
-| **Gateway** | (Optional) DEX trading on Solana, Ethereum |
 
-## Progressive Installation Steps
-
-Use these scripts to guide users through installation one step at a time:
-
-### Step 1: Check System Requirements
+## Installation Options
 
 ```bash
-./scripts/step1_detect_system.sh
+./scripts/setup.sh [OPTIONS]
+
+Options:
+  --upgrade    Upgrade existing installation
+  --api        Install only Hummingbot API (standalone)
+  -h, --help   Show help message
 ```
 
-Detects:
-- Operating system (Linux, macOS)
-- Architecture (amd64, arm64)
-- Available disk space (needs 2GB+)
+## After Installation
 
-### Step 2: Check Dependencies
-
-```bash
-./scripts/step2_check_dependencies.sh
-```
-
-Checks for:
-- git
-- curl
-- docker
-- docker-compose (plugin or standalone)
-- make
-
-### Step 3: Install Missing Dependencies
-
-```bash
-./scripts/step3_install_dependency.sh --dep docker
-./scripts/step3_install_dependency.sh --dep docker-compose
-./scripts/step3_install_dependency.sh --dep git
-./scripts/step3_install_dependency.sh --dep make
-```
-
-Installs individual dependencies based on detected package manager.
-
-### Step 4: Check Docker Status
-
-```bash
-./scripts/step4_check_docker.sh
-```
-
-Verifies:
-- Docker daemon is running
-- Docker Compose is available
-- User has permissions
-
-### Step 5: Clone Repositories
-
-```bash
-# Clone Condor (Telegram bot)
-./scripts/step5_clone_repo.sh --repo condor
-
-# Clone Hummingbot API
-./scripts/step5_clone_repo.sh --repo api
-```
-
-### Step 6: Setup Components
-
-```bash
-# Setup Condor environment
-./scripts/step6_setup_component.sh --component condor
-
-# Setup Hummingbot API
-./scripts/step6_setup_component.sh --component api
-```
-
-### Step 7: Deploy Services
-
-```bash
-# Deploy Condor
-./scripts/step7_deploy_component.sh --component condor
-
-# Deploy Hummingbot API
-./scripts/step7_deploy_component.sh --component api
-```
-
-### Step 8: Verify Installation
-
-```bash
-./scripts/step8_verify_installation.sh
-```
-
-Checks all services are running and healthy.
-
-## Quick Installation
-
-For users who want to run everything at once:
-
-```bash
-# Full installation (Condor + API)
-./scripts/deploy_full_stack.sh
-
-# API only installation
-./scripts/deploy_full_stack.sh --api-only
-
-# Upgrade existing installation
-./scripts/deploy_full_stack.sh --upgrade
-```
-
-## Workflow for Agent-Guided Installation
-
-When helping a user install Hummingbot, follow this workflow:
-
-### 1. Initial Assessment
-
-```bash
-./scripts/step1_detect_system.sh
-```
-
-Tell the user:
-- Their detected OS and architecture
-- Whether they have enough disk space
-- What will be installed
-
-### 2. Dependency Check
-
-```bash
-./scripts/step2_check_dependencies.sh
-```
-
-If dependencies are missing:
-- List what's missing
-- Explain each dependency's purpose
-- Offer to install them
-
-### 3. Install Each Missing Dependency
-
-For each missing dependency:
-```bash
-./scripts/step3_install_dependency.sh --dep <name>
-```
-
-Explain:
-- What's being installed
-- Any permissions needed (sudo)
-- Progress and completion
-
-### 4. Verify Docker
-
-```bash
-./scripts/step4_check_docker.sh
-```
-
-If Docker isn't running:
-- Explain how to start it
-- On macOS: "Open Docker Desktop"
-- On Linux: `sudo systemctl start docker`
-
-### 5. Choose Components
-
-Ask the user:
-- "Do you want Condor (Telegram bot interface)?" → Most users: Yes
-- "Do you want Hummingbot API?" → Required for trading bots
-
-### 6. Clone and Setup
-
-For each chosen component:
-```bash
-./scripts/step5_clone_repo.sh --repo <component>
-./scripts/step6_setup_component.sh --component <component>
-```
-
-Explain:
-- What's being downloaded
-- Configuration being created
-- Any prompts they need to answer
-
-### 7. Deploy
-
-```bash
-./scripts/step7_deploy_component.sh --component <component>
-```
-
-This may take a few minutes as Docker images are pulled.
-
-### 8. Verify and Provide Next Steps
-
-```bash
-./scripts/step8_verify_installation.sh
-```
-
-Tell the user:
-- Services running and their URLs
-- How to access Condor via Telegram
-- How to view logs
-- How to upgrade in the future
-
-## Component Details
+### Hummingbot API
+- **URL:** http://localhost:8000
+- **Docs:** http://localhost:8000/docs
+- **Default credentials:** admin/admin
 
 ### Condor (Telegram Bot)
-
-Repository: https://github.com/hummingbot/condor.git
-
-After installation:
 1. Open Telegram
 2. Search for your bot (configured during setup)
 3. Use `/config` to add API servers
 4. Use `/start` to begin trading
 
-### Hummingbot API
+## Configure API Credentials
 
-Repository: https://github.com/hummingbot/hummingbot-api.git
-
-After installation:
-- API URL: http://localhost:8000
-- Docs: http://localhost:8000/docs
-- Default credentials: admin/admin
-
-### Configure API Credentials
-
-All Hummingbot skills use environment variables for API connection. Configure them once:
+Set up credentials for other Hummingbot skills:
 
 ```bash
-# Show current configuration
-./scripts/configure_env.sh --show
-
 # Configure with defaults (admin:admin @ localhost:8000)
 ./scripts/configure_env.sh
 
 # Configure with custom settings
 ./scripts/configure_env.sh --url http://myserver:8000 --user myuser --pass mypass
 
-# Specify output path
-./scripts/configure_env.sh --output ~/.env
+# Show current configuration
+./scripts/configure_env.sh --show
 ```
 
-The script creates `~/.hummingbot/.env` with:
+Creates `~/.hummingbot/.env` with:
 ```bash
 API_URL=http://localhost:8000
 API_USER=admin
 API_PASS=admin
 ```
 
-Skills check for `.env` in these locations (first found wins):
-1. Current directory (`.env`)
-2. `~/.hummingbot/.env`
-3. `~/.env`
+## Health Check
 
-### Gateway (Optional)
-
-For DEX trading, Gateway provides blockchain connectivity:
+Verify installation is running:
 
 ```bash
-./scripts/deploy_gateway.sh --chain solana --network mainnet-beta
+./scripts/health_check.sh
 ```
 
-Supported chains:
-- Solana (Jupiter, Raydium, Meteora)
-- Ethereum (Uniswap, 0x)
-- Various L2s (Arbitrum, Base, Optimism)
+## System Requirements
+
+- **OS:** Linux or macOS
+- **Docker:** Required (script will guide installation)
+- **Disk Space:** 2GB minimum
+- **Dependencies:** git, curl, make (auto-installed)
 
 ## Troubleshooting
 
-### Docker Issues
+### Docker not running
 
-**Docker not running (macOS):**
+**macOS:**
 ```bash
 open -a Docker
-# Wait for Docker Desktop to start
 ```
 
-**Docker not running (Linux):**
+**Linux:**
 ```bash
 sudo systemctl start docker
-sudo systemctl enable docker
 ```
 
-**Permission denied:**
+### Port conflicts
+
+| Port | Service | Check |
+|------|---------|-------|
+| 8000 | API | `lsof -i :8000` |
+| 5432 | PostgreSQL | `lsof -i :5432` |
+| 1883 | EMQX | `lsof -i :1883` |
+
+### View logs
+
 ```bash
-sudo usermod -aG docker $USER
-# Log out and back in
+cd ~/hummingbot-api && docker compose logs -f
+cd ~/condor && docker compose logs -f
 ```
-
-### Installation Failures
-
-**Clone failed:**
-- Check internet connection
-- Try: `git clone --depth 1 <repo>`
-
-**Make setup failed:**
-- Check for error messages
-- Ensure all dependencies installed
-- Try running manually: `cd <dir> && make setup`
-
-**Deploy failed:**
-- Check Docker is running
-- Check disk space
-- View logs: `docker compose logs`
-
-### Port Conflicts
-
-| Port | Service | Solution |
-|------|---------|----------|
-| 8000 | API | `lsof -i :8000` then stop conflicting process |
-| 5432 | PostgreSQL | Stop local PostgreSQL |
-| 1883 | EMQX | Stop local MQTT broker |
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `INSTALL_DIR` | `$HOME` | Installation directory |
-| `API_REPO` | github.com/hummingbot/hummingbot-api | API repository URL |
-| `CONDOR_REPO` | github.com/hummingbot/condor | Condor repository URL |
-
-## Reference
-
-The original setup script is available at:
-- `references/original_setup.sh`
-- Source: https://github.com/hummingbot/deploy/blob/main/setup.sh
-
-This skill breaks down that monolithic script into modular steps for better agent guidance.

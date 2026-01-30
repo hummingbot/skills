@@ -41,3 +41,5 @@ test-results/
 # Cache
 .cache/
 .turbo/
+.vercel
+.env*.local
