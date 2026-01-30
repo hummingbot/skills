@@ -10,7 +10,7 @@
   },
   "plugins": [
     {
-      "name": "trading-skills",
+      "name": "hummingbot-skills",
       "description": "Core Hummingbot trading skills: API setup, credential management, executor creation, and market data feeds",
       "source": "./",
       "strict": false,

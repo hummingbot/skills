@@ -7,7 +7,7 @@ Claude Code plugin marketplace for Hummingbot trading infrastructure.
 ```bash
 # Claude Code (recommended)
 /plugin marketplace add hummingbot/skills
-/plugin install trading-skills@hummingbot-skills
+/plugin install hummingbot-skills@hummingbot-skills
 
 # skills.sh CLI
 npx skills add hummingbot/skills --skill executor-creator

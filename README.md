@@ -13,7 +13,7 @@ Add Hummingbot as a Claude Code plugin marketplace:
 Then install the trading skills:
 
 ```
-/plugin install trading-skills@hummingbot-skills
+/plugin install hummingbot-skills@hummingbot-skills
 ```
 
 After installing, just ask Claude:
@@ -78,7 +78,7 @@ cd skills
 
 # Test marketplace locally in Claude Code
 /plugin marketplace add ./
-/plugin install trading-skills@hummingbot-skills
+/plugin install hummingbot-skills@hummingbot-skills
 ```
 
 ## License
