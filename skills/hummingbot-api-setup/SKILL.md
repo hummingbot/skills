@@ -252,9 +252,9 @@ All Hummingbot skills use environment variables for API connection. Configure th
 
 The script creates `~/.hummingbot/.env` with:
 ```bash
-HUMMINGBOT_API_URL=http://localhost:8000
-HUMMINGBOT_API_USER=admin
-HUMMINGBOT_API_PASS=admin
+API_URL=http://localhost:8000
+API_USER=admin
+API_PASS=admin
 ```
 
 Skills check for `.env` in these locations (first found wins):

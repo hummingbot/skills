@@ -29,9 +29,9 @@ Skills connect to the Hummingbot API using environment variables. Configure once
 
 Or set environment variables directly:
 ```bash
-export HUMMINGBOT_API_URL=http://localhost:8000
-export HUMMINGBOT_API_USER=admin
-export HUMMINGBOT_API_PASS=admin
+export API_URL=http://localhost:8000
+export API_USER=admin
+export API_PASS=admin
 ```
 
 Skills check for `.env` in: current directory → `~/.hummingbot/` → `~/`
