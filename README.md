@@ -28,8 +28,8 @@ After installing, ask your AI agent:
 
 | Skill | Description |
 |-------|-------------|
-| [hummingbot-api-setup](./skills/hummingbot-api-setup/) | Deploy Hummingbot infrastructure (Docker, API, Gateway) |
-| [keys-manager](./skills/keys-manager/) | Manage exchange API credentials |
+| [hummingbot-api-setup](./skills/hummingbot-api-setup/) | Deploy Hummingbot API infrastructure |
+| [keys-manager](./skills/keys-manager/) | Manage spot and perpetual exchange API keys |
 | [executor-creator](./skills/executor-creator/) | Create trading executors (position, grid, DCA, TWAP) |
 | [candles-feed](./skills/candles-feed/) | Fetch market data and technical indicators |
 | [portfolio](./skills/portfolio/) | View balances and positions across exchanges |
