@@ -2,7 +2,8 @@
 name: keys-manager
 description: Manage exchange API keys and credentials for Hummingbot trading. Use this skill when the user wants to add, remove, or list API credentials for exchanges like Binance, Coinbase, Kraken, etc.
 license: Apache-2.0
-creator-github-handle: cardosofede
+metadata:
+  author: fengtality
 ---
 
 # keys-manager

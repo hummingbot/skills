@@ -2,7 +2,8 @@
 name: hummingbot-api-setup
 description: Deploy Hummingbot infrastructure including API server, Condor Telegram bot, PostgreSQL, and Gateway for DEX trading. Use this skill when the user wants to install, deploy, or set up Hummingbot.
 license: Apache-2.0
-creator-github-handle: david-hummingbot
+metadata:
+  author: david-hummingbot
 ---
 
 # hummingbot-api-setup
