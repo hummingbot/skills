@@ -1,0 +1,28 @@
+{
+  "name": "@hummingbot/skills",
+  "version": "1.0.0",
+  "description": "AI agent skills for Hummingbot algorithmic trading infrastructure",
+  "keywords": [
+    "hummingbot",
+    "trading",
+    "crypto",
+    "ai-agent",
+    "skills",
+    "algorithmic-trading"
+  ],
+  "homepage": "https://skills.hummingbot.org",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hummingbot/skills.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Hummingbot Foundation <dev@hummingbot.org>",
+  "files": [
+    "skills/",
+    "skills.json",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
