@@ -16,10 +16,16 @@ npx skills add hummingbot/skills
 | `keys-manager` | Manage exchange API credentials |
 | `executor-creator` | Create trading executors |
 | `candles-feed` | Fetch market data and indicators |
+| `portfolio` | View balances, positions, and history |
 
 ## API Server
 
 Skills call the Hummingbot API at `http://localhost:8000` with Basic Auth (`admin:admin`).
+
+## Publishing to npm
+
+- **Option A:** Create a GitHub Release → auto-publishes to npm
+- **Option B:** Go to Actions → "Publish to npm" → Run workflow (choose patch/minor/major)
 
 ## Project Structure
 
@@ -29,6 +35,7 @@ skills/
 │   ├── hummingbot-api-setup/
 │   ├── keys-manager/
 │   ├── executor-creator/
-│   └── candles-feed/
+│   ├── candles-feed/
+│   └── portfolio/
 └── skills.json             # Skill metadata (for webapp)
 ```
