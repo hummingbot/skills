@@ -54,28 +54,6 @@ Options:
 3. Use `/config` to add API servers
 4. Use `/start` to begin trading
 
-## Configure API Credentials
-
-Set up credentials for other Hummingbot skills:
-
-```bash
-# Configure with defaults (admin:admin @ localhost:8000)
-./scripts/configure_env.sh
-
-# Configure with custom settings
-./scripts/configure_env.sh --url http://myserver:8000 --user myuser --pass mypass
-
-# Show current configuration
-./scripts/configure_env.sh --show
-```
-
-Creates `~/.hummingbot/.env` with:
-```bash
-API_URL=http://localhost:8000
-API_USER=admin
-API_PASS=admin
-```
-
 ## Health Check
 
 Verify installation is running:
