@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hummingbot Skills Webapp
 
-## Getting Started
+Next.js webapp for browsing and discovering Hummingbot skills.
 
-First, run the development server:
+**Live site:** [skills.hummingbot.org](https://skills.hummingbot.org)
+
+## Features
+
+- Browse all available Hummingbot skills
+- View skill details and documentation
+- Dark/light mode support
+- API endpoint for CLI integration
+
+## Development
 
 ```bash
+cd app
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [Next.js 16](https://nextjs.org/) with App Router
+- [Tailwind CSS](https://tailwindcss.com/)
+- [shadcn/ui](https://ui.shadcn.com/) components
+- [next-themes](https://github.com/pacocoursey/next-themes) for dark mode
 
-## Learn More
+## API Endpoints
 
-To learn more about Next.js, take a look at the following resources:
+### GET /api/skills
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Returns all skills with metadata. Used by the CLI.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```json
+{
+  "repo": {
+    "owner": "hummingbot",
+    "name": "skills",
+    "url": "https://github.com/hummingbot/skills"
+  },
+  "skills": [
+    {
+      "id": "portfolio",
+      "name": "portfolio",
+      "description": "View portfolio balances...",
+      "path": "skills/portfolio",
+      "author": "fengtality"
+    }
+  ]
+}
+```
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The webapp is deployed on Vercel.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Automatic Deploys
+
+Connected to GitHub via Vercel integration:
+- Push to `main` → deploys to production
+- Open PR → creates preview deployment
+
+### Manual Deploy
+
+```bash
+cd app
+vercel --prod
+```
+
+### Environment Variables
+
+None required. The app reads skill data from local `skills/` directory at build time.
+
+## Project Structure
+
+```
+app/
+├── src/
+│   ├── app/              # Next.js App Router pages
+│   │   ├── page.tsx      # Home page (skill list)
+│   │   ├── skill/[id]/   # Skill detail pages
+│   │   └── api/skills/   # API endpoint
+│   ├── components/       # React components
+│   │   └── ui/           # shadcn/ui components
+│   └── lib/
+│       ├── skills.ts     # Skill data fetching
+│       └── types.ts      # TypeScript types
+├── public/               # Static assets
+├── tailwind.config.ts
+└── package.json
+```
+
+## Links
+
+- [Main Repository](https://github.com/hummingbot/skills)
+- [Vercel Dashboard](https://vercel.com/hummingbot/skills)

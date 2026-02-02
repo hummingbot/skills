@@ -2,11 +2,45 @@
 
 AI agent skills for Hummingbot trading infrastructure. Built on the [Agent Skills](https://agentskills.io) open standard.
 
-## Installation
+## Monorepo Structure
 
-```bash
-npx skills add hummingbot/skills
+This is a monorepo with three main components:
+
 ```
+hummingbot/skills/
+├── skills/           # Skill definitions (SKILL.md + scripts/)
+├── cli/              # hummingbot-skills CLI (npm package)
+├── app/              # Next.js webapp (skills.hummingbot.org)
+└── .github/          # CI/CD workflows
+```
+
+### skills/
+
+Trading skill definitions. Each skill has:
+- `SKILL.md` - Frontmatter with name, description, metadata.author
+- `scripts/` - Shell scripts for the agent to execute
+
+### cli/
+
+The `hummingbot-skills` npm package. A convenience wrapper around the [skills CLI](https://github.com/vercel-labs/skills).
+
+**Development:**
+```bash
+cd cli && npm install && npm run build && npm link
+```
+
+**Publishing:** See [cli/README.md](./cli/README.md)
+
+### app/
+
+Next.js webapp deployed at [skills.hummingbot.org](https://skills.hummingbot.org).
+
+**Development:**
+```bash
+cd app && npm install && npm run dev
+```
+
+**Deployment:** Auto-deploys via Vercel on push to main. See [app/README.md](./app/README.md)
 
 ## Available Skills
 
@@ -20,15 +54,13 @@ npx skills add hummingbot/skills
 
 ## API Configuration
 
-Skills connect to the Hummingbot API using environment variables. Configure once:
+Skills connect to the Hummingbot API. Configure credentials:
 
 ```bash
-# Create ~/.hummingbot/.env with your settings
+# Option 1: Use the setup script
 ./skills/hummingbot-api-setup/scripts/configure_env.sh --url http://localhost:8000 --user admin --pass admin
-```
 
-Or set environment variables directly:
-```bash
+# Option 2: Set environment variables
 export API_URL=http://localhost:8000
 export API_USER=admin
 export API_PASS=admin
@@ -36,44 +68,27 @@ export API_PASS=admin
 
 Skills check for `.env` in: current directory → `~/.hummingbot/` → `~/`
 
-## Publishing to npm
+## Publishing
 
-- **Option A:** Create a GitHub Release → auto-publishes to npm
-- **Option B:** Go to Actions → "Publish to npm" → Run workflow (choose patch/minor/major)
+### CLI to npm
 
-## Vercel Deployment
+**Option A:** Create a GitHub Release with tag `cli-v*` → auto-publishes via workflow
 
-**Live site:** https://skills.hummingbot.org
-
-### Manual Deploy
+**Option B:** Manual
 ```bash
-vercel --prod
+cd cli
+npm version patch
+npm run build
+npm publish --access public
 ```
 
-### Automatic Deploys (GitHub Integration)
+### Webapp to Vercel
 
-To enable auto-deploy on push to GitHub:
+Auto-deploys on push to `main`. Manual: `cd app && vercel --prod`
 
-1. Go to [Vercel Dashboard](https://vercel.com/botcamps-projects/hummingbot-skills/settings/git)
-2. Under "Connected Git Repository", connect `hummingbot/skills` if not already
-3. Configure branches:
-   - **Production Branch:** `main` → deploys to skills.hummingbot.org
-   - **Preview Branches:** `dev`, PRs → deploys to preview URLs
+## Key Files
 
-Once connected:
-- Push to `main` → auto-deploys to production
-- Push to `dev` → creates preview deployment
-- Open PR → creates preview deployment with comment link
-
-## Project Structure
-
-```
-skills/
-├── skills/                 # Skill definitions (SKILL.md + scripts/)
-│   ├── hummingbot-api-setup/
-│   ├── keys-manager/
-│   ├── executor-creator/
-│   ├── candles-feed/
-│   └── portfolio/
-└── skills.json             # Skill metadata (for webapp)
-```
+- `skills/*/SKILL.md` - Skill definitions (source of truth for metadata)
+- `app/src/lib/skills.ts` - Reads SKILL.md files, serves via API
+- `app/src/app/api/skills/route.ts` - API endpoint for CLI
+- `cli/src/cli.ts` - CLI implementation
