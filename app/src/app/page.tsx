@@ -30,9 +30,9 @@ export default async function Home() {
         <div className="bg-muted border border-border rounded-lg px-4 py-3 font-mono text-sm flex items-center justify-between">
           <code>
             <span className="text-muted-foreground">$ </span>
-            <span className="text-foreground">npx skills add hummingbot/skills</span>
+            <span className="text-foreground">npx hummingbot-skills add</span>
           </code>
-          <CopyButton text="npx skills add hummingbot/skills" />
+          <CopyButton text="npx hummingbot-skills add" />
         </div>
       </div>
 

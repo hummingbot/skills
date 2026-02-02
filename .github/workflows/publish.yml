@@ -1,4 +1,4 @@
-name: Publish to npm
+name: Publish Skills List to npm
 
 on:
   release:

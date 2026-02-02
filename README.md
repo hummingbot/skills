@@ -7,7 +7,7 @@ Built on the [Agent Skills](https://agentskills.io) open standard.
 ## Quick Start
 
 ```bash
-npx hummingbot-skills add -g
+npx hummingbot-skills add
 ```
 
 This installs all Hummingbot skills to your AI agents (Claude Code, Cursor, etc.).
