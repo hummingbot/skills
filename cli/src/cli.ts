@@ -76,6 +76,9 @@ function showBanner(): void {
     `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills add${RESET}      ${DIM}Install all skills${RESET}`
   );
   console.log(
+    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills remove${RESET}   ${DIM}Remove installed skills${RESET}`
+  );
+  console.log(
     `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills list${RESET}     ${DIM}List available skills${RESET}`
   );
   console.log(
@@ -91,19 +94,27 @@ function showHelp(): void {
 ${BOLD}Usage:${RESET} hummingbot-skills <command> [options]
 
 ${BOLD}Commands:${RESET}
-  add [skills...]   Install skills (default: all skills)
-  list, ls          List available skills
-  find [query]      Search for skills
+  add [skills...]      Install skills (default: all skills)
+  remove [skills...]   Remove installed skills
+  list, ls             List available skills
+  find [query]         Search for skills
 
 ${BOLD}Add Options:${RESET}
   -g, --global      Install globally instead of project-level
   -a, --agent       Specify agents (claude-code, cursor, etc.)
   -y, --yes         Skip confirmation prompts
 
+${BOLD}Remove Options:${RESET}
+  -g, --global      Remove from global scope
+  -a, --agent       Remove from specific agents
+  -y, --yes         Skip confirmation prompts
+
 ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} hummingbot-skills add
   ${DIM}$${RESET} hummingbot-skills add portfolio candles-feed
   ${DIM}$${RESET} hummingbot-skills add -g
+  ${DIM}$${RESET} hummingbot-skills remove
+  ${DIM}$${RESET} hummingbot-skills remove portfolio -g
   ${DIM}$${RESET} hummingbot-skills list
   ${DIM}$${RESET} hummingbot-skills find trading
 
@@ -333,6 +344,81 @@ async function runAdd(options: AddOptions): Promise<void> {
   console.log();
 }
 
+interface RemoveOptions {
+  global: boolean;
+  agents: string[];
+  skills: string[];
+  yes: boolean;
+}
+
+function parseRemoveOptions(args: string[]): RemoveOptions {
+  const options: RemoveOptions = {
+    global: false,
+    agents: [],
+    skills: [],
+    yes: false,
+  };
+
+  let i = 0;
+  while (i < args.length) {
+    const arg = args[i];
+    if (arg === '-g' || arg === '--global') {
+      options.global = true;
+    } else if (arg === '-y' || arg === '--yes') {
+      options.yes = true;
+    } else if (arg === '-a' || arg === '--agent') {
+      i++;
+      while (i < args.length && !args[i].startsWith('-')) {
+        options.agents.push(args[i]);
+        i++;
+      }
+      continue;
+    } else if (!arg.startsWith('-')) {
+      options.skills.push(arg);
+    }
+    i++;
+  }
+
+  return options;
+}
+
+async function runRemove(options: RemoveOptions): Promise<void> {
+  const removeArgs = ['skills', 'remove'];
+
+  if (options.skills.length > 0) {
+    removeArgs.push(...options.skills);
+  }
+
+  if (options.global) {
+    removeArgs.push('-g');
+  }
+
+  if (options.agents.length > 0) {
+    removeArgs.push('--agent', ...options.agents);
+  }
+
+  if (options.yes) {
+    removeArgs.push('-y');
+  }
+
+  console.log(`${DIM}Running: npx ${removeArgs.join(' ')}${RESET}`);
+  console.log();
+
+  const result = spawnSync('npx', ['-y', ...removeArgs], {
+    stdio: 'inherit',
+  });
+
+  if (result.status === 0) {
+    console.log();
+    console.log(`${GREEN}✓${RESET} ${TEXT}Skills removed successfully${RESET}`);
+  } else {
+    console.log();
+    console.log(`${YELLOW}!${RESET} ${TEXT}Removal may have encountered issues${RESET}`);
+  }
+
+  console.log();
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
@@ -352,6 +438,15 @@ async function main(): Promise<void> {
       showLogo();
       console.log();
       await runAdd(parseAddOptions(restArgs));
+      break;
+
+    case 'remove':
+    case 'rm':
+    case 'r':
+    case 'uninstall':
+      showLogo();
+      console.log();
+      await runRemove(parseRemoveOptions(restArgs));
       break;
 
     case 'list':

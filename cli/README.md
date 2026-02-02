@@ -36,6 +36,26 @@ Install for specific agents:
 npx hummingbot-skills add -a claude-code cursor
 ```
 
+### Remove Skills
+
+Remove installed skills (interactive):
+
+```bash
+npx hummingbot-skills remove
+```
+
+Remove specific skills:
+
+```bash
+npx hummingbot-skills remove portfolio
+```
+
+Remove globally:
+
+```bash
+npx hummingbot-skills remove portfolio -g
+```
+
 ### List Skills
 
 List all available skills:
