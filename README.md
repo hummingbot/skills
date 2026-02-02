@@ -6,13 +6,19 @@ Built on the [Agent Skills](https://agentskills.io) open standard.
 
 ## Installation
 
+Using the hummingbot-skills CLI:
+```bash
+npx hummingbot-skills add
+```
+
+Or using the skills CLI:
 ```bash
 npx skills add hummingbot/skills
 ```
 
-Or install a specific skill:
+Install specific skills:
 ```bash
-npx skills add hummingbot/skills --skill executor-creator
+npx hummingbot-skills add portfolio candles-feed
 ```
 
 ## Usage
@@ -52,6 +58,7 @@ API docs available at `http://localhost:8000/docs`.
 ```
 hummingbot/skills/
 ├── skills/                     # Skill definitions (SKILL.md + scripts/)
+├── cli/                        # hummingbot-skills CLI package
 ├── app/                        # Next.js webapp (skills.hummingbot.org)
 └── .env.example                # API configuration template
 ```

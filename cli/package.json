@@ -1,0 +1,46 @@
+{
+  "name": "hummingbot-skills",
+  "version": "1.0.0",
+  "description": "CLI for managing Hummingbot trading skills for AI agents",
+  "type": "module",
+  "bin": {
+    "hummingbot-skills": "./bin/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "npx tsx src/cli.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "cli",
+    "hummingbot",
+    "trading",
+    "ai-agents",
+    "skills",
+    "claude-code",
+    "cursor",
+    "algorithmic-trading"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hummingbot/skills.git"
+  },
+  "homepage": "https://skills.hummingbot.org",
+  "bugs": {
+    "url": "https://github.com/hummingbot/skills/issues"
+  },
+  "author": "Hummingbot Foundation",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
