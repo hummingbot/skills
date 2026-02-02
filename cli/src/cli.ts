@@ -272,71 +272,34 @@ function parseAddOptions(args: string[]): AddOptions {
 }
 
 async function runAdd(options: AddOptions): Promise<void> {
-  const allSkills = await fetchSkills();
-
-  if (allSkills.length === 0) {
-    console.log(`${DIM}No skills available to install.${RESET}`);
-    return;
-  }
-
-  // Filter skills if specific ones requested
-  let skillsToInstall = allSkills;
-  if (options.skills.length > 0) {
-    skillsToInstall = allSkills.filter((s) =>
-      options.skills.some(
-        (name) => s.id.toLowerCase() === name.toLowerCase() || s.name.toLowerCase() === name.toLowerCase()
-      )
-    );
-
-    if (skillsToInstall.length === 0) {
-      console.log(`${DIM}No matching skills found.${RESET}`);
-      console.log();
-      console.log(`${TEXT}Available skills:${RESET}`);
-      for (const skill of allSkills) {
-        console.log(`  ${skill.id}`);
-      }
-      return;
-    }
-  }
-
-  console.log(`${TEXT}Installing ${skillsToInstall.length} skill(s):${RESET}`);
-  for (const skill of skillsToInstall) {
-    console.log(`  ${GREEN}•${RESET} ${skill.name}`);
-  }
-  console.log();
-
   // Use the skills CLI to install from hummingbot/skills
+  // Let the skills CLI handle interactive selection
   const installArgs = ['skills', 'add', REPO];
 
   if (options.global) {
     installArgs.push('-g');
   }
 
+  // Only pass --skill if specific skills requested
   if (options.skills.length > 0) {
     installArgs.push('--skill', ...options.skills);
-  } else {
-    installArgs.push('--skill', '*');
   }
 
+  // Only pass --agent if specific agents requested
   if (options.agents.length > 0) {
     installArgs.push('--agent', ...options.agents);
-  } else {
-    installArgs.push('--agent', '*');
   }
 
-  installArgs.push('-y');
-
-  console.log(`${DIM}Running: npx ${installArgs.join(' ')}${RESET}`);
-  console.log();
+  // Only pass -y if explicitly requested
+  if (options.yes) {
+    installArgs.push('-y');
+  }
 
   const result = spawnSync('npx', ['-y', ...installArgs], {
     stdio: 'inherit',
   });
 
-  if (result.status === 0) {
-    console.log();
-    console.log(`${GREEN}✓${RESET} ${TEXT}Skills installed successfully${RESET}`);
-  } else {
+  if (result.status !== 0) {
     console.log();
     console.log(`${YELLOW}!${RESET} ${TEXT}Installation may have encountered issues${RESET}`);
   }
@@ -383,6 +346,8 @@ function parseRemoveOptions(args: string[]): RemoveOptions {
 }
 
 async function runRemove(options: RemoveOptions): Promise<void> {
+  // Use the skills CLI to remove
+  // Let the skills CLI handle interactive selection
   const removeArgs = ['skills', 'remove'];
 
   if (options.skills.length > 0) {
@@ -401,22 +366,14 @@ async function runRemove(options: RemoveOptions): Promise<void> {
     removeArgs.push('-y');
   }
 
-  console.log(`${DIM}Running: npx ${removeArgs.join(' ')}${RESET}`);
-  console.log();
-
   const result = spawnSync('npx', ['-y', ...removeArgs], {
     stdio: 'inherit',
   });
 
-  if (result.status === 0) {
-    console.log();
-    console.log(`${GREEN}✓${RESET} ${TEXT}Skills removed successfully${RESET}`);
-  } else {
+  if (result.status !== 0) {
     console.log();
     console.log(`${YELLOW}!${RESET} ${TEXT}Removal may have encountered issues${RESET}`);
   }
-
-  console.log();
 }
 
 async function main(): Promise<void> {
@@ -435,8 +392,6 @@ async function main(): Promise<void> {
     case 'install':
     case 'i':
     case 'a':
-      showLogo();
-      console.log();
       await runAdd(parseAddOptions(restArgs));
       break;
 
@@ -444,8 +399,6 @@ async function main(): Promise<void> {
     case 'rm':
     case 'r':
     case 'uninstall':
-      showLogo();
-      console.log();
       await runRemove(parseRemoveOptions(restArgs));
       break;
 
