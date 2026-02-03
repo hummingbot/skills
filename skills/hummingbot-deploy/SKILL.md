@@ -7,7 +7,7 @@ metadata:
 
 # hummingbot-deploy
 
-Deploy the complete Hummingbot trading infrastructure with modular installation.
+Deploy the complete Hummingbot trading infrastructure.
 
 ## Components
 
@@ -17,40 +17,40 @@ Deploy the complete Hummingbot trading infrastructure with modular installation.
 | **MCP Server** | [hummingbot/mcp](https://github.com/hummingbot/mcp) | Claude/AI agent integration via Model Context Protocol |
 | **Condor** | [hummingbot/condor](https://github.com/hummingbot/condor) | Telegram bot interface for trading |
 
-## Installation
-
-### Step 1: Install Hummingbot API
+## Install Hummingbot API
 
 ```bash
-./scripts/install_api.sh
+git clone https://github.com/hummingbot/hummingbot-api.git ~/hummingbot-api
+cd ~/hummingbot-api
+make setup    # Prompts for: API username, password, config password (defaults: admin/admin/admin)
+make deploy
 ```
 
-- **API URL:** http://localhost:8000
-- **Credentials:** admin/admin
+**Verify:** Open http://localhost:8000/docs - should show Swagger UI.
 
-### Step 2: Install MCP Server (for Claude)
+## Install MCP Server (for Claude)
 
 ```bash
 ./scripts/install_mcp.sh
 ```
 
-### Step 3: Install Condor (Optional)
-
-Telegram bot interface for mobile trading.
+## Install Condor (Optional)
 
 ```bash
 ./scripts/install_condor.sh
 ```
 
-## Other Scripts
+## Upgrade
 
-| Script | Purpose |
-|--------|---------|
-| `check_dependencies.sh` | Check if Docker/Git are installed |
-| `health_check.sh` | Check API health |
-| `status.sh` | Show status of all components |
-| `verify.sh` | Verify installation |
-| `upgrade.sh` | Upgrade existing installation |
+```bash
+cd ~/hummingbot-api && git pull && make deploy
+```
+
+## Verify Installation
+
+```bash
+./scripts/verify.sh
+```
 
 ## Troubleshooting
 

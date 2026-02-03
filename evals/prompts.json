@@ -2,20 +2,13 @@
   "prompts": [
     {
       "id": "install_api",
-      "prompt": "Run /scripts/install_api.sh to install Hummingbot API",
-      "script": "install_api.sh",
-      "verify": "curl -s http://localhost:8000/health"
+      "prompt": "Install Hummingbot API by cloning https://github.com/hummingbot/hummingbot-api.git to ~/hummingbot-api, then run make setup and make deploy",
+      "verify": "curl -s http://localhost:8000/docs | grep -qi swagger"
     },
     {
-      "id": "check_dependencies",
-      "prompt": "Run /scripts/check_dependencies.sh to check dependencies",
-      "script": "check_dependencies.sh",
-      "verify": "echo 'manual'"
-    },
-    {
-      "id": "health_check",
-      "prompt": "Run /scripts/health_check.sh to check API health",
-      "script": "health_check.sh",
+      "id": "verify",
+      "prompt": "Run /scripts/verify.sh to verify Hummingbot API installation",
+      "script": "verify.sh",
       "verify": "echo 'manual'"
     },
     {
@@ -25,10 +18,10 @@
       "verify": "docker images | grep hummingbot-mcp"
     },
     {
-      "id": "full_setup",
-      "prompt": "Run /scripts/install_api.sh then /scripts/install_mcp.sh --agent claude-code",
-      "script": "install_api.sh && ./install_mcp.sh --agent claude-code",
-      "verify": "curl -s http://localhost:8000/health && docker images | grep hummingbot-mcp"
+      "id": "install_condor",
+      "prompt": "Run /scripts/install_condor.sh to install Condor Telegram bot",
+      "script": "install_condor.sh",
+      "verify": "docker ps | grep condor"
     }
   ]
 }
