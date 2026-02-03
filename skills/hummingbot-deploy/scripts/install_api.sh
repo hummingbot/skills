@@ -84,14 +84,18 @@ EOF
     $DC up -d
 fi
 
-# Quick health check (5s max)
-echo "Verifying..."
-for i in {1..5}; do
-    curl -s http://localhost:8000/health >/dev/null 2>&1 && break
-    sleep 1
-done
+# Wait for containers to start
+echo "Waiting for services to start..."
+sleep 10
+
+# Run health check (handles container environment automatically)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [[ -x "$SCRIPT_DIR/health_check.sh" ]]; then
+    "$SCRIPT_DIR/health_check.sh"
+else
+    echo "Done! API running at http://localhost:8000"
+    echo "Credentials: admin/admin"
+fi
 
 echo ""
-echo "Done! API running at http://localhost:8000"
-echo "Credentials: admin/admin"
 echo "Logs: cd $INSTALL_DIR && $DC logs -f"
