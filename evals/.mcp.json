@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "hummingbot-mcp": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--network",
+        "host",
+        "-e",
+        "HUMMINGBOT_API_URL=http://localhost:8000/",
+        "-e",
+        "HUMMINGBOT_USERNAME=admin",
+        "-e",
+        "HUMMINGBOT_PASSWORD=admin",
+        "hummingbot/hummingbot-mcp:latest"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "prompts": [
+    {
+      "id": "install_api",
+      "prompt": "Run /scripts/install_api.sh to install Hummingbot API",
+      "script": "install_api.sh",
+      "verify": "curl -s http://localhost:8000/health"
+    },
+    {
+      "id": "check_dependencies",
+      "prompt": "Run /scripts/check_dependencies.sh to check dependencies",
+      "script": "check_dependencies.sh",
+      "verify": "echo 'manual'"
+    },
+    {
+      "id": "health_check",
+      "prompt": "Run /scripts/health_check.sh to check API health",
+      "script": "health_check.sh",
+      "verify": "echo 'manual'"
+    },
+    {
+      "id": "install_mcp",
+      "prompt": "Run /scripts/install_mcp.sh --agent claude-code to install MCP server",
+      "script": "install_mcp.sh --agent claude-code",
+      "verify": "docker images | grep hummingbot-mcp"
+    },
+    {
+      "id": "full_setup",
+      "prompt": "Run /scripts/install_api.sh then /scripts/install_mcp.sh --agent claude-code",
+      "script": "install_api.sh && ./install_mcp.sh --agent claude-code",
+      "verify": "curl -s http://localhost:8000/health && docker images | grep hummingbot-mcp"
+    }
+  ]
+}
