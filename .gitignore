@@ -43,3 +43,8 @@ test-results/
 .turbo/
 .vercel
 .env*.local
+
+# Eval artifacts
+evals/condor/
+evals/hummingbot-api/
+evals/results/
