@@ -1,6 +1,5 @@
 ---
 name: hummingbot-deploy
-version: 1.0.0
 description: Deploy Hummingbot trading infrastructure including API server, MCP server, and Condor Telegram bot. Use this skill when the user wants to install, deploy, set up, or configure Hummingbot.
 metadata:
   author: hummingbot

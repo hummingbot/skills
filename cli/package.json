@@ -1,6 +1,6 @@
 {
   "name": "hummingbot-skills",
-  "version": "1.0.1",
+  "version": "1.0.7",
   "description": "CLI for managing Hummingbot trading skills for AI agents",
   "type": "module",
   "bin": {
