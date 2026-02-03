@@ -18,8 +18,15 @@ done
 docker info >/dev/null 2>&1 || { echo "Error: Docker not running"; exit 1; }
 
 # Detect docker compose
-DC="docker compose"
-$DC version >/dev/null 2>&1 || DC="docker-compose"
+DC=""
+if docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+    DC="docker-compose"
+else
+    echo "Error: docker compose required. Install via: curl -fsSL https://get.docker.com | sh"
+    exit 1
+fi
 
 # Install or upgrade
 if [[ -d "$INSTALL_DIR" ]]; then
