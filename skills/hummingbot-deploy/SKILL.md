@@ -37,6 +37,13 @@ This checks: container detection, TTY, Docker, Docker Compose, Git, Make.
 
 ## Install Hummingbot API
 
+**If ~/hummingbot-api already exists**, verify it's running by checking docker logs:
+```bash
+cd ~/hummingbot-api && make deploy && sleep 2 && docker logs hummingbot-api 2>&1 | grep -i "uvicorn running"
+```
+If logs show "Uvicorn running", skip to "Install MCP Server". Otherwise, reset and reinstall.
+
+**Fresh install:**
 ```bash
 git clone https://github.com/hummingbot/hummingbot-api.git ~/hummingbot-api
 cd ~/hummingbot-api
