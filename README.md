@@ -10,7 +10,19 @@ Built on the [Agent Skills](https://agentskills.io) open standard.
 npx hummingbot-skills add
 ```
 
-This installs all Hummingbot skills to your AI agents (Claude Code, Cursor, etc.).
+This installs Hummingbot skills to your AI agents (Claude Code, Cursor, etc.).
+
+## Commands
+
+```bash
+npx hummingbot-skills add           # Install skills (interactive)
+npx hummingbot-skills list          # List installed skills
+npx hummingbot-skills find          # Search for skills
+npx hummingbot-skills check         # Check for updates
+npx hummingbot-skills update        # Update all skills
+npx hummingbot-skills remove        # Remove installed skills
+npx hummingbot-skills create        # Create a new skill
+```
 
 ## Available Skills
 

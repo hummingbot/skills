@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
-import { homedir } from 'os';
 import { fileURLToPath } from 'url';
-import { execSync, spawnSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -73,16 +72,25 @@ function showBanner(): void {
   console.log(`${DIM}AI agent skills for algorithmic trading${RESET}`);
   console.log();
   console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills add${RESET}      ${DIM}Install all skills${RESET}`
+    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills add${RESET}        ${DIM}Install skills${RESET}`
   );
   console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills remove${RESET}   ${DIM}Remove installed skills${RESET}`
+    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills list${RESET}       ${DIM}List installed skills${RESET}`
   );
   console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills list${RESET}     ${DIM}List available skills${RESET}`
+    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills find${RESET}       ${DIM}Search for skills${RESET}`
   );
   console.log(
-    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills find${RESET}     ${DIM}Search for skills${RESET}`
+    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills check${RESET}      ${DIM}Check for updates${RESET}`
+  );
+  console.log(
+    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills update${RESET}     ${DIM}Update all skills${RESET}`
+  );
+  console.log(
+    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills remove${RESET}     ${DIM}Remove installed skills${RESET}`
+  );
+  console.log(
+    `  ${DIM}$${RESET} ${TEXT}npx hummingbot-skills create${RESET}     ${DIM}Create a new skill${RESET}`
   );
   console.log();
   console.log(`Discover more at ${TEXT}https://skills.hummingbot.org${RESET}`);
@@ -91,32 +99,30 @@ function showBanner(): void {
 
 function showHelp(): void {
   console.log(`
-${BOLD}Usage:${RESET} hummingbot-skills <command> [options]
+${BOLD}Usage:${RESET} npx hummingbot-skills <command> [options]
 
 ${BOLD}Commands:${RESET}
-  add [skills...]      Install skills (default: all skills)
-  remove [skills...]   Remove installed skills
-  list, ls             List available skills
+  add [skills...]      Install skills from hummingbot/skills
+  list, ls             List installed skills
   find [query]         Search for skills
+  check                Check for available updates
+  update               Update all skills to latest
+  remove [skills...]   Remove installed skills
+  create [name]        Create a new skill
 
-${BOLD}Add Options:${RESET}
-  -g, --global      Install globally instead of project-level
+${BOLD}Options:${RESET}
   -a, --agent       Specify agents (claude-code, cursor, etc.)
   -y, --yes         Skip confirmation prompts
 
-${BOLD}Remove Options:${RESET}
-  -g, --global      Remove from global scope
-  -a, --agent       Remove from specific agents
-  -y, --yes         Skip confirmation prompts
-
 ${BOLD}Examples:${RESET}
-  ${DIM}$${RESET} hummingbot-skills add
-  ${DIM}$${RESET} hummingbot-skills add portfolio candles-feed
-  ${DIM}$${RESET} hummingbot-skills add -g
-  ${DIM}$${RESET} hummingbot-skills remove
-  ${DIM}$${RESET} hummingbot-skills remove portfolio -g
-  ${DIM}$${RESET} hummingbot-skills list
-  ${DIM}$${RESET} hummingbot-skills find trading
+  ${DIM}$${RESET} npx hummingbot-skills add
+  ${DIM}$${RESET} npx hummingbot-skills add portfolio candles-feed
+  ${DIM}$${RESET} npx hummingbot-skills list
+  ${DIM}$${RESET} npx hummingbot-skills find trading
+  ${DIM}$${RESET} npx hummingbot-skills check
+  ${DIM}$${RESET} npx hummingbot-skills update
+  ${DIM}$${RESET} npx hummingbot-skills remove
+  ${DIM}$${RESET} npx hummingbot-skills create my-skill
 
 ${BOLD}Options:${RESET}
   --help, -h        Show this help message
@@ -134,9 +140,8 @@ async function fetchSkills(): Promise<Skill[]> {
     }
     const data = (await response.json()) as SkillsResponse;
     return data.skills;
-  } catch (error) {
+  } catch {
     console.log(`${DIM}Could not fetch skills from API, using fallback...${RESET}`);
-    // Fallback: fetch from GitHub
     try {
       const ghResponse = await fetch(
         `https://api.github.com/repos/${REPO}/contents/skills`
@@ -157,7 +162,7 @@ async function fetchSkills(): Promise<Skill[]> {
   }
 }
 
-async function runList(): Promise<void> {
+async function runAvailable(): Promise<void> {
   console.log(`${TEXT}Available Hummingbot Skills:${RESET}`);
   console.log();
 
@@ -233,16 +238,14 @@ async function runFind(args: string[]): Promise<void> {
   console.log();
 }
 
-interface AddOptions {
-  global: boolean;
+interface CommandOptions {
   agents: string[];
   skills: string[];
   yes: boolean;
 }
 
-function parseAddOptions(args: string[]): AddOptions {
-  const options: AddOptions = {
-    global: false,
+function parseOptions(args: string[]): CommandOptions {
+  const options: CommandOptions = {
     agents: [],
     skills: [],
     yes: false,
@@ -251,9 +254,7 @@ function parseAddOptions(args: string[]): AddOptions {
   let i = 0;
   while (i < args.length) {
     const arg = args[i];
-    if (arg === '-g' || arg === '--global') {
-      options.global = true;
-    } else if (arg === '-y' || arg === '--yes') {
+    if (arg === '-y' || arg === '--yes') {
       options.yes = true;
     } else if (arg === '-a' || arg === '--agent') {
       i++;
@@ -271,91 +272,39 @@ function parseAddOptions(args: string[]): AddOptions {
   return options;
 }
 
-async function runAdd(options: AddOptions): Promise<void> {
-  // Use the skills CLI to install from hummingbot/skills
-  // Let the skills CLI handle interactive selection
-  const installArgs = ['skills', 'add', REPO];
+function runSkillsCommand(args: string[]): void {
+  const result = spawnSync('npx', ['-y', 'skills', ...args], {
+    stdio: 'inherit',
+  });
 
-  if (options.global) {
-    installArgs.push('-g');
+  if (result.status !== 0 && result.status !== null) {
+    process.exit(result.status);
   }
+}
 
-  // Only pass --skill if specific skills requested
+async function runAdd(options: CommandOptions): Promise<void> {
+  const installArgs = ['add', REPO];
+
   if (options.skills.length > 0) {
     installArgs.push('--skill', ...options.skills);
   }
 
-  // Only pass --agent if specific agents requested
   if (options.agents.length > 0) {
     installArgs.push('--agent', ...options.agents);
   }
 
-  // Only pass -y if explicitly requested
   if (options.yes) {
     installArgs.push('-y');
   }
 
-  const result = spawnSync('npx', ['-y', ...installArgs], {
-    stdio: 'inherit',
-  });
-
-  if (result.status !== 0) {
-    console.log();
-    console.log(`${YELLOW}!${RESET} ${TEXT}Installation may have encountered issues${RESET}`);
-  }
-
-  console.log();
+  runSkillsCommand(installArgs);
 }
 
-interface RemoveOptions {
-  global: boolean;
-  agents: string[];
-  skills: string[];
-  yes: boolean;
-}
-
-function parseRemoveOptions(args: string[]): RemoveOptions {
-  const options: RemoveOptions = {
-    global: false,
-    agents: [],
-    skills: [],
-    yes: false,
-  };
-
-  let i = 0;
-  while (i < args.length) {
-    const arg = args[i];
-    if (arg === '-g' || arg === '--global') {
-      options.global = true;
-    } else if (arg === '-y' || arg === '--yes') {
-      options.yes = true;
-    } else if (arg === '-a' || arg === '--agent') {
-      i++;
-      while (i < args.length && !args[i].startsWith('-')) {
-        options.agents.push(args[i]);
-        i++;
-      }
-      continue;
-    } else if (!arg.startsWith('-')) {
-      options.skills.push(arg);
-    }
-    i++;
-  }
-
-  return options;
-}
-
-async function runRemove(options: RemoveOptions): Promise<void> {
-  // Use the skills CLI to remove
-  // Let the skills CLI handle interactive selection
-  const removeArgs = ['skills', 'remove'];
+async function runRemove(options: CommandOptions): Promise<void> {
+  const removeArgs = ['remove'];
 
   if (options.skills.length > 0) {
     removeArgs.push(...options.skills);
-  }
-
-  if (options.global) {
-    removeArgs.push('-g');
   }
 
   if (options.agents.length > 0) {
@@ -366,14 +315,23 @@ async function runRemove(options: RemoveOptions): Promise<void> {
     removeArgs.push('-y');
   }
 
-  const result = spawnSync('npx', ['-y', ...removeArgs], {
-    stdio: 'inherit',
-  });
+  runSkillsCommand(removeArgs);
+}
 
-  if (result.status !== 0) {
-    console.log();
-    console.log(`${YELLOW}!${RESET} ${TEXT}Removal may have encountered issues${RESET}`);
-  }
+async function runList(): Promise<void> {
+  runSkillsCommand(['list']);
+}
+
+async function runCheck(): Promise<void> {
+  runSkillsCommand(['check']);
+}
+
+async function runUpdate(): Promise<void> {
+  runSkillsCommand(['update']);
+}
+
+async function runCreate(args: string[]): Promise<void> {
+  runSkillsCommand(['init', ...args]);
 }
 
 async function main(): Promise<void> {
@@ -391,32 +349,46 @@ async function main(): Promise<void> {
     case 'add':
     case 'install':
     case 'i':
-    case 'a':
-      await runAdd(parseAddOptions(restArgs));
+      await runAdd(parseOptions(restArgs));
       break;
 
     case 'remove':
     case 'rm':
-    case 'r':
     case 'uninstall':
-      await runRemove(parseRemoveOptions(restArgs));
+      await runRemove(parseOptions(restArgs));
       break;
 
     case 'list':
     case 'ls':
-    case 'l':
+      await runList();
+      break;
+
+    case 'available':
       showLogo();
       console.log();
-      await runList();
+      await runAvailable();
       break;
 
     case 'find':
     case 'search':
-    case 'f':
-    case 's':
       showLogo();
       console.log();
       await runFind(restArgs);
+      break;
+
+    case 'check':
+      await runCheck();
+      break;
+
+    case 'update':
+    case 'upgrade':
+      await runUpdate();
+      break;
+
+    case 'create':
+    case 'init':
+    case 'new':
+      await runCreate(restArgs);
       break;
 
     case '--help':
@@ -433,7 +405,7 @@ async function main(): Promise<void> {
 
     default:
       console.log(`Unknown command: ${command}`);
-      console.log(`Run ${BOLD}hummingbot-skills --help${RESET} for usage.`);
+      console.log(`Run ${BOLD}npx hummingbot-skills --help${RESET} for usage.`);
       process.exit(1);
   }
 }

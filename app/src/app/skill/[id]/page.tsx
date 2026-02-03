@@ -63,7 +63,7 @@ export default async function SkillPage({ params }: Props) {
         <div className="bg-muted border border-border rounded-lg px-4 py-3 font-mono text-sm mb-6">
           <code>
             <span className="text-muted-foreground">$ </span>
-            <span className="text-foreground">npx skills add hummingbot/skills --skill {skill.name}</span>
+            <span className="text-foreground">npx hummingbot-skills add {skill.name}</span>
           </code>
         </div>
       </div>

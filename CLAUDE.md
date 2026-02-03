@@ -22,7 +22,18 @@ Trading skill definitions. Each skill has:
 
 ### cli/
 
-The `hummingbot-skills` npm package. A convenience wrapper around the [skills CLI](https://github.com/vercel-labs/skills).
+The `hummingbot-skills` npm package. A wrapper around the [skills CLI](https://github.com/vercel-labs/skills).
+
+**Usage:**
+```bash
+npx hummingbot-skills add           # Install skills
+npx hummingbot-skills list          # List installed
+npx hummingbot-skills find          # Search
+npx hummingbot-skills check         # Check for updates
+npx hummingbot-skills update        # Update all
+npx hummingbot-skills remove        # Remove
+npx hummingbot-skills create        # Create new skill
+```
 
 **Development:**
 ```bash

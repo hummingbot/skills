@@ -4,76 +4,67 @@ CLI for managing Hummingbot trading skills for AI agents.
 
 **npm package:** [`hummingbot-skills`](https://www.npmjs.com/package/hummingbot-skills)
 
-## Installation
+## Usage
 
-No installation required - run directly with npx:
+Run directly with npx (no installation required):
 
 ```bash
 npx hummingbot-skills
-```
-
-Or install globally:
-
-```bash
-npm install -g hummingbot-skills
 ```
 
 ## Commands
 
 ### Install Skills
 
-Install all Hummingbot skills:
-
 ```bash
-npx hummingbot-skills add
+npx hummingbot-skills add                    # Interactive selection
+npx hummingbot-skills add portfolio          # Install specific skill
+npx hummingbot-skills add portfolio candles  # Install multiple skills
+npx hummingbot-skills add -a claude-code     # Install for specific agent
+npx hummingbot-skills add -y                 # Skip prompts (install all)
 ```
 
-Install specific skills:
+### List Installed Skills
 
 ```bash
-npx hummingbot-skills add portfolio candles-feed
+npx hummingbot-skills list
 ```
 
-Install globally (recommended):
+### Search for Skills
 
 ```bash
-npx hummingbot-skills add -g
+npx hummingbot-skills find              # List all available
+npx hummingbot-skills find trading      # Search by keyword
 ```
 
-Install for specific agents:
+### Check for Updates
 
 ```bash
-npx hummingbot-skills add -a claude-code cursor
+npx hummingbot-skills check
+```
+
+### Update Skills
+
+```bash
+npx hummingbot-skills update
 ```
 
 ### Remove Skills
 
-Remove installed skills (interactive):
-
 ```bash
-npx hummingbot-skills remove
+npx hummingbot-skills remove            # Interactive selection
+npx hummingbot-skills remove portfolio  # Remove specific skill
 ```
 
-Remove specific skills:
+### Create a New Skill
 
 ```bash
-npx hummingbot-skills remove portfolio -g
-```
-
-### List & Search
-
-```bash
-npx hummingbot-skills list          # List all available skills
-npx hummingbot-skills find trading  # Search by keyword
+npx hummingbot-skills create my-skill
 ```
 
 ## How It Works
 
-This CLI is a convenience wrapper around the [skills CLI](https://github.com/vercel-labs/skills). When you run `hummingbot-skills add`, it:
-
-1. Fetches skill metadata from `https://skills.hummingbot.org/api/skills`
-2. Runs `npx skills add hummingbot/skills` with appropriate flags
-3. The skills CLI installs skills to your AI agents
+This CLI wraps the [skills CLI](https://github.com/vercel-labs/skills) and automatically points to the `hummingbot/skills` repository. All commands pass through to the skills CLI.
 
 ## Development
 
@@ -87,18 +78,13 @@ npm link  # For local testing
 Test locally:
 
 ```bash
-hummingbot-skills list
-hummingbot-skills add portfolio -g
+npx hummingbot-skills
+npx hummingbot-skills add
 ```
 
 ## Publishing to npm
 
 The CLI is published as the `hummingbot-skills` package on npm.
-
-### Prerequisites
-
-1. **npm account** with publish access to `hummingbot-skills`
-2. **Trusted Publisher** configured on npmjs.com (for CI/CD)
 
 ### Option 1: Publish via GitHub Actions (Recommended)
 
@@ -106,38 +92,18 @@ Create a GitHub Release:
 
 1. Go to [Releases](https://github.com/hummingbot/skills/releases)
 2. Click "Create a new release"
-3. Tag: `cli-v1.0.1` (use `cli-v` prefix for CLI releases)
-4. Title: `CLI v1.0.1`
+3. Tag: `cli-v1.0.2` (use `cli-v` prefix)
+4. Title: `CLI v1.0.2`
 5. Publish release
-
-The workflow at `.github/workflows/publish-cli.yml` will:
-- Build the CLI
-- Publish to npm with provenance
 
 ### Option 2: Manual Publish
 
 ```bash
 cd cli
-npm version patch  # or minor/major
+npm version patch
 npm run build
 npm publish --access public
 ```
-
-### Version Management
-
-- Update version in `cli/package.json`
-- CLI versions are independent of the skills/webapp
-- Use semantic versioning: `major.minor.patch`
-
-### Trusted Publishers Setup
-
-To enable automated publishing without tokens:
-
-1. Go to [npmjs.com](https://www.npmjs.com) → Package Settings → `hummingbot-skills`
-2. Add GitHub Actions as trusted publisher:
-   - Repository: `hummingbot/skills`
-   - Workflow: `publish-cli.yml`
-   - Environment: `npm`
 
 ## Project Structure
 
