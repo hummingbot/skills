@@ -27,6 +27,25 @@ Deploy the Hummingbot trading infrastructure. Before starting, explain to the us
 
 ## Install Hummingbot API
 
+First, check if running inside a container:
+```bash
+[ -f /.dockerenv ] && echo "Container detected" || echo "Not in container"
+```
+
+If running in a container, apply these fixes first:
+```bash
+# Set USER env var (required by setup.sh)
+export USER=${USER:-root}
+
+# Create sudo shim if running as root without sudo
+if [ "$(id -u)" = "0" ] && ! command -v sudo &> /dev/null; then
+    echo '#!/bin/bash
+while [[ "$1" == *=* ]]; do export "$1"; shift; done
+exec "$@"' > /usr/local/bin/sudo && chmod +x /usr/local/bin/sudo
+fi
+```
+
+Then install:
 ```bash
 git clone https://github.com/hummingbot/hummingbot-api.git ~/hummingbot-api
 cd ~/hummingbot-api
