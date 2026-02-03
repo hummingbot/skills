@@ -81,12 +81,21 @@ docker pull "$MCP_IMAGE"
 
 # Configure MCP for the agent
 echo "Configuring MCP for $AGENT_CLI..."
-$AGENT_CLI mcp add hummingbot -- docker run --rm -i \
-    -e HUMMINGBOT_API_URL="$API_URL" \
-    -e HUMMINGBOT_API_USERNAME="$API_USER" \
-    -e HUMMINGBOT_API_PASSWORD="$API_PASS" \
-    -v hummingbot_mcp:/root/.hummingbot_mcp \
-    "$MCP_IMAGE"
+
+# Build the docker command
+DOCKER_CMD="docker run --rm -i -e HUMMINGBOT_API_URL=$API_URL -e HUMMINGBOT_API_USERNAME=$API_USER -e HUMMINGBOT_API_PASSWORD=$API_PASS -v hummingbot_mcp:/root/.hummingbot_mcp $MCP_IMAGE"
+
+# Different CLIs have slightly different syntax
+case "$AGENT_CLI" in
+    gemini)
+        # Gemini: gemini mcp add <name> <command> [args...]
+        $AGENT_CLI mcp add hummingbot $DOCKER_CMD
+        ;;
+    *)
+        # Claude/Codex: <cli> mcp add <name> -- <command> [args...]
+        $AGENT_CLI mcp add hummingbot -- $DOCKER_CMD
+        ;;
+esac
 
 echo ""
 echo "Done! Restart $AGENT_CLI to load the MCP server."

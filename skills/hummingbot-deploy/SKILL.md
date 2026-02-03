@@ -1,6 +1,6 @@
 ---
 name: hummingbot-deploy
-description: Deploy Hummingbot trading infrastructure including API server, MCP server for Claude, and Condor Telegram bot. Use this skill when the user wants to install, deploy, set up, or configure Hummingbot.
+description: Deploy Hummingbot trading infrastructure including API server, MCP server, and Condor Telegram bot. Use this skill when the user wants to install, deploy, set up, or configure Hummingbot.
 metadata:
   author: hummingbot
 ---
@@ -13,7 +13,7 @@ Deploy the Hummingbot trading infrastructure. Before starting, explain to the us
 
 1. **Hummingbot API** (Required): Your personal trading server that exposes a standardized REST API for trading, fetching market data, and deploying bot strategies across many CEXs and DEXs.
 
-2. **Hummingbot MCP** (Required): MCP server that helps AI assistants like Claude interact with Hummingbot API. This is necessary to use Hummingbot Skills.
+2. **Hummingbot MCP** (Required): MCP server that helps AI agents (Claude, Gemini, Codex, etc.) interact with Hummingbot API. This is necessary to use Hummingbot Skills.
 
 3. **Condor** (Optional): Terminal and Telegram-based UI for Hummingbot API.
 
@@ -84,6 +84,26 @@ make deploy
 sleep 2 && docker logs hummingbot-api 2>&1 | grep -i "uvicorn running"
 ```
 
+## Install MCP Server
+
+Install the MCP server using your CLI's native command. Use the same credentials from API setup.
+
+**IMPORTANT:** Do NOT ask the user which CLI to use. You already know which CLI you are:
+- If you are Claude Code, use `claude`
+- If you are Gemini CLI, use `gemini`
+- If you are Codex CLI, use `codex`
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/hummingbot/skills/main/skills/hummingbot-deploy/scripts/install_mcp.sh) \
+  --agent <YOUR_CLI> --user <USERNAME> --pass <PASSWORD>
+```
+
+Example for Claude (substitute your actual CLI name and credentials):
+```bash
+bash <(curl -s https://raw.githubusercontent.com/hummingbot/skills/main/skills/hummingbot-deploy/scripts/install_mcp.sh) \
+  --agent claude --user admin --pass admin
+```
+
 ## Installation Complete
 
 After all components are installed, tell the user:
@@ -93,28 +113,6 @@ After all components are installed, tell the user:
    ```bash
    npx hummingbot-skills add
    ```
-
-## Install MCP Server
-
-Use the same username and password that user configured during API setup.
-
-```bash
-./scripts/install_mcp.sh --agent <CLI> --user <USERNAME> --pass <PASSWORD>
-```
-
-Where `<CLI>` is the agent command: `claude`, `gemini`, `codex`, etc.
-
-**Examples:**
-```bash
-# Claude Code
-./scripts/install_mcp.sh --agent claude --user admin --pass admin
-
-# Gemini CLI
-./scripts/install_mcp.sh --agent gemini --user admin --pass admin
-
-# Codex CLI
-./scripts/install_mcp.sh --agent codex --user admin --pass admin
-```
 
 ## Install Condor (Optional)
 
@@ -134,7 +132,7 @@ cd ~/hummingbot-api && git pull && make deploy
 ## Verify Installation
 
 ```bash
-./scripts/verify.sh
+bash <(curl -s https://raw.githubusercontent.com/hummingbot/skills/main/skills/hummingbot-deploy/scripts/verify.sh)
 ```
 
 ## Troubleshooting

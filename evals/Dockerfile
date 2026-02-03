@@ -24,15 +24,17 @@ ENV USER=root
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
-# Install Claude Code
-RUN npm install -g @anthropic-ai/claude-code
+# Install AI Agent CLIs
+RUN npm install -g @anthropic-ai/claude-code @google/gemini-cli @openai/codex
 
-# Clone hummingbot-skills and install the skill
-RUN git clone --depth 1 https://github.com/hummingbot/skills.git /opt/hummingbot-skills
+# Copy local hummingbot-skills (build from repo root with: docker build -f evals/Dockerfile .)
+COPY . /opt/hummingbot-skills
 
-# Install the skill globally for Claude
-RUN mkdir -p /root/.claude/skills \
-    && ln -s /opt/hummingbot-skills/skills/hummingbot-deploy /root/.claude/skills/hummingbot-deploy
+# Install skills for all AI agent CLIs
+RUN mkdir -p /root/.claude/skills /root/.gemini/skills /root/.codex/skills \
+    && ln -s /opt/hummingbot-skills/skills/hummingbot-deploy /root/.claude/skills/hummingbot-deploy \
+    && ln -s /opt/hummingbot-skills/skills/hummingbot-deploy /root/.gemini/skills/hummingbot-deploy \
+    && ln -s /opt/hummingbot-skills/skills/hummingbot-deploy /root/.codex/skills/hummingbot-deploy
 
 # Make scripts executable
 RUN chmod +x /opt/hummingbot-skills/skills/hummingbot-deploy/scripts/*.sh
