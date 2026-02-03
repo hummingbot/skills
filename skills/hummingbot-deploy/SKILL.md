@@ -72,15 +72,17 @@ make deploy
 
 ## Install MCP Server (for Claude)
 
+Use the same username and password that user configured during API setup:
+
 ```bash
 # Pull MCP image
 docker pull hummingbot/hummingbot-mcp:latest
 
-# Configure Claude Code
+# Configure Claude Code (replace USERNAME and PASSWORD with values from API setup)
 claude mcp add hummingbot -- docker run --rm -i \
   -e HUMMINGBOT_API_URL=http://host.docker.internal:8000 \
-  -e HUMMINGBOT_API_USERNAME=admin \
-  -e HUMMINGBOT_API_PASSWORD=admin \
+  -e HUMMINGBOT_API_USERNAME=<USERNAME> \
+  -e HUMMINGBOT_API_PASSWORD=<PASSWORD> \
   -v hummingbot_mcp:/root/.hummingbot_mcp \
   hummingbot/hummingbot-mcp:latest
 ```
