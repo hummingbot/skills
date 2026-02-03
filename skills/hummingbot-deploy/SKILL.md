@@ -7,15 +7,23 @@ metadata:
 
 # hummingbot-deploy
 
-Deploy the complete Hummingbot trading infrastructure.
+Deploy the Hummingbot trading infrastructure. Before starting, explain to the user what will be installed:
+
+## What You're Installing
+
+1. **Hummingbot API** (Required): Your personal trading server that exposes a standardized REST API for trading, fetching market data, and deploying bot strategies across many CEXs and DEXs.
+
+2. **Hummingbot MCP** (Required): MCP server that helps AI assistants like Claude interact with Hummingbot API. This is necessary to use Hummingbot Skills.
+
+3. **Condor** (Optional): Terminal and Telegram-based UI for Hummingbot API.
 
 ## Components
 
-| Component | Repository | Description |
-|-----------|------------|-------------|
-| **Hummingbot API** | [hummingbot/hummingbot-api](https://github.com/hummingbot/hummingbot-api) | REST API server for bot management |
-| **MCP Server** | [hummingbot/mcp](https://github.com/hummingbot/mcp) | Claude/AI agent integration via Model Context Protocol |
-| **Condor** | [hummingbot/condor](https://github.com/hummingbot/condor) | Telegram bot interface for trading |
+| Component | Repository |
+|-----------|------------|
+| Hummingbot API | [hummingbot/hummingbot-api](https://github.com/hummingbot/hummingbot-api) |
+| MCP Server | [hummingbot/mcp](https://github.com/hummingbot/mcp) |
+| Condor | [hummingbot/condor](https://github.com/hummingbot/condor) |
 
 ## Install Hummingbot API
 
