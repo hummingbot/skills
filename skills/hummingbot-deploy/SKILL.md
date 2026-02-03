@@ -58,6 +58,11 @@ DATABASE_URL=postgresql+asyncpg://hbot:hummingbot-api@localhost:5432/hummingbot_
 BOTS_PATH=$(pwd)
 EOF
 
+# Patch docker-compose.yml (bind mounts don't work in Docker-in-Docker)
+sed -i 's|./bots:/hummingbot-api/bots|hummingbot-bots:/hummingbot-api/bots|g' docker-compose.yml
+sed -i '/init-db.sql.*docker-entrypoint/d' docker-compose.yml
+grep -q "hummingbot-bots:" docker-compose.yml || sed -i '/postgres-data:/a\  hummingbot-bots: { }' docker-compose.yml
+
 touch .setup-complete
 make deploy
 ```
