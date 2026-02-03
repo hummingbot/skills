@@ -73,13 +73,25 @@ make deploy
 ## Install MCP Server (for Claude)
 
 ```bash
-./scripts/install_mcp.sh
+# Pull MCP image
+docker pull hummingbot/hummingbot-mcp:latest
+
+# Configure Claude Code
+claude mcp add hummingbot -- docker run --rm -i \
+  -e HUMMINGBOT_API_URL=http://host.docker.internal:8000 \
+  -e HUMMINGBOT_API_USERNAME=admin \
+  -e HUMMINGBOT_API_PASSWORD=admin \
+  -v hummingbot_mcp:/root/.hummingbot_mcp \
+  hummingbot/hummingbot-mcp:latest
 ```
 
 ## Install Condor (Optional)
 
 ```bash
-./scripts/install_condor.sh
+git clone https://github.com/hummingbot/condor.git ~/condor
+cd ~/condor
+bash setup-environment.sh  # Prompts for Telegram bot token
+make deploy
 ```
 
 ## Upgrade
