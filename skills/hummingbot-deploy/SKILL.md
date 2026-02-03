@@ -45,17 +45,18 @@ export USER=${USER:-root}
 [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null && echo -e '#!/bin/bash\nwhile [[ "$1" == *=* ]]; do export "$1"; shift; done\nexec "$@"' > /usr/local/bin/sudo && chmod +x /usr/local/bin/sudo
 
 # Create .env manually (skip interactive setup)
+# Note: In containers, services communicate via Docker network (use container names, not localhost)
 cat > .env << EOF
 USERNAME=admin
 PASSWORD=admin
 CONFIG_PASSWORD=admin
 DEBUG_MODE=false
-BROKER_HOST=localhost
+BROKER_HOST=hummingbot-broker
 BROKER_PORT=1883
 BROKER_USERNAME=admin
 BROKER_PASSWORD=password
-DATABASE_URL=postgresql+asyncpg://hbot:hummingbot-api@localhost:5432/hummingbot_api
-BOTS_PATH=$(pwd)
+DATABASE_URL=postgresql+asyncpg://hbot:hummingbot-api@hummingbot-postgres:5432/hummingbot_api
+BOTS_PATH=/hummingbot-api/bots
 EOF
 
 # Patch docker-compose.yml (bind mounts don't work in Docker-in-Docker)
