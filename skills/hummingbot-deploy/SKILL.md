@@ -27,29 +27,37 @@ Deploy the Hummingbot trading infrastructure. Before starting, explain to the us
 
 ## Install Hummingbot API
 
-First, check if running inside a container:
-```bash
-[ -f /.dockerenv ] && echo "Container detected" || echo "Not in container"
-```
-
-If running in a container, apply these fixes first:
-```bash
-# Set USER env var (required by setup.sh)
-export USER=${USER:-root}
-
-# Create sudo shim if running as root without sudo
-if [ "$(id -u)" = "0" ] && ! command -v sudo &> /dev/null; then
-    echo '#!/bin/bash
-while [[ "$1" == *=* ]]; do export "$1"; shift; done
-exec "$@"' > /usr/local/bin/sudo && chmod +x /usr/local/bin/sudo
-fi
-```
-
-Then install:
 ```bash
 git clone https://github.com/hummingbot/hummingbot-api.git ~/hummingbot-api
 cd ~/hummingbot-api
+```
+
+**On regular machines** (interactive TTY available):
+```bash
 make setup    # Prompts for: API username, password, config password (defaults: admin/admin/admin)
+make deploy
+```
+
+**In containers** (no TTY - check with `[ -t 0 ] && echo "TTY" || echo "No TTY"`):
+```bash
+# Set USER env var and create sudo shim if needed
+export USER=${USER:-root}
+[ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null && echo -e '#!/bin/bash\nwhile [[ "$1" == *=* ]]; do export "$1"; shift; done\nexec "$@"' > /usr/local/bin/sudo && chmod +x /usr/local/bin/sudo
+
+# Create .env manually (skip interactive setup)
+cat > .env << 'EOF'
+USERNAME=admin
+PASSWORD=admin
+CONFIG_PASSWORD=admin
+DEBUG_MODE=false
+BROKER_HOST=localhost
+BROKER_PORT=1883
+BROKER_USERNAME=admin
+BROKER_PASSWORD=password
+DATABASE_URL=postgresql+asyncpg://hbot:hummingbot-api@localhost:5432/hummingbot_api
+EOF
+
+touch .setup-complete
 make deploy
 ```
 
