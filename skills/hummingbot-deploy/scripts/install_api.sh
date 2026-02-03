@@ -31,7 +31,26 @@ else
     echo "Installing to $INSTALL_DIR..."
     git clone --depth 1 "$API_REPO" "$INSTALL_DIR"
     cd "$INSTALL_DIR"
-    make setup
+
+    # Create default .env if running non-interactively (no TTY)
+    if [[ ! -t 0 ]] && [[ ! -f .env ]]; then
+        echo "Creating default .env (non-interactive mode)..."
+        cat > .env << 'EOF'
+USERNAME=admin
+PASSWORD=admin
+CONFIG_PASSWORD=admin
+DEBUG_MODE=false
+BROKER_HOST=localhost
+BROKER_PORT=1883
+BROKER_USERNAME=admin
+BROKER_PASSWORD=password
+DATABASE_URL=postgresql+asyncpg://hbot:hummingbot-api@localhost:5432/hummingbot_api
+GATEWAY_URL=http://localhost:15888
+GATEWAY_PASSPHRASE=admin
+EOF
+    else
+        make setup
+    fi
     make deploy
 fi
 
