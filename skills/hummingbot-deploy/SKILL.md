@@ -25,6 +25,16 @@ Deploy the Hummingbot trading infrastructure. Before starting, explain to the us
 | MCP Server | [hummingbot/mcp](https://github.com/hummingbot/mcp) |
 | Condor | [hummingbot/condor](https://github.com/hummingbot/condor) |
 
+## Pre-Installation Check
+
+First, run the environment check to verify prerequisites:
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/hummingbot/skills/main/skills/hummingbot-deploy/scripts/check_env.sh)
+```
+
+This checks: container detection, TTY, Docker, Docker Compose, Git, Make.
+
 ## Install Hummingbot API
 
 ```bash
@@ -32,7 +42,7 @@ git clone https://github.com/hummingbot/hummingbot-api.git ~/hummingbot-api
 cd ~/hummingbot-api
 ```
 
-**On regular machines** (interactive TTY available):
+**On regular machines** (interactive TTY - check_env.sh shows "Interactive TTY: Yes"):
 ```bash
 make setup    # Prompts for: API username, password, config password (defaults: admin/admin/admin)
 make deploy
@@ -62,13 +72,27 @@ EOF
 # Patch docker-compose.yml (bind mounts don't work in Docker-in-Docker)
 sed -i 's|./bots:/hummingbot-api/bots|hummingbot-bots:/hummingbot-api/bots|g' docker-compose.yml
 sed -i '/init-db.sql.*docker-entrypoint/d' docker-compose.yml
-grep -q "hummingbot-bots:" docker-compose.yml || sed -i '/postgres-data:/a\  hummingbot-bots: { }' docker-compose.yml
+# Add volume definition (check last 5 lines to avoid false positive from service definition)
+tail -5 docker-compose.yml | grep -q "hummingbot-bots:" || echo "  hummingbot-bots: { }" >> docker-compose.yml
 
 touch .setup-complete
 make deploy
 ```
 
-**Verify:** Open http://localhost:8000/docs - should show Swagger UI.
+**Verify:** Check logs for "Uvicorn running on http://0.0.0.0:8000":
+```bash
+docker logs hummingbot-api 2>&1 | grep -i "uvicorn running"
+```
+
+## Installation Complete
+
+After all components are installed, tell the user:
+
+1. **Restart your AI agent** (Claude Code, Claude Desktop, etc.) to load the MCP server
+2. **Install Hummingbot Skills** to enable trading capabilities:
+   ```bash
+   npx hummingbot-skills add
+   ```
 
 ## Install MCP Server (for Claude)
 
