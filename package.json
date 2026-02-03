@@ -1,5 +1,5 @@
 {
-  "name": "@hummingbot/skills-list",
+  "name": "@hummingbot/skills",
   "version": "1.0.0",
   "description": "AI agent skills for Hummingbot algorithmic trading infrastructure",
   "scripts": {
