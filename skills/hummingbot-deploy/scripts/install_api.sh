@@ -73,9 +73,9 @@ EOF
         # Replace bind mounts with named volumes
         sed -i 's|./bots:/hummingbot-api/bots|hummingbot-bots:/hummingbot-api/bots|g' docker-compose.yml
         sed -i '/init-db.sql.*docker-entrypoint/d' docker-compose.yml
-        # Add volume definition if not present
+        # Add volume definition after postgres-data (inside volumes section)
         if ! grep -q "hummingbot-bots:" docker-compose.yml; then
-            echo "  hummingbot-bots: {}" >> docker-compose.yml
+            sed -i '/postgres-data:/a\  hummingbot-bots: { }' docker-compose.yml
         fi
     fi
 
