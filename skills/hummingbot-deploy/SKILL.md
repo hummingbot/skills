@@ -45,7 +45,7 @@ export USER=${USER:-root}
 [ "$(id -u)" = "0" ] && ! command -v sudo &>/dev/null && echo -e '#!/bin/bash\nwhile [[ "$1" == *=* ]]; do export "$1"; shift; done\nexec "$@"' > /usr/local/bin/sudo && chmod +x /usr/local/bin/sudo
 
 # Create .env manually (skip interactive setup)
-cat > .env << 'EOF'
+cat > .env << EOF
 USERNAME=admin
 PASSWORD=admin
 CONFIG_PASSWORD=admin
@@ -55,6 +55,7 @@ BROKER_PORT=1883
 BROKER_USERNAME=admin
 BROKER_PASSWORD=password
 DATABASE_URL=postgresql+asyncpg://hbot:hummingbot-api@localhost:5432/hummingbot_api
+BOTS_PATH=$(pwd)
 EOF
 
 touch .setup-complete
