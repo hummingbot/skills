@@ -79,36 +79,41 @@ touch .setup-complete
 make deploy
 ```
 
-**Verify:** Check logs for "Uvicorn running on http://0.0.0.0:8000":
+**Verify:** Wait 2 seconds then check logs for "Uvicorn running on http://0.0.0.0:8000":
 ```bash
-docker logs hummingbot-api 2>&1 | grep -i "uvicorn running"
+sleep 2 && docker logs hummingbot-api 2>&1 | grep -i "uvicorn running"
 ```
 
 ## Installation Complete
 
 After all components are installed, tell the user:
 
-1. **Restart your AI agent** (Claude Code, Claude Desktop, etc.) to load the MCP server
+1. **Restart your AI agent** (Claude Code, Gemini CLI, Codex CLI, etc.) to load the MCP server
 2. **Install Hummingbot Skills** to enable trading capabilities:
    ```bash
    npx hummingbot-skills add
    ```
 
-## Install MCP Server (for Claude)
+## Install MCP Server
 
-Use the same username and password that user configured during API setup:
+Use the same username and password that user configured during API setup.
 
 ```bash
-# Pull MCP image
-docker pull hummingbot/hummingbot-mcp:latest
+./scripts/install_mcp.sh --agent <CLI> --user <USERNAME> --pass <PASSWORD>
+```
 
-# Configure Claude Code (replace USERNAME and PASSWORD with values from API setup)
-claude mcp add hummingbot -- docker run --rm -i \
-  -e HUMMINGBOT_API_URL=http://host.docker.internal:8000 \
-  -e HUMMINGBOT_API_USERNAME=<USERNAME> \
-  -e HUMMINGBOT_API_PASSWORD=<PASSWORD> \
-  -v hummingbot_mcp:/root/.hummingbot_mcp \
-  hummingbot/hummingbot-mcp:latest
+Where `<CLI>` is the agent command: `claude`, `gemini`, `codex`, etc.
+
+**Examples:**
+```bash
+# Claude Code
+./scripts/install_mcp.sh --agent claude --user admin --pass admin
+
+# Gemini CLI
+./scripts/install_mcp.sh --agent gemini --user admin --pass admin
+
+# Codex CLI
+./scripts/install_mcp.sh --agent codex --user admin --pass admin
 ```
 
 ## Install Condor (Optional)
