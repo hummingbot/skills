@@ -11,6 +11,15 @@ INSTALL_DIR="${1:-$HOME/hummingbot-api}"
 # Remove --dir flag if present
 [[ "$INSTALL_DIR" == "--dir" ]] && INSTALL_DIR="${2:-$HOME/hummingbot-api}"
 
+# Detect if running inside a container
+is_container() {
+    [ -f /.dockerenv ] || grep -q docker /proc/1/cgroup 2>/dev/null || grep -q containerd /proc/1/cgroup 2>/dev/null
+}
+
+if is_container; then
+    echo "Detected: Running inside container (Docker-in-Docker mode)"
+fi
+
 # Check prerequisites
 for cmd in git docker; do
     command -v $cmd >/dev/null || { echo "Error: $cmd required"; exit 1; }
@@ -57,6 +66,19 @@ GATEWAY_URL=http://localhost:15888
 GATEWAY_PASSPHRASE=admin
 EOF
     fi
+
+    # Fix docker-compose.yml for container environments (bind mounts don't work in DinD)
+    if is_container; then
+        echo "Patching docker-compose.yml for container environment..."
+        # Replace bind mounts with named volumes
+        sed -i 's|./bots:/hummingbot-api/bots|hummingbot-bots:/hummingbot-api/bots|g' docker-compose.yml
+        sed -i '/init-db.sql.*docker-entrypoint/d' docker-compose.yml
+        # Add volume definition if not present
+        if ! grep -q "hummingbot-bots:" docker-compose.yml; then
+            echo "  hummingbot-bots: {}" >> docker-compose.yml
+        fi
+    fi
+
     # Skip setup.sh (requires interactive input), go straight to deploy
     touch .setup-complete
     $DC up -d

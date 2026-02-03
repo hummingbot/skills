@@ -5,6 +5,11 @@
 #
 set -eu
 
+# Detect if running inside a container
+is_container() {
+    [ -f /.dockerenv ] || grep -q docker /proc/1/cgroup 2>/dev/null || grep -q containerd /proc/1/cgroup 2>/dev/null
+}
+
 # Load .env if present
 for f in .env ~/.hummingbot/.env ~/.env; do
     [[ -f "$f" ]] && source "$f" && break
@@ -43,9 +48,31 @@ done
 check_api() {
     local response http_code body
 
-    response=$(curl -s -w "\n%{http_code}" -u "$API_USER:$API_PASS" "$API_URL/health" 2>/dev/null || echo -e "\n000")
-    http_code=$(echo "$response" | tail -n1)
-    body=$(echo "$response" | head -n -1)
+    # If in container, use docker exec to check from inside the API container
+    if is_container && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^hummingbot-api$"; then
+        # Use python since curl may not be available in the API container
+        response=$(docker exec hummingbot-api python -c "
+import urllib.request, base64
+try:
+    auth = base64.b64encode(b'$API_USER:$API_PASS').decode()
+    req = urllib.request.Request('http://localhost:8000/health', headers={'Authorization': f'Basic {auth}'})
+    resp = urllib.request.urlopen(req, timeout=5)
+    print(resp.read().decode())
+    print(resp.status)
+except urllib.error.HTTPError as e:
+    print(e.reason)
+    print(e.code)
+except Exception as e:
+    print(str(e))
+    print('000')
+" 2>/dev/null || echo -e "error\n000")
+        body=$(echo "$response" | head -n -1)
+        http_code=$(echo "$response" | tail -n1)
+    else
+        response=$(curl -s -w "\n%{http_code}" -u "$API_USER:$API_PASS" "$API_URL/health" 2>/dev/null || echo -e "\n000")
+        http_code=$(echo "$response" | tail -n1)
+        body=$(echo "$response" | head -n -1)
+    fi
 
     echo "$http_code|$body"
 }
