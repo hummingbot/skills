@@ -17,6 +17,9 @@ RUN echo '#!/bin/bash\n\
 while [[ "$1" == *=* ]]; do export "$1"; shift; done\n\
 exec "$@"' > /usr/local/bin/sudo && chmod +x /usr/local/bin/sudo
 
+# Set USER env var (required by hummingbot-api setup.sh)
+ENV USER=root
+
 # Install Node.js (required for Claude Code)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
