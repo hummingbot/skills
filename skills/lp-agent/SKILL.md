@@ -71,10 +71,7 @@ manage_executors(
 After creating an executor, you MUST verify the position was actually created on-chain. Follow these steps:
 
 **Step 1: Get the executor ID from the creation response**
-The `manage_executors(action="create")` call returns the executor_id. If it returns "N/A", search for it:
-```
-manage_executors(action="search", executor_types=["lp_executor"], status="RUNNING")
-```
+The `manage_executors(action="create")` call returns the executor_id. Use this ID for verification.
 
 **Step 2: Poll executor state until it changes from OPENING**
 ```
