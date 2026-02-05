@@ -9,7 +9,7 @@ Next.js webapp for browsing and discovering Hummingbot skills.
 - Browse all available Hummingbot skills
 - View skill details and documentation
 - Dark/light mode support
-- API endpoint for CLI integration
+- API endpoint for skills CLI integration
 
 ## Development
 
@@ -32,7 +32,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### GET /api/skills
 
-Returns all skills with metadata. Used by the CLI.
+Returns all skills with metadata. Used by the skills CLI.
 
 ```json
 {
@@ -43,11 +43,11 @@ Returns all skills with metadata. Used by the CLI.
   },
   "skills": [
     {
-      "id": "portfolio",
-      "name": "portfolio",
-      "description": "View portfolio balances...",
-      "path": "skills/portfolio",
-      "author": "fengtality"
+      "id": "hummingbot-deploy",
+      "name": "hummingbot-deploy",
+      "description": "Deploy Hummingbot trading infrastructure...",
+      "path": "skills/hummingbot-deploy",
+      "author": "hummingbot"
     }
   ]
 }

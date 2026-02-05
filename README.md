@@ -7,7 +7,7 @@ Built on the [Agent Skills](https://agentskills.io) open standard.
 ## Quick Start
 
 ```bash
-npx hummingbot-skills add
+npx skills add hummingbot/skills
 ```
 
 This installs Hummingbot skills to your AI agents (Claude Code, Cursor, etc.).
@@ -15,37 +15,29 @@ This installs Hummingbot skills to your AI agents (Claude Code, Cursor, etc.).
 ## Commands
 
 ```bash
-npx hummingbot-skills add           # Install skills (interactive)
-npx hummingbot-skills list          # List installed skills
-npx hummingbot-skills find          # Search for skills
-npx hummingbot-skills check         # Check for updates
-npx hummingbot-skills update        # Update all skills
-npx hummingbot-skills remove        # Remove installed skills
-npx hummingbot-skills create        # Create a new skill
+npx skills add hummingbot/skills                              # Install all skills
+npx skills add hummingbot/skills --skill hummingbot-deploy    # Install specific skill
+npx skills list                                               # List installed skills
+npx skills remove                                             # Remove installed skills
 ```
 
 ## Available Skills
 
 | Skill | Description |
 |-------|-------------|
-| [hummingbot-api-setup](./skills/hummingbot-api-setup/) | Deploy Hummingbot API infrastructure |
-| [keys-manager](./skills/keys-manager/) | Manage spot and perpetual exchange API keys |
-| [executor-creator](./skills/executor-creator/) | Create trading executors (position, grid, DCA, TWAP) |
-| [candles-feed](./skills/candles-feed/) | Fetch market data and technical indicators |
-| [portfolio](./skills/portfolio/) | View balances and positions across exchanges |
+| [hummingbot-deploy](./skills/hummingbot-deploy/) | Deploy Hummingbot infrastructure |
+| [lp-agent](./skills/lp-agent/) | CLMM liquidity provision agent |
 
 ## Usage
 
 After installing, ask your AI agent:
 
-- "Create a BTC position with 2% stop loss and 4% take profit"
-- "Show me the RSI for ETH on Binance"
-- "Add my Binance API keys"
-- "Set up Hummingbot with Docker"
+- "Deploy Hummingbot API"
+- "Open a liquidity position on Meteora"
 
 ## Prerequisites
 
-Skills interact with the Hummingbot API server. Use the `hummingbot-api-setup` skill to deploy it.
+Skills interact with the Hummingbot API server. Use the `hummingbot-deploy` skill to deploy it.
 
 Configure credentials via `.env` file:
 ```bash
@@ -56,12 +48,9 @@ API_PASS=admin
 
 ## Repository Structure
 
-This is a monorepo containing skills, CLI, and webapp:
-
 ```
 hummingbot/skills/
 ├── skills/           # Skill definitions (SKILL.md + scripts/)
-├── cli/              # hummingbot-skills CLI (npm package)
 ├── app/              # Next.js webapp (skills.hummingbot.org)
 └── .github/          # CI/CD workflows
 ```
@@ -69,7 +58,6 @@ hummingbot/skills/
 | Component | Description | Docs |
 |-----------|-------------|------|
 | **skills/** | Trading skill definitions | Each skill has its own README |
-| **cli/** | `hummingbot-skills` npm package | [cli/README.md](./cli/README.md) |
 | **app/** | Skills browser webapp | [app/README.md](./app/README.md) |
 
 ## Development
@@ -79,17 +67,6 @@ hummingbot/skills/
 Each skill is a folder with:
 - `SKILL.md` - Skill definition with frontmatter metadata
 - `scripts/` - Shell scripts the agent can execute
-
-### CLI
-
-```bash
-cd cli
-npm install
-npm run build
-npm link  # For local testing
-```
-
-See [cli/README.md](./cli/README.md) for publishing instructions.
 
 ### Webapp
 
@@ -104,7 +81,6 @@ See [app/README.md](./app/README.md) for deployment instructions.
 ## Links
 
 - [Skills Webapp](https://skills.hummingbot.org)
-- [CLI on npm](https://www.npmjs.com/package/hummingbot-skills)
 - [Hummingbot](https://hummingbot.org)
 - [Hummingbot API](https://hummingbot.org/hummingbot-api/)
 - [Agent Skills Spec](https://agentskills.io)

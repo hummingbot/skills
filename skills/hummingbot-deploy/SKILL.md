@@ -118,7 +118,7 @@ After all components are installed, tell the user:
 1. **Restart your AI agent** (Claude Code, Gemini CLI, Codex CLI, etc.) to load the MCP server
 2. **Install Hummingbot Skills** to enable trading capabilities:
    ```bash
-   npx hummingbot-skills add
+   npx skills add hummingbot/skills
    ```
 
 ## Install Condor (Optional)
