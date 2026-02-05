@@ -23,61 +23,89 @@ If not installed, use the `hummingbot-deploy` skill first.
 
 ### 1. Find a Pool
 
-```bash
+Use the `manage_gateway_clmm` MCP tool:
+
+```
 # List popular pools on Meteora
-./scripts/list_pools.sh --connector meteora
+manage_gateway_clmm(action="list_pools", connector="meteora")
 
 # Search for specific pools
-./scripts/list_pools.sh --connector meteora --search SOL-USDC
+manage_gateway_clmm(action="list_pools", connector="meteora", search_term="SOL")
 
 # Get detailed pool info
-./scripts/get_pool_info.sh --connector meteora --network solana-mainnet-beta --pool <pool_address>
+manage_gateway_clmm(action="get_pool_info", connector="meteora", network="solana-mainnet-beta", pool_address="<address>")
 ```
 
 ### 2. Create LP Position
 
-```bash
-# Create position with both tokens (double-sided)
-./scripts/create_lp_position.sh \
-  --connector meteora \
-  --network solana-mainnet-beta \
-  --pool <pool_address> \
-  --pair SOL-USDC \
-  --base-amount 1.0 \
-  --quote-amount 100 \
-  --width 5.0
+Use the `manage_executors` MCP tool to create an LP executor:
+
+```
+# First, see the LP executor config schema
+manage_executors(executor_type="lp_executor")
 
 # Create position with quote only (buy base as price drops)
-./scripts/create_lp_position.sh \
-  --connector meteora \
-  --network solana-mainnet-beta \
-  --pool <pool_address> \
-  --pair SOL-USDC \
-  --quote-amount 100 \
-  --width 5.0
+manage_executors(
+    action="create",
+    executor_config={
+        "type": "lp_executor",
+        "connector_name": "meteora/clmm",
+        "pool_address": "<pool_address>",
+        "trading_pair": "SOL-USDC",
+        "base_token": "SOL",
+        "quote_token": "USDC",
+        "base_amount": 0,
+        "quote_amount": 100,
+        "lower_price": 180,
+        "upper_price": 200,
+        "side": 1
+    }
+)
 ```
+
+**Side values:**
+- `0` = Both-sided (base + quote)
+- `1` = Buy (quote-only, range below current price)
+- `2` = Sell (base-only, range above current price)
 
 ### 3. Monitor Positions
 
-```bash
+```
 # List all LP positions
-./scripts/list_lp_positions.sh
+manage_executors(action="search", executor_types=["lp_executor"])
 
 # Get specific position details
-./scripts/get_lp_position.sh --id <executor_id>
+manage_executors(action="get", executor_id="<executor_id>")
+
+# Get positions summary
+manage_executors(action="get_summary")
 ```
 
 ### 4. Manage Positions
 
+```
+# Collect fees (via Gateway CLMM)
+manage_gateway_clmm(
+    action="collect_fees",
+    connector="meteora",
+    network="solana-mainnet-beta",
+    position_address="<position_nft_address>"
+)
+
+# Close position
+manage_executors(action="stop", executor_id="<executor_id>", keep_position=false)
+```
+
+### 5. Rebalance (Script)
+
+For rebalancing, use the script which implements the LP Manager controller logic:
+
 ```bash
-# Collect fees without closing
-./scripts/collect_fees.sh --id <executor_id>
-
-# Close position and collect all
-./scripts/close_lp_position.sh --id <executor_id>
-
-# Rebalance (close and reopen centered on current price)
+# Manual rebalance
 ./scripts/rebalance_position.sh --id <executor_id>
+
+# Auto-rebalance (monitors and rebalances when out of range for N seconds)
+./scripts/auto_rebalance.sh --id <executor_id> --delay 60
 ```
 
 ## Position Types
@@ -95,7 +123,7 @@ Provide liquidity with both base and quote tokens. Best when you expect price to
 - Price goes UP: You sell base, accumulate quote
 - Price goes DOWN: You buy base with quote
 
-### Single-Sided: Quote Only
+### Single-Sided: Quote Only (side=1)
 
 Position entire range BELOW current price. You're buying base as price drops.
 
@@ -105,10 +133,7 @@ Position entire range BELOW current price. You're buying base as price drops.
        |<---- Buy zone ---->|
 ```
 
-- Best for: Accumulating base token at lower prices
-- Risk: Price may never enter your range
-
-### Single-Sided: Base Only
+### Single-Sided: Base Only (side=2)
 
 Position entire range ABOVE current price. You're selling base as price rises.
 
@@ -118,105 +143,205 @@ Position entire range ABOVE current price. You're selling base as price rises.
                                |<-- Sell zone -->|
 ```
 
-- Best for: Taking profit as price rises
-- Risk: Price may never enter your range
-
 ## Rebalancing Strategy
 
-When price moves out of your position range:
+When price moves out of your position range, follow this logic (same as LP Manager controller):
 
-1. **Price dropped below range** (you're now 100% base):
-   - Rebalance creates a BASE-ONLY position above current price
-   - You'll sell base as price recovers
+### Step 1: Check Position State
 
-2. **Price rose above range** (you're now 100% quote):
-   - Rebalance creates a QUOTE-ONLY position below current price
-   - You'll buy base if price drops back
-
-```bash
-# Manual rebalance
-./scripts/rebalance_position.sh --id <executor_id>
-
-# Auto-rebalance (monitors and rebalances when out of range for N seconds)
-./scripts/auto_rebalance.sh --id <executor_id> --delay 60
+```
+manage_executors(action="get", executor_id="<id>")
 ```
 
-## Configuration Parameters
+Look at `custom_info.state`:
+- `IN_RANGE` → No rebalance needed
+- `OUT_OF_RANGE` → Check direction and rebalance
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `--connector` | CLMM connector (meteora, raydium) | meteora |
-| `--network` | Network (solana-mainnet-beta) | solana-mainnet-beta |
-| `--pool` | Pool address | Required |
-| `--pair` | Trading pair (e.g., SOL-USDC) | Required |
-| `--base-amount` | Base token amount | 0 |
-| `--quote-amount` | Quote token amount | 0 |
-| `--width` | Position width as % of current price | 5.0 |
-| `--lower-price` | Explicit lower bound (overrides width) | - |
-| `--upper-price` | Explicit upper bound (overrides width) | - |
+### Step 2: Determine Rebalance Direction
 
-## API Endpoints Used
+Compare `custom_info.current_price` with `custom_info.lower_price` and `custom_info.upper_price`:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/gateway/clmm/pools` | GET | List available pools |
-| `/gateway/clmm/pool-info` | GET | Get pool details |
-| `/gateway/clmm/positions` | GET | Get positions for a pool |
-| `/executors/` | POST | Create LP executor |
-| `/executors/search` | POST | List executors |
-| `/executors/{id}` | GET | Get executor details |
-| `/executors/{id}/stop` | POST | Stop executor |
+**If current_price < lower_price (price dropped below range):**
+- You're now holding mostly BASE tokens
+- Strategy: Create BASE-ONLY position ABOVE current price
+- This lets you sell base as price recovers
 
-## Supported Connectors
+**If current_price > upper_price (price rose above range):**
+- You're now holding mostly QUOTE tokens
+- Strategy: Create QUOTE-ONLY position BELOW current price
+- This lets you buy base if price drops
 
-| Connector | Chain | Status |
-|-----------|-------|--------|
-| `meteora` | Solana | Full support |
-| `raydium` | Solana | Full support |
-| `orca` | Solana | Coming soon |
-| `uniswap_v3` | Ethereum | Coming soon |
+### Step 3: Calculate New Position
+
+For a position width of W% (e.g., 5%):
+
+**Price below range (base-only, side=2):**
+```
+new_lower_price = current_price
+new_upper_price = current_price * (1 + W/100)
+new_base_amount = old_base_amount + old_base_fee
+new_quote_amount = 0
+side = 2
+```
+
+**Price above range (quote-only, side=1):**
+```
+new_lower_price = current_price * (1 - W/100)
+new_upper_price = current_price
+new_base_amount = 0
+new_quote_amount = old_quote_amount + old_quote_fee
+side = 1
+```
+
+### Step 4: Close Old Position
+
+```
+manage_executors(action="stop", executor_id="<old_id>", keep_position=false)
+```
+
+### Step 5: Create New Position
+
+```
+manage_executors(action="create", executor_config={
+    "type": "lp_executor",
+    "connector_name": "<same_connector>",
+    "pool_address": "<same_pool>",
+    "trading_pair": "<same_pair>",
+    "base_token": "<base>",
+    "quote_token": "<quote>",
+    "base_amount": <new_base_amount>,
+    "quote_amount": <new_quote_amount>,
+    "lower_price": <new_lower_price>,
+    "upper_price": <new_upper_price>,
+    "side": <side>
+})
+```
+
+### Auto-Rebalance Script
+
+For continuous monitoring with automatic rebalancing, use the script:
+
+```bash
+./scripts/auto_rebalance.sh --id <executor_id> --delay 60 --width 5.0
+```
+
+This monitors the position and triggers rebalance when out of range for the specified delay.
+
+## MCP Tools Reference
+
+### manage_gateway_clmm
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `list_pools` | connector, search_term, sort_key, limit | Browse available pools |
+| `get_pool_info` | connector, network, pool_address | Get pool details |
+| `get_positions` | connector, network, pool_address | Get positions in a pool |
+| `open_position` | connector, network, pool_address, lower_price, upper_price, base_token_amount, quote_token_amount | Open position directly |
+| `close_position` | connector, network, position_address | Close position |
+| `collect_fees` | connector, network, position_address | Collect accumulated fees |
+
+### manage_executors
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| (none) | executor_type="lp_executor" | Show config schema |
+| `create` | executor_config | Create LP executor |
+| `search` | executor_types=["lp_executor"] | List LP executors |
+| `get` | executor_id | Get executor details |
+| `stop` | executor_id, keep_position | Stop executor |
+| `get_summary` | - | Get overall summary |
+
+## Scripts (for operations without MCP tools)
+
+| Script | Purpose |
+|--------|---------|
+| `check_prerequisites.sh` | Verify API, Gateway, wallet setup |
+| `rebalance_position.sh` | Close and reopen position centered on current price |
+| `auto_rebalance.sh` | Continuous monitoring with auto-rebalance |
+
+## LP Executor Config Schema
+
+```json
+{
+    "type": "lp_executor",
+    "connector_name": "meteora/clmm",
+    "pool_address": "2sfXxxxx...",
+    "trading_pair": "SOL-USDC",
+    "base_token": "SOL",
+    "quote_token": "USDC",
+    "base_amount": 0,
+    "quote_amount": 100,
+    "lower_price": 180,
+    "upper_price": 200,
+    "side": 1,
+    "extra_params": {
+        "strategyType": 0
+    }
+}
+```
+
+**Fields:**
+- `connector_name`: CLMM connector (meteora/clmm, raydium/clmm)
+- `pool_address`: Pool contract address
+- `trading_pair`: Format "BASE-QUOTE"
+- `base_amount` / `quote_amount`: Token amounts (set one to 0 for single-sided)
+- `lower_price` / `upper_price`: Position price bounds
+- `side`: 0=both, 1=buy (quote-only), 2=sell (base-only)
+- `extra_params`: Connector-specific (Meteora strategyType: 0=Spot, 1=Curve, 2=Bid-Ask)
 
 ## Example: Full LP Management Flow
 
-```bash
+```
 # 1. Check prerequisites
 ./scripts/check_prerequisites.sh
 
-# 2. Find a good pool
-./scripts/list_pools.sh --connector meteora --search SOL --sort volume
+# 2. Find a pool
+manage_gateway_clmm(action="list_pools", connector="meteora", search_term="SOL", sort_key="volume")
 
-# 3. Check pool details and current price
-./scripts/get_pool_info.sh --connector meteora --network solana-mainnet-beta \
-  --pool 2sfxxxxxxxxxxxx
+# 3. Get pool details
+manage_gateway_clmm(action="get_pool_info", connector="meteora", network="solana-mainnet-beta", pool_address="2sfXxxxx")
 
-# 4. Create position (5% width around current price)
-./scripts/create_lp_position.sh \
-  --connector meteora \
-  --network solana-mainnet-beta \
-  --pool 2sfxxxxxxxxxxxx \
-  --pair SOL-USDC \
-  --quote-amount 100 \
-  --width 5.0
+# 4. Create position (calculate bounds: current_price ± 2.5% for 5% width)
+manage_executors(action="create", executor_config={
+    "type": "lp_executor",
+    "connector_name": "meteora/clmm",
+    "pool_address": "2sfXxxxx",
+    "trading_pair": "SOL-USDC",
+    "base_token": "SOL",
+    "quote_token": "USDC",
+    "base_amount": 0,
+    "quote_amount": 100,
+    "lower_price": 185,
+    "upper_price": 195,
+    "side": 1
+})
 
 # 5. Monitor position
-./scripts/get_lp_position.sh --id <executor_id>
+manage_executors(action="get", executor_id="<id>")
 
 # 6. If out of range, rebalance
 ./scripts/rebalance_position.sh --id <executor_id>
 
 # 7. When done, close and collect
-./scripts/close_lp_position.sh --id <executor_id>
+manage_executors(action="stop", executor_id="<id>", keep_position=false)
 ```
+
+## Supported Connectors
+
+| Connector | Chain | Status |
+|-----------|-------|--------|
+| `meteora/clmm` | Solana | Full support |
+| `raydium/clmm` | Solana | Full support |
+| `orca/clmm` | Solana | Coming soon |
 
 ## Error Handling
 
 | Error | Cause | Solution |
 |-------|-------|----------|
 | "Prerequisites not met" | API or MCP not running | Run `hummingbot-deploy` skill |
-| "Pool not found" | Invalid pool address | Use `list_pools.sh` to find valid pools |
+| "Pool not found" | Invalid pool address | Use list_pools to find valid pools |
 | "Insufficient balance" | Not enough tokens | Check wallet balance, reduce amounts |
 | "Position not in range" | Price outside bounds | Wait or rebalance |
-| "Failed to open position" | Transaction failed | Check wallet balance, try again |
 
 ## See Also
 
