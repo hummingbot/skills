@@ -38,8 +38,6 @@ manage_gateway_clmm(action="get_pool_info", connector="meteora", network="solana
 
 ### 2. Create LP Position
 
-Use the `manage_executors` MCP tool to create an LP executor:
-
 ```
 # First, see the LP executor config schema
 manage_executors(executor_type="lp_executor")
@@ -67,6 +65,70 @@ manage_executors(
 - `0` = Both-sided (base + quote)
 - `1` = Buy (quote-only, range below current price)
 - `2` = Sell (base-only, range above current price)
+
+**IMPORTANT - Verify Position Creation:**
+
+After creating an executor, you MUST verify the position was actually created on-chain. Follow these steps:
+
+**Step 1: Get the executor ID from the creation response**
+The `manage_executors(action="create")` call returns the executor_id. If it returns "N/A", search for it:
+```
+manage_executors(action="search", executor_types=["lp_executor"], status="RUNNING")
+```
+
+**Step 2: Poll executor state until it changes from OPENING**
+```
+manage_executors(action="get", executor_id="<executor_id>")
+```
+
+Check `custom_info.state`:
+- `OPENING` → Transaction in progress, **wait 5-10 seconds and check again**
+- `IN_RANGE` or `OUT_OF_RANGE` → Position created successfully ✓
+- `FAILED` or `RETRIES_EXCEEDED` → Transaction failed ✗
+
+**Step 3: Confirm position exists on-chain**
+Even if state shows success, verify the position actually exists:
+```
+manage_gateway_clmm(
+    action="get_positions",
+    connector="meteora",
+    network="solana-mainnet-beta",
+    pool_address="<pool_address>"
+)
+```
+
+The response should contain a position with matching `lower_price` and `upper_price`.
+
+**If verification fails:**
+1. Stop the failed executor: `manage_executors(action="stop", executor_id="<id>", keep_position=false)`
+2. Check the error in `custom_info.error` if available
+3. Common issues: range too wide (reduce width), insufficient balance, network congestion
+
+**IMPORTANT - Range Width Limits:**
+
+Meteora DLMM pools have bin limits. Each bin represents a small price increment based on `bin_step`:
+- `bin_step=1` → Each bin is 0.01% apart
+- `bin_step=10` → Each bin is 0.1% apart
+- `bin_step=100` → Each bin is 1% apart
+
+**Maximum bins per position is ~69 due to Solana account size limits.**
+
+Calculate maximum range width:
+```
+max_width_pct = bin_step * 69 / 100
+```
+
+Examples:
+- `bin_step=1`: max ~0.69% width
+- `bin_step=10`: max ~6.9% width
+- `bin_step=100`: max ~69% width
+
+Get bin_step from pool info before creating position:
+```
+manage_gateway_clmm(action="get_pool_info", connector="meteora", network="solana-mainnet-beta", pool_address="<address>")
+```
+
+Look for `bin_step` in the response and calculate appropriate range width.
 
 ### 3. Monitor Positions
 
@@ -217,6 +279,14 @@ manage_executors(action="create", executor_config={
 })
 ```
 
+### Step 6: Verify New Position
+
+```
+manage_executors(action="get", executor_id="<new_id>")
+```
+
+Confirm `custom_info.state` is `IN_RANGE` or `OUT_OF_RANGE` (not `OPENING` or `FAILED`).
+
 ### Auto-Rebalance Script
 
 For continuous monitoring with automatic rebalancing, use the script:
@@ -298,10 +368,13 @@ This monitors the position and triggers rebalance when out of range for the spec
 # 2. Find a pool
 manage_gateway_clmm(action="list_pools", connector="meteora", search_term="SOL", sort_key="volume")
 
-# 3. Get pool details
+# 3. Get pool details (note the bin_step for range calculation)
 manage_gateway_clmm(action="get_pool_info", connector="meteora", network="solana-mainnet-beta", pool_address="2sfXxxxx")
+# Example response shows: bin_step=10, current_price=190
+# Max range width = 10 * 69 / 100 = 6.9%
+# Use conservative 5% width: lower=185.5, upper=194.5
 
-# 4. Create position (calculate bounds: current_price ± 2.5% for 5% width)
+# 4. Create position
 manage_executors(action="create", executor_config={
     "type": "lp_executor",
     "connector_name": "meteora/clmm",
@@ -311,18 +384,25 @@ manage_executors(action="create", executor_config={
     "quote_token": "USDC",
     "base_amount": 0,
     "quote_amount": 100,
-    "lower_price": 185,
-    "upper_price": 195,
+    "lower_price": 185.5,
+    "upper_price": 194.5,
     "side": 1
 })
 
-# 5. Monitor position
+# 5. VERIFY position was created (critical step!)
+manage_executors(action="get", executor_id="<id>")
+# Check custom_info.state:
+# - "OPENING" → wait and check again
+# - "IN_RANGE" or "OUT_OF_RANGE" → success!
+# - "FAILED" → check error, possibly reduce range width
+
+# 6. Monitor position
 manage_executors(action="get", executor_id="<id>")
 
-# 6. If out of range, rebalance
+# 7. If out of range, rebalance
 ./scripts/rebalance_position.sh --id <executor_id>
 
-# 7. When done, close and collect
+# 8. When done, close and collect
 manage_executors(action="stop", executor_id="<id>", keep_position=false)
 ```
 
@@ -342,6 +422,8 @@ manage_executors(action="stop", executor_id="<id>", keep_position=false)
 | "Pool not found" | Invalid pool address | Use list_pools to find valid pools |
 | "Insufficient balance" | Not enough tokens | Check wallet balance, reduce amounts |
 | "Position not in range" | Price outside bounds | Wait or rebalance |
+| "InvalidRealloc" | Position range spans too many bins | Reduce range width (see bin_step limits above) |
+| State stuck at "OPENING" | Transaction failed silently | Stop executor and retry with narrower range |
 
 ## See Also
 
