@@ -1,6 +1,6 @@
 {
   "name": "@hummingbot/skills",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "AI agent skills for Hummingbot algorithmic trading infrastructure",
   "scripts": {
     "build": "cd app && npm run build",
