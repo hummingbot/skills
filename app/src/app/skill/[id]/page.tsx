@@ -7,6 +7,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { CommandBox } from "@/components/command-box";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -60,11 +61,8 @@ export default async function SkillPage({ params }: Props) {
         </h1>
 
         {/* Install Command */}
-        <div className="bg-muted border border-border rounded-lg px-4 py-3 font-mono text-sm mb-6">
-          <code>
-            <span className="text-muted-foreground">$ </span>
-            <span className="text-foreground">npx skills add hummingbot/skills --skill {skill.name}</span>
-          </code>
+        <div className="mb-6">
+          <CommandBox command={`npx skills add hummingbot/skills --skill ${skill.name}`} />
         </div>
       </div>
 
