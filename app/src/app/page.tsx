@@ -12,7 +12,7 @@ export default async function Home() {
       <div className="mb-16">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
           <div>
-            <pre className="text-foreground font-mono text-[10px] sm:text-xs leading-tight mb-4">
+            <pre className="text-primary font-mono text-[10px] sm:text-xs leading-tight mb-4">
 {"    __                              _             __          __ \n   / /_  __  ______ ___  ____ ___  (_)___  ____ _/ /_  ____  / /_\n  / __ \\/ / / / __ `__ \\/ __ `__ \\/ / __ \\/ __ `/ __ \\/ __ \\/ __/\n / / / / /_/ / / / / / / / / / / / / / / / /_/ / /_/ / /_/ / /_  \n/_/ /_/\\__,_/_/ /_/ /_/_/ /_/ /_/_/_/ /_/\\__, /_.___/\\____/\\__/  \n         __   _ ____                    /____/                   \n   _____/ /__(_) / /____                                         \n  / ___/ //_/ / / / ___/                                         \n (__  ) ,< / / / (__  )                                          \n/____/_/|_/_/_/_/____/                                           "}
             </pre>
           </div>
