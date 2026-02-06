@@ -14,7 +14,7 @@ This skill manages **concentrated liquidity (CLMM) positions** on decentralized 
 Before using this skill, ensure hummingbot-api and MCP are running:
 
 ```bash
-./scripts/check_prerequisites.sh
+bash <(curl -s https://raw.githubusercontent.com/hummingbot/skills/main/skills/lp-agent/scripts/check_prerequisites.sh)
 ```
 
 If not installed, use the `hummingbot-deploy` skill first.
@@ -101,7 +101,7 @@ The response should contain a position with matching `lower_price` and `upper_pr
 2. Check the error in `custom_info.error` if available
 3. Common issues: range too wide (reduce width), insufficient balance, network congestion
 
-**IMPORTANT - Range Width Limits:**
+**IMPORTANT - Range Width Limits (check BEFORE opening position):**
 
 Meteora DLMM pools have bin limits. Each bin represents a small price increment based on `bin_step`:
 - `bin_step=1` → Each bin is 0.01% apart
@@ -113,21 +113,57 @@ Meteora DLMM pools have bin limits. Each bin represents a small price increment 
 Calculate maximum range width:
 ```
 max_width_pct = bin_step * 69 / 100
+user_width_pct = (upper_price - lower_price) / lower_price * 100
 ```
+
+**Before creating any position, the agent MUST:**
+1. Get pool info: `manage_gateway_clmm(action="get_pool_info", connector="meteora", network="solana-mainnet-beta", pool_address="<address>")`
+2. Extract `bin_step` from response
+3. Calculate `max_width_pct = bin_step * 69 / 100`
+4. If user's range exceeds max, **warn user and suggest narrower range**
+5. Check wallet balance: user needs token amounts + **at least 0.06 SOL for position rent**
+   - Use `get_portfolio_overview` to check balances
+   - Warn if insufficient SOL or token balance
 
 Examples:
 - `bin_step=1`: max ~0.69% width
 - `bin_step=10`: max ~6.9% width
 - `bin_step=100`: max ~69% width
 
-Get bin_step from pool info before creating position:
+### 3. Set Default Preferences (Optional)
+
+Save commonly-used settings to avoid repeating them. Ask user which values they want to default:
+
 ```
-manage_gateway_clmm(action="get_pool_info", connector="meteora", network="solana-mainnet-beta", pool_address="<address>")
+# View current preferences
+manage_executors(action="get_preferences")
+
+# Save connector/pair defaults when creating
+manage_executors(
+    action="create",
+    executor_config={
+        "type": "lp_executor",
+        "connector_name": "meteora/clmm",
+        "trading_pair": "SOL-USDC",
+        ...
+    },
+    save_as_default=true
+)
 ```
 
-Look for `bin_step` in the response and calculate appropriate range width.
+**What can be defaulted:**
+- `connector_name` - e.g., `meteora/clmm` (must include `/clmm` suffix)
+- `trading_pair` - e.g., `SOL-USDC`
+- `extra_params.strategyType` - Meteora only: 0=Spot, 1=Curve, 2=Bid-Ask
 
-### 3. Monitor Positions
+**What should NOT be defaulted:**
+- `side` - Determined by amounts at creation time
+- `base_token`/`quote_token` - Inferred from trading_pair
+- `lower_price`/`upper_price` - Market-dependent
+
+Defaults stored at `~/.hummingbot_mcp/executor_preferences.md`.
+
+### 4. Monitor Positions
 
 ```
 # List all LP positions
@@ -140,7 +176,7 @@ manage_executors(action="get", executor_id="<executor_id>")
 manage_executors(action="get_summary")
 ```
 
-### 4. Manage Positions
+### 5. Manage Positions
 
 ```
 # Collect fees (via Gateway CLMM)
@@ -153,18 +189,6 @@ manage_gateway_clmm(
 
 # Close position
 manage_executors(action="stop", executor_id="<executor_id>", keep_position=false)
-```
-
-### 5. Rebalance (Script)
-
-For rebalancing, use the script which implements the LP Manager controller logic:
-
-```bash
-# Manual rebalance
-./scripts/rebalance_position.sh --id <executor_id>
-
-# Auto-rebalance (monitors and rebalances when out of range for N seconds)
-./scripts/auto_rebalance.sh --id <executor_id> --delay 60
 ```
 
 ## Position Types
@@ -202,19 +226,21 @@ Position entire range ABOVE current price. You're selling base as price rises.
                                |<-- Sell zone -->|
 ```
 
-## Rebalancing Strategy
+## Rebalancing Strategy (Agent-Driven)
 
-When price moves out of your position range, follow this logic (same as LP Manager controller):
+When price moves out of your position range, the agent handles rebalancing automatically.
 
-### Step 1: Check Position State
+### Step 1: Monitor Position State
 
 ```
 manage_executors(action="get", executor_id="<id>")
 ```
 
-Look at `custom_info.state`:
-- `IN_RANGE` → No rebalance needed
-- `OUT_OF_RANGE` → Check direction and rebalance
+Check `custom_info.state`:
+- `IN_RANGE` → No action needed
+- `OUT_OF_RANGE` → Wait for rebalance delay, then rebalance
+
+**Rebalance delay:** Wait for position to be out of range for a set time (default: 60 seconds). Ask user to confirm delay before starting.
 
 ### Step 2: Determine Rebalance Direction
 
@@ -230,35 +256,35 @@ Compare `custom_info.current_price` with `custom_info.lower_price` and `custom_i
 - Strategy: Create QUOTE-ONLY position BELOW current price
 - This lets you buy base if price drops
 
-### Step 3: Calculate New Position
-
-For a position width of W% (e.g., 5%):
-
-**Price below range (base-only, side=2):**
-```
-new_lower_price = current_price
-new_upper_price = current_price * (1 + W/100)
-new_base_amount = old_base_amount + old_base_fee
-new_quote_amount = 0
-side = 2
-```
-
-**Price above range (quote-only, side=1):**
-```
-new_lower_price = current_price * (1 - W/100)
-new_upper_price = current_price
-new_base_amount = 0
-new_quote_amount = old_quote_amount + old_quote_fee
-side = 1
-```
-
-### Step 4: Close Old Position
+### Step 3: Close Old Position
 
 ```
 manage_executors(action="stop", executor_id="<old_id>", keep_position=false)
 ```
 
-### Step 5: Create New Position
+This returns tokens to wallet. Use the returned amounts for the new position.
+
+### Step 4: Create New Single-Sided Position
+
+Use tokens received from close. For position width W% (ask user, check bin_step limits):
+
+**Price below range → base-only position ABOVE current price (side=2):**
+```
+new_lower_price = current_price
+new_upper_price = current_price * (1 + W/100)
+base_amount = <amount received from close>
+quote_amount = 0
+side = 2
+```
+
+**Price above range → quote-only position BELOW current price (side=1):**
+```
+new_lower_price = current_price * (1 - W/100)
+new_upper_price = current_price
+base_amount = 0
+quote_amount = <amount received from close>
+side = 1
+```
 
 ```
 manage_executors(action="create", executor_config={
@@ -266,33 +292,21 @@ manage_executors(action="create", executor_config={
     "connector_name": "<same_connector>",
     "pool_address": "<same_pool>",
     "trading_pair": "<same_pair>",
-    "base_token": "<base>",
-    "quote_token": "<quote>",
-    "base_amount": <new_base_amount>,
-    "quote_amount": <new_quote_amount>,
+    "base_amount": <base_amount>,
+    "quote_amount": <quote_amount>,
     "lower_price": <new_lower_price>,
     "upper_price": <new_upper_price>,
     "side": <side>
 })
 ```
 
-### Step 6: Verify New Position
+### Step 5: Verify New Position
 
 ```
 manage_executors(action="get", executor_id="<new_id>")
 ```
 
 Confirm `custom_info.state` is `IN_RANGE` or `OUT_OF_RANGE` (not `OPENING` or `FAILED`).
-
-### Auto-Rebalance Script
-
-For continuous monitoring with automatic rebalancing, use the script:
-
-```bash
-./scripts/auto_rebalance.sh --id <executor_id> --delay 60 --width 5.0
-```
-
-This monitors the position and triggers rebalance when out of range for the specified delay.
 
 ## MCP Tools Reference
 
@@ -311,20 +325,21 @@ This monitors the position and triggers rebalance when out of range for the spec
 
 | Action | Parameters | Description |
 |--------|------------|-------------|
-| (none) | executor_type="lp_executor" | Show config schema |
-| `create` | executor_config | Create LP executor |
+| (none) | executor_type="lp_executor" | Show config schema with your defaults |
+| `create` | executor_config, save_as_default | Create LP executor (optionally save as default) |
 | `search` | executor_types=["lp_executor"] | List LP executors |
 | `get` | executor_id | Get executor details |
 | `stop` | executor_id, keep_position | Stop executor |
 | `get_summary` | - | Get overall summary |
+| `get_preferences` | - | View preferences file |
+| `save_preferences` | preferences_content | Save edited preferences |
+| `reset_preferences` | - | Reset to default template |
 
-## Scripts (for operations without MCP tools)
+## Scripts
 
 | Script | Purpose |
 |--------|---------|
 | `check_prerequisites.sh` | Verify API, Gateway, wallet setup |
-| `rebalance_position.sh` | Close and reopen position centered on current price |
-| `auto_rebalance.sh` | Continuous monitoring with auto-rebalance |
 
 ## LP Executor Config Schema
 
@@ -338,8 +353,8 @@ This monitors the position and triggers rebalance when out of range for the spec
     "quote_token": "USDC",
     "base_amount": 0,
     "quote_amount": 100,
-    "lower_price": 180,
-    "upper_price": 200,
+    "lower_price": 70,
+    "upper_price": 90,
     "side": 1,
     "extra_params": {
         "strategyType": 0
@@ -348,7 +363,7 @@ This monitors the position and triggers rebalance when out of range for the spec
 ```
 
 **Fields:**
-- `connector_name`: CLMM connector (meteora/clmm, raydium/clmm)
+- `connector_name`: CLMM connector - append `/clmm` to connector name (e.g., `meteora/clmm`)
 - `pool_address`: Pool contract address
 - `trading_pair`: Format "BASE-QUOTE"
 - `base_amount` / `quote_amount`: Token amounts (set one to 0 for single-sided)
@@ -356,11 +371,21 @@ This monitors the position and triggers rebalance when out of range for the spec
 - `side`: 0=both, 1=buy (quote-only), 2=sell (base-only)
 - `extra_params`: Connector-specific (Meteora strategyType: 0=Spot, 1=Curve, 2=Bid-Ask)
 
+**Supported Connectors:**
+- `meteora/clmm` - Tested and fully supported
+- Other Gateway CLMM connectors - Should work but not yet tested
+
+To list available CLMM connectors:
+```
+manage_gateway_config(resource_type="connectors", action="list")
+```
+Append `/clmm` to any CLMM connector name when creating executors.
+
 ## Example: Full LP Management Flow
 
 ```
 # 1. Check prerequisites
-./scripts/check_prerequisites.sh
+bash <(curl -s https://raw.githubusercontent.com/hummingbot/skills/main/skills/lp-agent/scripts/check_prerequisites.sh)
 
 # 2. Find a pool
 manage_gateway_clmm(action="list_pools", connector="meteora", search_term="SOL", sort_key="volume")
@@ -396,20 +421,13 @@ manage_executors(action="get", executor_id="<id>")
 # 6. Monitor position
 manage_executors(action="get", executor_id="<id>")
 
-# 7. If out of range, rebalance
-./scripts/rebalance_position.sh --id <executor_id>
+# 7. If out of range for 60+ seconds, rebalance (see Rebalancing Strategy)
+# - Close: manage_executors(action="stop", executor_id="<id>", keep_position=false)
+# - Reopen with tokens received as single-sided position
 
-# 8. When done, close and collect
+# 8. When done, close
 manage_executors(action="stop", executor_id="<id>", keep_position=false)
 ```
-
-## Supported Connectors
-
-| Connector | Chain | Status |
-|-----------|-------|--------|
-| `meteora/clmm` | Solana | Full support |
-| `raydium/clmm` | Solana | Full support |
-| `orca/clmm` | Solana | Coming soon |
 
 ## Error Handling
 
@@ -422,8 +440,3 @@ manage_executors(action="stop", executor_id="<id>", keep_position=false)
 | "InvalidRealloc" | Position range spans too many bins | Reduce range width (see bin_step limits above) |
 | State stuck at "OPENING" | Transaction failed silently | Stop executor and retry with narrower range |
 
-## See Also
-
-- [CLMM Documentation](https://hummingbot.org/gateway/clmm/)
-- [Meteora DLMM](https://docs.meteora.ag/dlmm/dlmm-overview)
-- [LP Manager Controller](https://hummingbot.org/controllers/lp-manager/)
