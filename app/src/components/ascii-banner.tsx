@@ -1,10 +1,9 @@
 export function AsciiBanner() {
   return (
-    <div className="overflow-x-auto mb-4">
-      <pre
-        className="text-primary text-[5px] sm:text-[8px] md:text-[10px] lg:text-xs leading-none whitespace-pre"
-        style={{ fontFamily: 'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace' }}
-      >
+    <pre
+      className="text-primary text-[5px] sm:text-[8px] md:text-[10px] lg:text-xs leading-none whitespace-pre mb-4"
+      style={{ fontFamily: 'ui-monospace, SFMono-Regular, "Roboto Mono", "Droid Sans Mono", Menlo, Consolas, monospace' }}
+    >
 {`██╗  ██╗██╗   ██╗███╗   ███╗███╗   ███╗██╗███╗   ██╗ ██████╗ ██████╗  ██████╗ ████████╗
 ██║  ██║██║   ██║████╗ ████║████╗ ████║██║████╗  ██║██╔════╝ ██╔══██╗██╔═══██╗╚══██╔══╝
 ███████║██║   ██║██╔████╔██║██╔████╔██║██║██╔██╗ ██║██║  ███╗██████╔╝██║   ██║   ██║
@@ -18,7 +17,6 @@ export function AsciiBanner() {
 ╚════██║██╔═██╗ ██║██║     ██║     ╚════██║
 ███████║██║  ██╗██║███████╗███████╗███████║
 ╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝`}
-      </pre>
-    </div>
+    </pre>
   );
 }
