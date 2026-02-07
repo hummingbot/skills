@@ -1,9 +1,6 @@
 export function AsciiBanner() {
   return (
-    <pre
-      className="text-primary text-[5px] sm:text-[8px] md:text-[10px] lg:text-xs leading-none whitespace-pre mb-4"
-      style={{ fontFamily: '"SF Mono", ui-monospace, "Roboto Mono", Menlo, monospace' }}
-    >
+    <pre className="text-primary text-[6px] sm:text-[9px] lg:text-[12px] tracking-[-0.5px] leading-[120%] whitespace-pre select-none mb-4 font-[family-name:var(--font-fira-mono)]">
 {`██╗  ██╗██╗   ██╗███╗   ███╗███╗   ███╗██╗███╗   ██╗ ██████╗ ██████╗  ██████╗ ████████╗
 ██║  ██║██║   ██║████╗ ████║████╗ ████║██║████╗  ██║██╔════╝ ██╔══██╗██╔═══██╗╚══██╔══╝
 ███████║██║   ██║██╔████╔██║██╔████╔██║██║██╔██╗ ██║██║  ███╗██████╔╝██║   ██║   ██║
