@@ -1,6 +1,6 @@
 #!/bin/bash
 # Slides Generator - Create PDF slides from markdown
-# Usage: ./generate_slides.sh --input <markdown_file> --output <pdf_file> [--edit]
+# Usage: ./generate_slides.sh --input <markdown_file> --output <pdf_file> [--logo <logo_file>] [--edit]
 
 set -e
 
@@ -8,6 +8,7 @@ set -e
 INPUT=""
 OUTPUT=""
 EDIT_MODE=false
+LOGO=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -18,6 +19,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --output)
             OUTPUT="$2"
+            shift 2
+            ;;
+        --logo)
+            LOGO="$2"
             shift 2
             ;;
         --edit)
@@ -91,12 +96,16 @@ fi
 TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
 
-# Get logo from assets folder
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOGO_PATH="$SCRIPT_DIR/../assets/hummingbot-logo.png"
+# Get logo - check --logo option first, then assets folder
+if [[ -n "$LOGO" && -f "$LOGO" ]]; then
+    LOGO_PATH="$LOGO"
+else
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    LOGO_PATH="$SCRIPT_DIR/../assets/hummingbot-logo.png"
 
-if [[ ! -f "$LOGO_PATH" ]]; then
-    LOGO_PATH="$SCRIPT_DIR/assets/hummingbot-logo.png"
+    if [[ ! -f "$LOGO_PATH" ]]; then
+        LOGO_PATH="$SCRIPT_DIR/assets/hummingbot-logo.png"
+    fi
 fi
 
 if [[ -f "$LOGO_PATH" ]]; then

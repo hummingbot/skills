@@ -34,6 +34,7 @@ cd app && npm install && npm run dev
 |-------|-------------|
 | `hummingbot-deploy` | Deploy Hummingbot infrastructure |
 | `lp-agent` | CLMM liquidity provision agent |
+| `slides-generator` | Create PDF slides from markdown |
 
 ## Installation
 
