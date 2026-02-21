@@ -113,6 +113,7 @@ def query_executors(controller_id: str, db_path: str) -> list[dict]:
             "ci_unrealized_pnl_quote": _float(custom_info.get("unrealized_pnl_quote")),
             "ci_position_rent": _float(custom_info.get("position_rent")),
             "ci_position_rent_refunded": _float(custom_info.get("position_rent_refunded")),
+            "ci_tx_fee": _float(custom_info.get("tx_fee")),
             "ci_out_of_range_seconds": _int(custom_info.get("out_of_range_seconds")),
             "ci_max_retries_reached": custom_info.get("max_retries_reached", False),
         })
@@ -205,9 +206,10 @@ def rows_to_chart_data(rows: list[dict]) -> list[dict]:
             "ci_total_value_quote": round(_float(r.get("ci_total_value_quote")), 6),
             "ci_unrealized_pnl_quote": round(_float(r.get("ci_unrealized_pnl_quote")), 6),
 
-            # Custom info - rent & timing
+            # Custom info - rent, tx_fee & timing
             "rent": round(_float(r.get("ci_position_rent")), 6),
             "ci_position_rent_refunded": round(_float(r.get("ci_position_rent_refunded")), 6),
+            "ci_tx_fee": round(_float(r.get("ci_tx_fee")), 6),
             "oor": _int(r.get("ci_out_of_range_seconds")),
             "ci_max_retries_reached": r.get("ci_max_retries_reached", False),
 
@@ -433,10 +435,11 @@ function ExecutorDetail({ executor, onClose }) {
       e(DetailRow, { label: "Total Value (Quote)", value: `$${fmt(d.ci_total_value_quote, 6)}` }),
       e(DetailRow, { label: "Unrealized PnL", value: `$${fmt(d.ci_unrealized_pnl_quote, 6)}`, color: d.ci_unrealized_pnl_quote >= 0 ? "#4ecdc4" : "#e85d75" }),
 
-      // Rent section
-      e("div", { style: { fontSize: 11, fontWeight: 600, color: "#8b8fa3", marginBottom: 8, marginTop: 20 } }, "RENT"),
+      // Rent & Tx Fee section
+      e("div", { style: { fontSize: 11, fontWeight: 600, color: "#8b8fa3", marginBottom: 8, marginTop: 20 } }, "RENT & TX FEE"),
       e(DetailRow, { label: "Position Rent", value: `$${fmt(d.rent, 6)}`, color: "#e85d75" }),
       e(DetailRow, { label: "Rent Refunded", value: `$${fmt(d.ci_position_rent_refunded, 6)}`, color: "#4ecdc4" }),
+      e(DetailRow, { label: "Transaction Fee", value: `${fmt(d.ci_tx_fee, 6)} SOL`, color: "#f0c644" }),
 
       // Cumulative at close
       e("div", { style: { fontSize: 11, fontWeight: 600, color: "#8b8fa3", marginBottom: 8, marginTop: 20 } }, "CUMULATIVE AT CLOSE"),

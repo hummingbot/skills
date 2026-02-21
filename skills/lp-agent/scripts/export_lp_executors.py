@@ -102,7 +102,7 @@ def export_executors(controller_id: str, db_path: str, output_path: str) -> int:
             "ci_base_fee", "ci_quote_fee", "ci_fees_earned_quote",
             "ci_initial_base_amount", "ci_initial_quote_amount",
             "ci_total_value_quote", "ci_unrealized_pnl_quote",
-            "ci_position_rent", "ci_position_rent_refunded",
+            "ci_position_rent", "ci_position_rent_refunded", "ci_tx_fee",
             "ci_out_of_range_seconds", "ci_max_retries_reached"
         ]
         writer.writerow(header)
@@ -150,6 +150,7 @@ def export_executors(controller_id: str, db_path: str, output_path: str) -> int:
             ci_unrealized_pnl_quote = custom_info.get("unrealized_pnl_quote", "")
             ci_position_rent = custom_info.get("position_rent", "")
             ci_position_rent_refunded = custom_info.get("position_rent_refunded", "")
+            ci_tx_fee = custom_info.get("tx_fee", "")
             ci_out_of_range_seconds = custom_info.get("out_of_range_seconds", "")
             ci_max_retries_reached = custom_info.get("max_retries_reached", "")
 
@@ -167,7 +168,7 @@ def export_executors(controller_id: str, db_path: str, output_path: str) -> int:
                 ci_base_fee, ci_quote_fee, ci_fees_earned_quote,
                 ci_initial_base_amount, ci_initial_quote_amount,
                 ci_total_value_quote, ci_unrealized_pnl_quote,
-                ci_position_rent, ci_position_rent_refunded,
+                ci_position_rent, ci_position_rent_refunded, ci_tx_fee,
                 ci_out_of_range_seconds, ci_max_retries_reached
             ])
 

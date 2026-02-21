@@ -55,9 +55,14 @@ Then proceed to **Task 2: Deployment** → **Task 3: Monitoring**
 ### Path B: Analyze Existing Bot
 If user wants to analyze existing data, **skip directly to Task 4: Analysis**.
 
-Ask which data they want to analyze:
-- Executor performance for a specific controller (use `visualize_executors.py`)
-- LP position events for a trading pair (use `visualize_lp_positions.py`)
+**Default to LP Positions analysis** (`export_lp_positions.py` / `visualize_lp_positions.py`) - this works for both running and stopped bots since position events are recorded immediately when positions are created/closed on-chain.
+
+Only use Executor analysis if user explicitly asks for it, and explain:
+> **Note:** Executors are only saved to the database when:
+> 1. They complete/close (e.g., after a rebalance)
+> 2. The bot shuts down gracefully
+>
+> If the bot is still running with active positions, use LP Positions analysis instead.
 
 ---
 
@@ -232,31 +237,58 @@ manage_executors(action="stop", executor_id="<executor_id>", keep_position=false
 
 ## Task 4: Analysis
 
-Use the analysis scripts to export data and generate visual dashboards.
+Use the analysis scripts to export data and generate visual dashboards. Scripts are in this skill's `scripts/` directory.
+
+### Important: Positions vs Executors
+
+**Default to LP Positions analysis** for running bots:
+- LP position events (ADD/REMOVE) are recorded **immediately** when transactions complete on-chain
+- Works for both running and stopped bots
+
+**Executor analysis** requires completed executors:
+- Executors are only saved to database when they **complete/close** (e.g., after rebalance) or when the **bot shuts down gracefully**
+- If no executors found, the bot is likely still running - use LP Positions instead
 
 ### Available Scripts
 
-Located in the skill's `scripts/` directory:
+| Script | Purpose | When to Use |
+|--------|---------|-------------|
+| `scripts/export_lp_positions.py` | Export LP position events to CSV | **Default** - works for running bots |
+| `scripts/visualize_lp_positions.py` | Generate HTML dashboard from position events | **Default** - works for running bots |
+| `scripts/export_lp_executors.py` | Export executor data from SQLite to CSV | After bot stops or rebalances |
+| `scripts/visualize_executors.py` | Generate HTML dashboard from executor data | After bot stops or rebalances |
 
-| Script | Purpose |
-|--------|---------|
-| `export_lp_executors.py` | Export executor data from SQLite to CSV |
-| `export_lp_positions.py` | Export LP position events to CSV |
-| `visualize_executors.py` | Generate interactive HTML dashboard from executor data |
-| `visualize_lp_positions.py` | Generate interactive HTML dashboard from position events |
+### Visualize LP Positions (Recommended for Running Bots)
 
-### Visualize Executors (Controller Performance)
+Shows position ADD/REMOVE events from the blockchain. **Works immediately for running bots.**
+
+```bash
+# Basic usage (auto-detects database in data/)
+python scripts/visualize_lp_positions.py --pair SOL-USDC
+
+# Specify database explicitly
+python scripts/visualize_lp_positions.py --db data/my_bot.sqlite --pair SOL-USDC
+
+# Filter by connector
+python scripts/visualize_lp_positions.py --db data/my_bot.sqlite --pair SOL-USDC --connector meteora/clmm
+```
+
+**Dashboard Features:**
+- Position range chart over time
+- Position table with PnL, fees, duration
+- Detailed position panel with ADD/REMOVE amounts
+- Links to Solscan for transaction verification
+
+### Visualize Executors (After Bot Stops or Rebalances)
 
 Shows PnL, fees, duration, and range utilization for executors created by a controller.
 
-```bash
-# From hummingbot directory
-python controllers/generic/lp_rebalancer/scripts/visualize_executors.py <controller_id>
+> **Note:** If no executors found, the bot is likely still running. Use LP Positions analysis instead, or stop the bot gracefully to flush executor data to the database.
 
-# Examples:
-python controllers/generic/lp_rebalancer/scripts/visualize_executors.py lp_rebalancer_1
-python controllers/generic/lp_rebalancer/scripts/visualize_executors.py lp_rebalancer_1 --db data/my.sqlite
-python controllers/generic/lp_rebalancer/scripts/visualize_executors.py lp_rebalancer_1 --output report.html --no-open
+```bash
+python scripts/visualize_executors.py <controller_id>
+python scripts/visualize_executors.py <controller_id> --db data/my.sqlite
+python scripts/visualize_executors.py <controller_id> --output report.html --no-open
 ```
 
 **Dashboard Features:**
@@ -267,35 +299,14 @@ python controllers/generic/lp_rebalancer/scripts/visualize_executors.py lp_rebal
 - Filterable executor table with sorting
 - Detailed executor panel showing all metrics
 
-### Visualize LP Positions (On-Chain Events)
-
-Shows raw position ADD/REMOVE events from the blockchain.
-
-```bash
-# From hummingbot directory
-python controllers/generic/lp_rebalancer/scripts/visualize_lp_positions.py --pair SOL-USDC
-
-# Filter by connector
-python controllers/generic/lp_rebalancer/scripts/visualize_lp_positions.py --pair SOL-USDC --connector meteora/clmm
-
-# Limit time range
-python controllers/generic/lp_rebalancer/scripts/visualize_lp_positions.py --pair SOL-USDC --hours 24
-```
-
-**Dashboard Features:**
-- Position range chart over time
-- Position table with PnL, fees, duration
-- Detailed position panel with ADD/REMOVE amounts
-- Links to Solscan for transaction verification
-
 ### Export to CSV for External Analysis
 
 ```bash
-# Export executor data
-python controllers/generic/lp_rebalancer/scripts/export_lp_executors.py <controller_id> --output exports/my_data.csv
+# Export position events (works for running bots)
+python scripts/export_lp_positions.py --db data/my_bot.sqlite --output exports/positions.csv
 
-# Export position events
-python controllers/generic/lp_rebalancer/scripts/export_lp_positions.py --pair SOL-USDC --output exports/positions.csv
+# Export executor data (requires completed executors)
+python scripts/export_lp_executors.py <controller_id> --db data/my_bot.sqlite --output exports/executors.csv
 ```
 
 ---
@@ -310,15 +321,15 @@ python controllers/generic/lp_rebalancer/scripts/export_lp_positions.py --pair S
 3. Deploy: `manage_controllers(action="create", controller_config={...})`
 4. Verify: `manage_controllers(action="get_active")`
 
-**Check Performance:**
-1. Get controller_id from active controllers
-2. Run: `python visualize_executors.py <controller_id>`
+**Analyze Running Bot:**
+1. Export positions: `python scripts/export_lp_positions.py --db data/<db>.sqlite`
+2. Visualize: `python scripts/visualize_lp_positions.py --db data/<db>.sqlite --pair SOL-USDC`
 3. Review dashboard in browser
 
-**Stop and Analyze:**
+**Analyze After Bot Stops:**
 1. Stop: `manage_controllers(action="stop", controller_id="<id>")`
-2. Export: `python export_lp_executors.py <controller_id>`
-3. Visualize: `python visualize_executors.py <controller_id>`
+2. Export executors: `python scripts/export_lp_executors.py <controller_id> --db data/<db>.sqlite`
+3. Visualize: `python scripts/visualize_executors.py <controller_id> --db data/<db>.sqlite`
 
 ### MCP Tools Reference
 
@@ -335,4 +346,4 @@ python controllers/generic/lp_rebalancer/scripts/export_lp_positions.py --pair S
 | "InvalidRealloc" | Position range too wide | Reduce `position_width_pct` (check bin_step limits) |
 | State stuck "OPENING" | Transaction failed | Stop executor, reduce range, retry |
 | "Insufficient balance" | Not enough tokens | Check wallet has tokens + 0.06 SOL for rent |
-| No executors found | Controller not running | Check `manage_controllers(action="get_active")` |
+| No executors found | Bot still running | Use LP Positions analysis instead, or run `stop` in Hummingbot CLI to flush executors to DB |

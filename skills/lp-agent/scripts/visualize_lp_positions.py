@@ -79,7 +79,7 @@ def query_positions(db_path: str, connector: Optional[str] = None, trading_pair:
                  "config_file_path", "order_action", "trading_pair", "position_address",
                  "lower_price", "upper_price", "mid_price", "base_amount", "quote_amount",
                  "base_fee", "quote_fee"]
-    optional_cols = ["market", "position_rent", "position_rent_refunded"]
+    optional_cols = ["market", "position_rent", "position_rent_refunded", "trade_fee_in_quote"]
 
     select_cols = [c for c in base_cols if c in available_cols]
     for col in optional_cols:
@@ -164,6 +164,11 @@ def query_positions(db_path: str, connector: Optional[str] = None, trading_pair:
         rent_paid = _float(add_event.get("position_rent", 0))
         rent_refunded = _float(remove_event.get("position_rent_refunded", 0)) if remove_event else 0
 
+        # Transaction fees (in quote currency)
+        add_tx_fee = _float(add_event.get("trade_fee_in_quote", 0))
+        remove_tx_fee = _float(remove_event.get("trade_fee_in_quote", 0)) if remove_event else 0
+        total_tx_fee = add_tx_fee + remove_tx_fee
+
         # Duration
         add_ts = add_event.get("timestamp", 0)
         remove_ts = remove_event.get("timestamp", 0) if remove_event else 0
@@ -212,9 +217,10 @@ def query_positions(db_path: str, connector: Optional[str] = None, trading_pair:
             "pnl": pnl,
             "pnl_pct": (pnl / add_value * 100) if add_value > 0 else 0,
 
-            # Rent
+            # Rent & tx fees
             "rent_paid": rent_paid,
             "rent_refunded": rent_refunded,
+            "tx_fee_quote": total_tx_fee,
 
             # TX hashes
             "add_tx": add_event.get("tx_hash", ""),
@@ -296,9 +302,10 @@ def positions_to_chart_data(positions: list[dict]) -> list[dict]:
             "pnl_pct": round(p["pnl_pct"], 4),
             "cum_pnl": round(cum_pnl, 6),
 
-            # Rent
+            # Rent & tx fees
             "rent_paid": round(p["rent_paid"], 6),
             "rent_refunded": round(p["rent_refunded"], 6),
+            "tx_fee_quote": round(p["tx_fee_quote"], 6),
 
             # TX
             "add_tx": p["add_tx"],
@@ -506,11 +513,12 @@ function PositionDetail({ position, onClose }) {
       e(DetailRow, { label: "Fees Earned", value: `$${fmt(d.fees, 6)}`, color: "#7c6df0" }),
       e(DetailRow, { label: "Net PnL", value: `$${fmt(d.pnl, 6)}`, color: pnlColor }),
 
-      // Rent section
-      (d.rent_paid > 0 || d.rent_refunded > 0) && e("div", null,
-        e("div", { style: { fontSize: 11, fontWeight: 600, color: "#8b8fa3", marginBottom: 8, marginTop: 20 } }, "RENT"),
+      // Rent & tx fee section
+      (d.rent_paid > 0 || d.rent_refunded > 0 || d.tx_fee_quote > 0) && e("div", null,
+        e("div", { style: { fontSize: 11, fontWeight: 600, color: "#8b8fa3", marginBottom: 8, marginTop: 20 } }, "RENT & TX FEES"),
         e(DetailRow, { label: "Rent Paid", value: `${fmt(d.rent_paid, 6)} SOL`, color: "#e85d75" }),
         e(DetailRow, { label: "Rent Refunded", value: `${fmt(d.rent_refunded, 6)} SOL`, color: "#4ecdc4" }),
+        d.tx_fee_quote > 0 && e(DetailRow, { label: "Transaction Fees", value: `$${fmt(d.tx_fee_quote, 6)}`, color: "#f0c644" }),
       ),
 
       // Cumulative at close

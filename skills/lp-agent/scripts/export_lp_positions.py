@@ -79,20 +79,14 @@ def export_positions(db_path: str, output_path: str, trading_pair: str = None) -
     # Get available columns (schema may vary)
     available_cols = get_table_columns(cursor)
 
-    # Base columns that should always exist
-    base_cols = ["id", "hb_id", "timestamp", "tx_hash", "token_id", "trade_fee",
-                 "config_file_path", "order_action", "trading_pair", "position_address",
-                 "lower_price", "upper_price", "mid_price", "base_amount", "quote_amount",
-                 "base_fee", "quote_fee"]
-
-    # Optional columns (may not exist in older DBs)
-    optional_cols = ["market", "position_rent", "position_rent_refunded"]
+    # All columns to export
+    all_cols = ["id", "hb_id", "timestamp", "tx_hash", "token_id", "trade_fee",
+                "config_file_path", "market", "order_action", "trading_pair", "position_address",
+                "lower_price", "upper_price", "mid_price", "base_amount", "quote_amount",
+                "base_fee", "quote_fee", "position_rent", "position_rent_refunded", "trade_fee_in_quote"]
 
     # Build SELECT with available columns
-    select_cols = [c for c in base_cols if c in available_cols]
-    for col in optional_cols:
-        if col in available_cols:
-            select_cols.append(col)
+    select_cols = [c for c in all_cols if c in available_cols]
 
     # Build query
     query = f"SELECT {', '.join(select_cols)} FROM RangePositionUpdate WHERE 1=1"
