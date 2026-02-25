@@ -322,18 +322,38 @@ python scripts/manage_executor.py summary
 
 Deploy and manage LP Rebalancer controllers via hummingbot-api.
 
+### Quick Start
+
+```bash
+# 1. Create LP Rebalancer config
+python scripts/manage_controller.py create-config my_lp_config \
+    --pool <pool_address> \
+    --pair SOL-USDC \
+    --amount 100 \
+    --side 1 \
+    --width 0.5 \
+    --offset 0.01 \
+    --rebalance-seconds 60 \
+    --sell-max 100 \
+    --sell-min 75 \
+    --buy-max 90 \
+    --buy-min 70
+
+# 2. Deploy bot with the config
+python scripts/manage_controller.py deploy my_lp_bot --configs my_lp_config
+
+# 3. Monitor
+python scripts/manage_controller.py status
+```
+
 ### Usage
 
 ```bash
 # Get LP Rebalancer config template
 python scripts/manage_controller.py template
 
-# Create LP Rebalancer config
-python scripts/manage_controller.py create-config my_lp_config \
-    --pool <pool_address> \
-    --pair SOL-USDC \
-    --amount 100 \
-    --width 0.5
+# Create LP Rebalancer config (see Quick Start for full example)
+python scripts/manage_controller.py create-config my_lp_config --pool <address> --pair SOL-USDC
 
 # List all configs
 python scripts/manage_controller.py list-configs
@@ -341,21 +361,21 @@ python scripts/manage_controller.py list-configs
 # Get config details
 python scripts/manage_controller.py describe-config my_lp_config
 
-# Deploy bot with controller config
+# Deploy bot with controller config(s)
 python scripts/manage_controller.py deploy my_bot --configs my_lp_config
+python scripts/manage_controller.py deploy my_bot --configs config1 config2  # Multiple controllers
 
 # Get active bots status
 python scripts/manage_controller.py status
 
-# Get bot logs
-python scripts/manage_controller.py logs my_bot --limit 50 --type error
+# Get specific bot status
+python scripts/manage_controller.py bot-status my_bot
 
 # Stop a bot
 python scripts/manage_controller.py stop my_bot
 
-# Start/stop controllers within a running bot
-python scripts/manage_controller.py start-controllers my_bot --controllers my_lp_config
-python scripts/manage_controller.py stop-controllers my_bot --controllers my_lp_config
+# Stop and archive a bot
+python scripts/manage_controller.py stop-and-archive my_bot
 
 # Delete a config
 python scripts/manage_controller.py delete-config my_lp_config
@@ -380,6 +400,19 @@ python scripts/manage_controller.py delete-config my_lp_config
 | `--buy-max` | Buy price max |
 | `--buy-min` | Buy price min (anchor point) |
 | `--strategy-type` | Meteora: 0=Spot, 1=Curve, 2=Bid-Ask (default: 0) |
+
+### Deploy Options
+
+| Argument | Description |
+|---|---|
+| `bot_name` | Bot instance name (required) |
+| `--configs` | Controller config name(s) (required) |
+| `--account` | Credentials profile (default: master_account) |
+| `--image` | Docker image (default: hummingbot/hummingbot:latest) |
+| `--max-global-drawdown` | Max global drawdown in quote |
+| `--max-controller-drawdown` | Max controller drawdown in quote |
+| `--script-config` | Script config name (auto-generated if not provided) |
+| `--headless` | Run in headless mode |
 
 ### Environment Variables
 
