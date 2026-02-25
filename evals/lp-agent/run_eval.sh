@@ -20,7 +20,8 @@
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILL_DIR="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SKILL_DIR="$REPO_ROOT/skills/lp-agent"
 RESULTS_DIR="$SCRIPT_DIR/results"
 PROMPTS_FILE="$SCRIPT_DIR/prompts.json"
 
@@ -185,8 +186,9 @@ User request: $prompt"
     TEXT_FILE="$TMPDIR/${id}_text.txt"
 
     # Run via Claude CLI, capture streaming JSON output
+    # Unset CLAUDECODE to allow nested sessions
     set +e
-    echo "$full_prompt" | claude "${CLAUDE_ARGS[@]}" > "$OUTPUT_FILE" 2>/dev/null
+    echo "$full_prompt" | env -u CLAUDECODE claude "${CLAUDE_ARGS[@]}" > "$OUTPUT_FILE" 2>/dev/null
     exit_code=$?
     set -e
 
@@ -212,24 +214,37 @@ User request: $prompt"
     output_length=${#result_text}
 
     # Extract token usage from result event
-    input_tokens=$(grep '"type":"result"' "$OUTPUT_FILE" 2>/dev/null | tail -1 | jq -r '.total_cost_usd // 0' 2>/dev/null || echo "0")
-    # Try multiple paths for token counts
-    input_tokens=$(grep '"type":"result"' "$OUTPUT_FILE" 2>/dev/null | tail -1 | jq -r '
-      .usage.input_tokens //
-      .result_metadata.usage.input_tokens //
-      0' 2>/dev/null || echo "0")
-    output_tokens=$(grep '"type":"result"' "$OUTPUT_FILE" 2>/dev/null | tail -1 | jq -r '
-      .usage.output_tokens //
-      .result_metadata.usage.output_tokens //
-      0' 2>/dev/null || echo "0")
-    num_turns=$(grep '"type":"result"' "$OUTPUT_FILE" 2>/dev/null | tail -1 | jq -r '
-      .num_turns //
-      .result_metadata.num_turns //
-      0' 2>/dev/null || echo "0")
-    cost_usd=$(grep '"type":"result"' "$OUTPUT_FILE" 2>/dev/null | tail -1 | jq -r '
-      .total_cost_usd //
-      .cost_usd //
-      0' 2>/dev/null || echo "0")
+    RESULT_LINE=$(grep '"type":"result"' "$OUTPUT_FILE" 2>/dev/null | tail -1 || true)
+
+    if [[ -n "$RESULT_LINE" ]]; then
+        input_tokens=$(echo "$RESULT_LINE" | jq -r '
+          .usage.input_tokens //
+          .result_metadata.usage.input_tokens //
+          0' 2>/dev/null || echo "0")
+        output_tokens=$(echo "$RESULT_LINE" | jq -r '
+          .usage.output_tokens //
+          .result_metadata.usage.output_tokens //
+          0' 2>/dev/null || echo "0")
+        num_turns=$(echo "$RESULT_LINE" | jq -r '
+          .num_turns //
+          .result_metadata.num_turns //
+          0' 2>/dev/null || echo "0")
+        cost_usd=$(echo "$RESULT_LINE" | jq -r '
+          .total_cost_usd //
+          .cost_usd //
+          0' 2>/dev/null || echo "0")
+    else
+        input_tokens=0
+        output_tokens=0
+        num_turns=0
+        cost_usd="0"
+    fi
+
+    # Sanitize to integers (handle null/empty)
+    input_tokens=$((${input_tokens:-0}))
+    output_tokens=$((${output_tokens:-0}))
+    num_turns=$((${num_turns:-0}))
+    [[ "$cost_usd" =~ ^[0-9.]+$ ]] || cost_usd="0"
 
     total_tokens=$((input_tokens + output_tokens))
     TOTAL_TOKENS=$((TOTAL_TOKENS + total_tokens))
