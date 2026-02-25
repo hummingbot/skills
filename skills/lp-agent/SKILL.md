@@ -15,9 +15,10 @@ This skill helps you run and analyze concentrated liquidity (CLMM) positions on 
 
 **Tasks:**
 1. **Selection** - Choose to start a new bot OR analyze existing data
-2. **Deployment** - Configure and deploy LP Executor or LP Rebalancer controller
-3. **Monitoring** - Track status and logs of running controllers/executors
-4. **Analysis** - Export data and generate visual dashboards to analyze performance
+2. **Pool Explorer** - Find and explore Meteora pools before deploying
+3. **Deployment** - Configure and deploy LP Executor or LP Rebalancer controller
+4. **Monitoring** - Track status and logs of running controllers/executors
+5. **Analysis** - Export data and generate visual dashboards to analyze performance
 
 ## Prerequisites
 
@@ -50,25 +51,107 @@ If user wants to start a new bot, ask which type:
 - Supports price limits to control when to rebalance vs keep position
 - Best for: Hands-off LP management, longer-term strategies
 
-Then proceed to **Task 2: Deployment** → **Task 3: Monitoring**
+Then proceed to **Task 2: Pool Explorer** → **Task 3: Deployment** → **Task 4: Monitoring**
 
 ### Path B: Analyze Existing Bot
-If user wants to analyze existing data, **skip directly to Task 4: Analysis**.
+If user wants to analyze existing data, **skip directly to Task 5: Analysis**.
 
 **Default to LP Positions analysis** (`export_lp_positions.py` / `visualize_lp_positions.py`) - this works for both running and stopped bots since position events are recorded immediately when positions are created/closed on-chain.
 
-Only use Executor analysis if user explicitly asks for it, and explain:
-> **Note:** Executors are only saved to the database when:
-> 1. They complete/close (e.g., after a rebalance)
-> 2. The bot shuts down gracefully
->
-> If the bot is still running with active positions, use LP Positions analysis instead.
 
 ---
 
-## Task 2: Deployment
+## Task 2: Pool Explorer
 
-### Step 2.1: Find a Pool
+Use these scripts to find and explore Meteora DLMM pools before creating LP positions. Scripts are in this skill's `scripts/` directory.
+
+### List Pools
+
+Search and list pools by name, token, or address:
+
+```bash
+# Top pools by 24h volume
+python scripts/list_meteora_pools.py
+
+# Search by token symbol
+python scripts/list_meteora_pools.py --query SOL
+python scripts/list_meteora_pools.py --query USDC
+
+# Search by pool name
+python scripts/list_meteora_pools.py --query SOL-USDC
+
+# Sort by different metrics
+python scripts/list_meteora_pools.py --query SOL --sort tvl
+python scripts/list_meteora_pools.py --query SOL --sort apr
+python scripts/list_meteora_pools.py --query SOL --sort fees
+
+# Pagination
+python scripts/list_meteora_pools.py --query SOL --limit 50 --page 2
+```
+
+**Output columns:**
+- **Pool**: Trading pair name
+- **Pool Address**: Pool contract address (shortened, use `get_meteora_pool.py` for full address)
+- **Base (mint)**: Base token symbol with shortened mint address
+- **Quote (mint)**: Quote token symbol with shortened mint address
+- **TVL**: Total value locked
+- **Vol 24h**: 24-hour trading volume
+- **Fees 24h**: Fees earned in last 24 hours
+- **APR**: Annual percentage rate
+- **Fee**: Base fee percentage
+- **Bin**: Bin step (affects max position width)
+
+**Note:** Token mints help identify the correct token when multiple tokens share the same name (e.g., multiple "PERCOLATOR" tokens).
+
+### Get Pool Details
+
+Get detailed information about a specific pool. Fetches from both Meteora API (historical data) and Gateway (real-time data):
+
+```bash
+python scripts/get_meteora_pool.py <pool_address>
+
+# Example
+python scripts/get_meteora_pool.py ATrBUW2reZiyftzMQA1hEo8b7w7o8ZLrhPd7M7sPMSms
+
+# Output as JSON for programmatic use
+python scripts/get_meteora_pool.py ATrBUW2reZiyftzMQA1hEo8b7w7o8ZLrhPd7M7sPMSms --json
+
+# Skip Gateway (faster, no bin distribution)
+python scripts/get_meteora_pool.py ATrBUW2reZiyftzMQA1hEo8b7w7o8ZLrhPd7M7sPMSms --no-gateway
+```
+
+**Data sources:**
+- **Meteora API**: Historical volume, fees, APR, token info, market caps
+- **Gateway** (requires running Gateway): Real-time price, liquidity distribution by bin
+
+**Details shown:**
+- Token info (symbols, mints, decimals, prices)
+- Pool configuration (bin step, fees, max range width)
+- Real-time price from Gateway (SOL/token ratio)
+- Liquidity distribution chart showing bins around current price
+- Liquidity and reserves
+- Volume across time windows (30m, 1h, 4h, 12h, 24h)
+- Fees earned across time windows
+- Yield (APR, APY, farm rewards)
+- Fee/TVL ratio (profitability indicator)
+
+### Choosing a Pool
+
+When selecting a pool, consider:
+
+1. **TVL**: Higher TVL = more stable, but also more competition
+2. **Volume**: Higher volume = more fee opportunities
+3. **Fee/TVL Ratio**: Higher = more profitable per $ of liquidity
+4. **Bin Step**: Determines max position width
+   - `bin_step=1` → max ~0.69% width (tight ranges)
+   - `bin_step=10` → max ~6.9% width (medium ranges)
+   - `bin_step=100` → max ~69% width (wide ranges)
+
+---
+
+## Task 3: Deployment
+
+### Step 3.1: Find a Pool
 
 ```
 # List popular pools
@@ -84,7 +167,7 @@ manage_gateway_clmm(action="get_pool_info", connector="meteora", network="solana
 - `bin_step=100` → max ~69% width
 - Formula: `max_width_pct = bin_step * 69 / 100`
 
-### Step 2.2: Deploy LP Rebalancer Controller (Recommended)
+### Step 3.2: Deploy LP Rebalancer Controller (Recommended)
 
 ```
 manage_controllers(
@@ -133,7 +216,7 @@ manage_controllers(
 - `1` = Buy (quote-only) - range below current price, buys base as price drops
 - `2` = Sell (base-only) - range above current price, sells base as price rises
 
-### Step 2.3: Deploy Single LP Executor (Alternative)
+### Step 3.3: Deploy Single LP Executor (Alternative)
 
 ```
 manage_executors(
@@ -154,7 +237,7 @@ manage_executors(
 )
 ```
 
-### Step 2.4: Verify Deployment
+### Step 3.4: Verify Deployment
 
 **For LP Rebalancer Controller:**
 ```
@@ -178,7 +261,7 @@ Check `custom_info.state`:
 
 ---
 
-## Task 3: Monitoring
+## Task 4: Monitoring
 
 ### Monitor Controller Status
 
@@ -235,32 +318,22 @@ manage_executors(action="stop", executor_id="<executor_id>", keep_position=false
 
 ---
 
-## Task 4: Analysis
+## Task 5: Analysis
 
 Use the analysis scripts to export data and generate visual dashboards. Scripts are in this skill's `scripts/` directory.
 
-### Important: Positions vs Executors
-
-**Default to LP Positions analysis** for running bots:
-- LP position events (ADD/REMOVE) are recorded **immediately** when transactions complete on-chain
-- Works for both running and stopped bots
-
-**Executor analysis** requires completed executors:
-- Executors are only saved to database when they **complete/close** (e.g., after rebalance) or when the **bot shuts down gracefully**
-- If no executors found, the bot is likely still running - use LP Positions instead
+LP position events (ADD/REMOVE) are recorded **immediately** when transactions complete on-chain, so analysis works for both running and stopped bots.
 
 ### Available Scripts
 
-| Script | Purpose | When to Use |
-|--------|---------|-------------|
-| `scripts/export_lp_positions.py` | Export LP position events to CSV | **Default** - works for running bots |
-| `scripts/visualize_lp_positions.py` | Generate HTML dashboard from position events | **Default** - works for running bots |
-| `scripts/export_lp_executors.py` | Export executor data from SQLite to CSV | After bot stops or rebalances |
-| `scripts/visualize_executors.py` | Generate HTML dashboard from executor data | After bot stops or rebalances |
+| Script | Purpose |
+|--------|---------|
+| `scripts/export_lp_positions.py` | Export LP position events to CSV |
+| `scripts/visualize_lp_positions.py` | Generate HTML dashboard from position events |
 
-### Visualize LP Positions (Recommended for Running Bots)
+### Visualize LP Positions
 
-Shows position ADD/REMOVE events from the blockchain. **Works immediately for running bots.**
+Shows position ADD/REMOVE events from the blockchain. **Works for both running and stopped bots.**
 
 ```bash
 # Basic usage (auto-detects database in data/)
@@ -270,43 +343,31 @@ python scripts/visualize_lp_positions.py --pair SOL-USDC
 python scripts/visualize_lp_positions.py --db data/my_bot.sqlite --pair SOL-USDC
 
 # Filter by connector
-python scripts/visualize_lp_positions.py --db data/my_bot.sqlite --pair SOL-USDC --connector meteora/clmm
+python scripts/visualize_lp_positions.py --pair SOL-USDC --connector meteora/clmm
+
+# Last 24 hours only
+python scripts/visualize_lp_positions.py --pair SOL-USDC --hours 24
 ```
 
 **Dashboard Features:**
-- Position range chart over time
-- Position table with PnL, fees, duration
-- Detailed position panel with ADD/REMOVE amounts
-- Links to Solscan for transaction verification
-
-### Visualize Executors (After Bot Stops or Rebalances)
-
-Shows PnL, fees, duration, and range utilization for executors created by a controller.
-
-> **Note:** If no executors found, the bot is likely still running. Use LP Positions analysis instead, or stop the bot gracefully to flush executor data to the database.
-
-```bash
-python scripts/visualize_executors.py <controller_id>
-python scripts/visualize_executors.py <controller_id> --db data/my.sqlite
-python scripts/visualize_executors.py <controller_id> --output report.html --no-open
-```
-
-**Dashboard Features:**
+- KPI cards (total PnL, fees, IL, win/loss counts)
 - Cumulative PnL & fees chart
-- Per-executor PnL bar chart
-- Price & LP range chart
-- Position range visualization over time
-- Filterable executor table with sorting
-- Detailed executor panel showing all metrics
+- Price at open/close with LP range bounds
+- Per-position PnL bar chart
+- Duration vs PnL scatter plot
+- Sortable positions table with Solscan links
 
-### Export to CSV for External Analysis
+### Export to CSV
 
 ```bash
-# Export position events (works for running bots)
-python scripts/export_lp_positions.py --db data/my_bot.sqlite --output exports/positions.csv
+# Export all position events
+python scripts/export_lp_positions.py --db data/my_bot.sqlite
 
-# Export executor data (requires completed executors)
-python scripts/export_lp_executors.py <controller_id> --db data/my_bot.sqlite --output exports/executors.csv
+# Filter by trading pair
+python scripts/export_lp_positions.py --pair SOL-USDC --output exports/positions.csv
+
+# Show summary without exporting
+python scripts/export_lp_positions.py --summary
 ```
 
 ---
@@ -321,15 +382,10 @@ python scripts/export_lp_executors.py <controller_id> --db data/my_bot.sqlite --
 3. Deploy: `manage_controllers(action="create", controller_config={...})`
 4. Verify: `manage_controllers(action="get_active")`
 
-**Analyze Running Bot:**
-1. Export positions: `python scripts/export_lp_positions.py --db data/<db>.sqlite`
-2. Visualize: `python scripts/visualize_lp_positions.py --db data/<db>.sqlite --pair SOL-USDC`
-3. Review dashboard in browser
-
-**Analyze After Bot Stops:**
-1. Stop: `manage_controllers(action="stop", controller_id="<id>")`
-2. Export executors: `python scripts/export_lp_executors.py <controller_id> --db data/<db>.sqlite`
-3. Visualize: `python scripts/visualize_executors.py <controller_id> --db data/<db>.sqlite`
+**Analyze LP Positions:**
+1. Visualize: `python scripts/visualize_lp_positions.py --pair SOL-USDC`
+2. Review dashboard in browser
+3. Export CSV: `python scripts/export_lp_positions.py --pair SOL-USDC`
 
 ### MCP Tools Reference
 
@@ -346,4 +402,3 @@ python scripts/export_lp_executors.py <controller_id> --db data/my_bot.sqlite --
 | "InvalidRealloc" | Position range too wide | Reduce `position_width_pct` (check bin_step limits) |
 | State stuck "OPENING" | Transaction failed | Stop executor, reduce range, retry |
 | "Insufficient balance" | Not enough tokens | Check wallet has tokens + 0.06 SOL for rent |
-| No executors found | Bot still running | Use LP Positions analysis instead, or run `stop` in Hummingbot CLI to flush executors to DB |

@@ -1,230 +1,157 @@
-# LP Rebalancer Scripts
+# LP Agent Scripts
 
-Utility scripts for analyzing and exporting LP executor data from the lp_rebalancer controller.
+Utility scripts for exploring Meteora pools and analyzing LP position data.
 
 ## Scripts
 
-- `visualize_executors.py` — Generate interactive HTML dashboard from executor data
-- `visualize_lp_positions.py` — Generate interactive HTML dashboard from LP position events (recommended)
-- `export_lp_executors.py` — Export executor data to CSV (from Executors table)
-- `export_lp_positions.py` — Export raw LP add/remove events to CSV (from RangePositionUpdate table)
+**Pool Explorer:**
+- `list_meteora_pools.py` — Search and list Meteora DLMM pools
+- `get_meteora_pool.py` — Get detailed pool information with liquidity distribution
+
+**Analysis:**
+- `export_lp_positions.py` — Export LP position events to CSV
+- `visualize_lp_positions.py` — Generate interactive HTML dashboard from LP position events
 
 ---
 
-## visualize_executors.py
+## list_meteora_pools.py
 
-A zero-dependency Python script that generates an interactive HTML dashboard from Hummingbot LP executor data. It reads directly from the SQLite database (or from a pre-exported CSV) and outputs a self-contained HTML file you can open in any browser.
+Search and list Meteora DLMM pools by name, token, or address. Shows token mint addresses to identify correct tokens.
 
 ### Requirements
 
 - Python 3.10+
 - No pip dependencies — uses only the standard library
-- A modern browser (the HTML loads React, Recharts, and Babel from CDN)
 
 ### Usage
 
-#### From the database (most common)
-
 ```bash
-python controllers/generic/lp_rebalancer/scripts/visualize_executors.py lp_rebalancer_4
-```
+# Top pools by 24h volume
+python scripts/list_meteora_pools.py
 
-This finds the most recent `.sqlite` file in `data/`, queries all executors for the given controller ID, generates the dashboard, and opens it in your default browser.
+# Search by token symbol
+python scripts/list_meteora_pools.py --query SOL
+python scripts/list_meteora_pools.py --query PERCOLATOR
 
-#### Specify a database
+# Sort by different metrics
+python scripts/list_meteora_pools.py --query SOL --sort tvl
+python scripts/list_meteora_pools.py --query SOL --sort apr
+python scripts/list_meteora_pools.py --query SOL --sort fees
 
-```bash
-python controllers/generic/lp_rebalancer/scripts/visualize_executors.py lp_rebalancer_4 --db data/my_bot.sqlite
-```
-
-#### From an exported CSV
-
-If you've already run `export_lp_executors.py` or have a CSV from somewhere else:
-
-```bash
-python controllers/generic/lp_rebalancer/scripts/visualize_executors.py --csv data/lp_rebalancer_4_20260212_120402.csv
-```
-
-When using `--csv`, the `controller_id` argument is optional — it defaults to the CSV filename.
-
-#### Custom output path
-
-```bash
-python controllers/generic/lp_rebalancer/scripts/visualize_executors.py lp_rebalancer_4 -o reports/feb12.html
-```
-
-#### Skip auto-open
-
-```bash
-python controllers/generic/lp_rebalancer/scripts/visualize_executors.py lp_rebalancer_4 --no-open
+# Output as JSON
+python scripts/list_meteora_pools.py --query SOL --json
 ```
 
 ### CLI Reference
 
 ```
-visualize_executors.py [controller_id] [--db PATH] [--csv PATH] [-o PATH] [--no-open]
+list_meteora_pools.py [-q QUERY] [-s SORT] [--order ORDER] [-n LIMIT] [-p PAGE] [--json]
 ```
 
 | Argument | Description |
 |---|---|
-| `controller_id` | Controller ID to query from the DB. Optional when using `--csv`. |
-| `--db PATH` | Path to SQLite database. Defaults to the most recently modified `.sqlite` in `data/`. |
-| `--csv PATH` | Load from a CSV file instead of querying the DB. |
-| `-o`, `--output PATH` | Output HTML path. Defaults to `data/<controller_id>_dashboard.html`. |
-| `--no-open` | Don't auto-open the dashboard in the browser. |
+| `-q`, `--query` | Search by pool name, token symbol, or address |
+| `-s`, `--sort` | Sort by: `volume`, `tvl`, `fees`, `apr`, `apy` (default: `volume`) |
+| `--order` | Sort order: `asc` or `desc` (default: `desc`) |
+| `-n`, `--limit` | Number of results (default: 10, max: 1000) |
+| `-p`, `--page` | Page number (default: 1) |
+| `--json` | Output as JSON |
 
-### What the dashboard shows
+### Output
 
-The generated HTML contains six sections:
+Outputs a markdown table with token mint addresses to identify correct tokens:
 
-**KPI cards** — total PnL, fees earned (with bps calculation), volume, win/loss/zero counts, best/worst single executor, and total rent cost as a percentage of PnL.
-
-**Cumulative PnL & Fees** — area chart showing how PnL and fee accrual progressed over the session. Flat sections correspond to out-of-range periods where the strategy was cycling through zero-PnL executors.
-
-**Price & LP Range** — the current price overlaid with the LP position's upper/lower tick boundaries. Useful for seeing how tightly the range tracks price and where positions went out of range.
-
-**Per-Executor PnL** — bar chart of each non-zero executor's PnL. Filterable by side (quote/buy vs base/sell) using the toggle buttons.
-
-**PnL % Distribution** — histogram of PnL percentage buckets across all non-zero executors. Gives a quick read on whether returns are concentrated or spread out.
-
-**Duration vs PnL** — scatter plot of how long each executor lived vs its PnL. Longer-lived executors with in-range positions tend to show up in the upper-right.
-
-**Side Breakdown** — summary stats split by Side 1 (quote/buy) and Side 2 (base/sell), including PnL, fees, win count, and average duration for each.
+| # | Pool | Pool Address | Base (mint) | Quote (mint) | TVL | Vol 24h | Fees 24h | APR | Fee | Bin |
+|---|------|--------------|-------------|--------------|-----|---------|----------|-----|-----|-----|
+| 1 | Percolator-SOL | `ATrBUW..sPMSms` | Percolator (`8PzF..pump`) | SOL (`So11..1112`) | $8.9K | $15.5K | $348 | 3.9% | 2.00% | 100 |
 
 ---
 
-## visualize_lp_positions.py
+## get_meteora_pool.py
 
-Generate an interactive HTML dashboard from LP position events (RangePositionUpdate table). Groups ADD/REMOVE events by position address to show complete position lifecycle.
-
-**Recommended over visualize_executors.py** because LP position events are stored immediately when they occur (no need to wait for shutdown or buffer threshold).
+Get detailed information about a specific Meteora DLMM pool. Fetches from both Meteora API (historical data) and Gateway (real-time price, liquidity distribution).
 
 ### Requirements
 
 - Python 3.10+
 - No pip dependencies — uses only the standard library
-- A modern browser (the HTML loads React, Recharts, and Babel from CDN)
+- Optional: Gateway running for real-time price and liquidity distribution chart
 
 ### Usage
 
 ```bash
-# Basic usage (trading pair is required)
-python controllers/generic/lp_rebalancer/scripts/visualize_lp_positions.py --pair SOL-USDC
+# Get pool details (includes liquidity chart if Gateway is running)
+python scripts/get_meteora_pool.py <pool_address>
 
-# Filter by connector (optional)
-python controllers/generic/lp_rebalancer/scripts/visualize_lp_positions.py --pair SOL-USDC --connector orca/clmm
-python controllers/generic/lp_rebalancer/scripts/visualize_lp_positions.py --pair SOL-USDC --connector meteora/clmm
+# Skip Gateway API (faster, no liquidity distribution)
+python scripts/get_meteora_pool.py <pool_address> --no-gateway
 
-# Last 24 hours only
-python controllers/generic/lp_rebalancer/scripts/visualize_lp_positions.py --pair SOL-USDC --hours 24
-
-# Combine filters
-python controllers/generic/lp_rebalancer/scripts/visualize_lp_positions.py --pair SOL-USDC --connector orca/clmm --hours 12
-
-# Custom output path
-python controllers/generic/lp_rebalancer/scripts/visualize_lp_positions.py --pair SOL-USDC -o reports/positions.html
-
-# Skip auto-open
-python controllers/generic/lp_rebalancer/scripts/visualize_lp_positions.py --pair SOL-USDC --no-open
+# Output as JSON
+python scripts/get_meteora_pool.py <pool_address> --json
 ```
 
-### CLI Reference
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GATEWAY_HOST` | `localhost` | Gateway API host |
+| `GATEWAY_PORT` | `15888` | Gateway API port |
+
+### Output Sections
+
+1. **Pool Summary** - Current price, TVL, volume, fees, APR/APY, fee tier, bin step
+2. **Token Info** - Base/quote token details (symbol, mint, price, decimals, market cap)
+3. **Reserves** - Token amounts and USD values
+4. **Volume & Fees by Time Window** - 30m, 1h, 4h, 12h, 24h metrics with Fee/TVL ratio
+5. **Cumulative Metrics** - All-time volume and fees
+6. **Real-Time Price** - Current price from Gateway (with subscript notation for small prices)
+7. **Liquidity Distribution** - Vertical ASCII chart showing base/quote liquidity around current price
+8. **Active Bin Info** - Active bin ID, min/max bin IDs, dynamic fee
+
+### Liquidity Distribution Chart
+
+The chart shows liquidity distribution like the Meteora UI:
 
 ```
-visualize_lp_positions.py --pair PAIR [--db PATH] [--connector NAME] [--hours N] [-o PATH] [--no-open]
+Liquidity Distribution
+▓ Percolator  ░ SOL  │ Current Price: 0.0₄169 SOL/Percolator
+
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▓▓
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▓▓▓▓▓▓▓
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▓▓▓▓▓▓▓▓▓▓▓▓▓
+░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+──────────────────────────────┴─────────────────────────────
+0.0₄125                    0.0₄169                   0.0₄225
 ```
 
-| Argument | Description |
-|---|---|
-| `-p`, `--pair PAIR` | **Required.** Trading pair (e.g., `SOL-USDC`). IL calculation requires a single pair. |
-| `--db PATH` | Path to SQLite database. Defaults to auto-detecting database with most LP data. |
-| `-c`, `--connector NAME` | Filter by connector (e.g., `orca/clmm`, `meteora/clmm`). |
-| `-H`, `--hours N` | Lookback period in hours (e.g., `24` for last 24 hours). |
-| `-o`, `--output PATH` | Output HTML path. Defaults to `data/lp_positions_<connector>_<pair>_dashboard.html`. |
-| `--no-open` | Don't auto-open the dashboard in the browser. |
-
-### What the dashboard shows
-
-**KPI cards** — total PnL, fees earned (with bps calculation), IL (impermanent loss), win/loss counts, best/worst position, and average duration.
-
-**Cumulative PnL & Fees** — area chart showing how PnL and fee accrual progressed over closed positions.
-
-**Price at Open/Close** — the price when positions were opened vs closed, overlaid with the LP range bounds.
-
-**Per-Position PnL** — bar chart of each position's PnL. Click a bar to view position details.
-
-**Duration vs PnL** — scatter plot of how long each position lived vs its PnL.
-
-**IL vs Fees Breakdown** — shows how impermanent loss compares to fees earned.
-
-**Positions tab** — sortable/filterable table of all positions with connector column. When multiple connectors are present, filter buttons allow narrowing by connector. Click any row to see full details including:
-- Timing (opened, closed, duration)
-- Price bounds and prices at ADD/REMOVE
-- ADD liquidity section with deposited amounts and Solscan TX link
-- REMOVE liquidity section with withdrawn amounts, fees, and Solscan TX link
-- PnL breakdown (IL + fees)
-
----
-
-## export_lp_executors.py
-
-Export LP executor data from SQLite database to CSV for external analysis (Excel, pandas, etc.).
-
-### Usage
-
-```bash
-# Export using most recent database in data/
-python controllers/generic/lp_rebalancer/scripts/export_lp_executors.py lp_rebalancer_4
-
-# Specify database path
-python controllers/generic/lp_rebalancer/scripts/export_lp_executors.py lp_rebalancer_4 --db data/conf_v2_with_controllers_1.sqlite
-
-# Custom output path
-python controllers/generic/lp_rebalancer/scripts/export_lp_executors.py lp_rebalancer_4 --output exports/my_export.csv
-```
-
-### CLI Reference
-
-```
-export_lp_executors.py <controller_id> [--db PATH] [--output PATH]
-```
-
-| Argument | Description |
-|---|---|
-| `controller_id` | Controller ID to export (e.g., `lp_rebalancer_4`) |
-| `--db PATH` | Path to SQLite database. Defaults to most recent `.sqlite` in `data/`. |
-| `-o`, `--output PATH` | Output CSV path. Defaults to `data/<controller_id>_<timestamp>.csv`. |
-
-### Exported columns
-
-The CSV includes:
-
-- **Base columns**: id, created_at, type, status, close_type, close_timestamp, net_pnl_pct, net_pnl_quote, cum_fees_quote, filled_amount_quote, is_active, is_trading, controller_id
-- **Config columns** (prefixed `cfg_`): connector, trading_pair, pool_address, lower_price, upper_price, base_amount, quote_amount, side, extra_params
-- **Custom info columns** (prefixed `ci_`): state, position_address, current_price, lower_price, upper_price, base_amount, quote_amount, base_fee, quote_fee, fees_earned_quote, initial_base_amount, initial_quote_amount, total_value_quote, unrealized_pnl_quote, position_rent, position_rent_refunded, out_of_range_seconds, max_retries_reached
+- `▓` Base token (above current price = sell liquidity)
+- `░` Quote token (below current price = buy liquidity)
+- `│` Current price line
+- Subscript notation: `0.0₄169` = 0.0000169
 
 ---
 
 ## export_lp_positions.py
 
-Export raw LP add/remove events from the `RangePositionUpdate` table. Unlike executor data (which requires shutdown or buffer threshold), these events are stored immediately when they occur.
-
-Auto-detects the database with the most LP position data in `data/` (typically `conf_v2_*.sqlite`).
+Export LP position events from the `RangePositionUpdate` table to CSV. Events are stored immediately when they occur on-chain.
 
 ### Usage
 
 ```bash
-# Export all LP position events
-python controllers/generic/lp_rebalancer/scripts/export_lp_positions.py
+# Export all LP position events (auto-detects database)
+python scripts/export_lp_positions.py
 
 # Show summary without exporting
-python controllers/generic/lp_rebalancer/scripts/export_lp_positions.py --summary
+python scripts/export_lp_positions.py --summary
 
 # Filter by trading pair
-python controllers/generic/lp_rebalancer/scripts/export_lp_positions.py --pair SOL-USDC
+python scripts/export_lp_positions.py --pair SOL-USDC
+
+# Specify database
+python scripts/export_lp_positions.py --db data/my_bot.sqlite
 
 # Custom output path
-python controllers/generic/lp_rebalancer/scripts/export_lp_positions.py -o exports/my_positions.csv
+python scripts/export_lp_positions.py -o exports/my_positions.csv
 ```
 
 ### CLI Reference
@@ -243,12 +170,11 @@ export_lp_positions.py [--db PATH] [--output PATH] [--pair PAIR] [--summary]
 ### Exported columns
 
 - **id**: Database row ID
-- **hb_id**: Hummingbot order ID (e.g., `range-SOL-USDC-...`)
+- **hb_id**: Hummingbot order ID
 - **timestamp**: Unix timestamp in milliseconds
 - **datetime**: Human-readable timestamp
 - **tx_hash**: Transaction signature
-- **config_file**: Strategy config file path
-- **connector**: Connector name (e.g., `orca/clmm`)
+- **connector**: Connector name (e.g., `meteora/clmm`)
 - **action**: `ADD` or `REMOVE`
 - **trading_pair**: Trading pair (e.g., `SOL-USDC`)
 - **position_address**: LP position NFT address
@@ -258,21 +184,81 @@ export_lp_positions.py [--db PATH] [--output PATH] [--pair PAIR] [--summary]
 - **base_fee, quote_fee**: Fees collected (for REMOVE)
 - **position_rent**: SOL rent paid (ADD only)
 - **position_rent_refunded**: SOL rent refunded (REMOVE only)
-- **trade_fee_json**: Full fee info JSON
 
-### When to use each script
+---
 
-| Script | Data Source | When to Use |
-|---|---|---|
-| `visualize_lp_positions.py` | `RangePositionUpdate` table | **Recommended** — always available, stores events as they happen |
-| `visualize_executors.py` | `Executors` table | After graceful shutdown, or when >100 executors completed |
-| `export_lp_positions.py` | `RangePositionUpdate` table | Export raw events for external analysis |
-| `export_lp_executors.py` | `Executors` table | Export executor data for external analysis |
+## visualize_lp_positions.py
+
+Generate an interactive HTML dashboard from LP position events. Groups ADD/REMOVE events by position address to show complete position lifecycle with PnL, fees, and impermanent loss.
+
+### Requirements
+
+- Python 3.10+
+- No pip dependencies — uses only the standard library
+- A modern browser (the HTML loads React, Recharts, and Babel from CDN)
+
+### Usage
+
+```bash
+# Basic usage (trading pair is required)
+python scripts/visualize_lp_positions.py --pair SOL-USDC
+
+# Filter by connector
+python scripts/visualize_lp_positions.py --pair SOL-USDC --connector meteora/clmm
+
+# Last 24 hours only
+python scripts/visualize_lp_positions.py --pair SOL-USDC --hours 24
+
+# Specify database
+python scripts/visualize_lp_positions.py --db data/my_bot.sqlite --pair SOL-USDC
+
+# Custom output path
+python scripts/visualize_lp_positions.py --pair SOL-USDC -o reports/positions.html
+
+# Skip auto-open
+python scripts/visualize_lp_positions.py --pair SOL-USDC --no-open
+```
+
+### CLI Reference
+
+```
+visualize_lp_positions.py --pair PAIR [--db PATH] [--connector NAME] [--hours N] [-o PATH] [--no-open]
+```
+
+| Argument | Description |
+|---|---|
+| `-p`, `--pair PAIR` | **Required.** Trading pair (e.g., `SOL-USDC`). |
+| `--db PATH` | Path to SQLite database. Defaults to auto-detecting database with most LP data. |
+| `-c`, `--connector NAME` | Filter by connector (e.g., `meteora/clmm`). |
+| `-H`, `--hours N` | Lookback period in hours (e.g., `24` for last 24 hours). |
+| `-o`, `--output PATH` | Output HTML path. |
+| `--no-open` | Don't auto-open the dashboard in the browser. |
+
+### Dashboard Features
+
+**KPI cards** — total PnL, fees earned (with bps calculation), IL (impermanent loss), win/loss counts, best/worst position, average duration.
+
+**Cumulative PnL & Fees** — area chart showing PnL and fee accrual over closed positions.
+
+**Price at Open/Close** — price when positions were opened vs closed, overlaid with LP range bounds.
+
+**Per-Position PnL** — bar chart of each position's PnL. Click a bar to view details.
+
+**Duration vs PnL** — scatter plot of position duration vs PnL.
+
+**IL vs Fees Breakdown** — how impermanent loss compares to fees earned.
+
+**Positions table** — sortable/filterable table with:
+- Timing (opened, closed, duration)
+- Price bounds and prices at ADD/REMOVE
+- ADD liquidity with deposited amounts and Solscan TX link
+- REMOVE liquidity with withdrawn amounts, fees, and Solscan TX link
+- PnL breakdown (IL + fees)
 
 ---
 
 ## Notes
 
-- Both scripts use the same database schema and can be used together — export to CSV first, then visualize from CSV if preferred.
-- The HTML dashboard is fully self-contained (data is inlined as JSON), so you can share or archive it.
-- No pip dependencies required for either script.
+- All scripts use only the Python standard library (no pip install required)
+- The HTML dashboard is fully self-contained (data inlined as JSON), shareable and archivable
+- LP position events are stored immediately on-chain, so analysis works for both running and stopped bots
