@@ -81,18 +81,24 @@ def api_request(method: str, endpoint: str, data: dict | None = None, timeout: i
 def get_available_connectors() -> list[str]:
     """Get list of available connectors from API."""
     try:
-        result = api_request("GET", "/connectors/available")
-        return result.get("connectors", [])
+        result = api_request("GET", "/connectors/")
+        # API returns a list directly
+        if isinstance(result, list):
+            return result
+        return []
     except RuntimeError as e:
         print(f"Warning: Could not fetch connectors: {e}", file=sys.stderr)
         return []
 
 
 def get_connector_trading_pairs(connector: str) -> list[str]:
-    """Get trading pairs for a connector."""
+    """Get trading pairs for a connector via trading-rules endpoint."""
     try:
-        result = api_request("POST", "/connectors/trading-pairs", {"connector": connector}, timeout=15)
-        return result.get("trading_pairs", [])
+        result = api_request("GET", f"/connectors/{connector}/trading-rules", timeout=15)
+        # API returns dict with pair names as keys
+        if isinstance(result, dict) and "detail" not in result:
+            return list(result.keys())
+        return []
     except RuntimeError:
         return []
 
@@ -101,9 +107,12 @@ def fetch_prices(connector: str, trading_pairs: list[str]) -> dict:
     """Fetch prices for trading pairs on a connector."""
     try:
         result = api_request("POST", "/market-data/prices", {
-            "connector": connector,
+            "connector_name": connector,
             "trading_pairs": trading_pairs,
         }, timeout=15)
+        # API returns {"connector": ..., "prices": {...}, "timestamp": ...}
+        if "prices" in result:
+            return result["prices"]
         return result
     except RuntimeError as e:
         return {"error": str(e)}
@@ -187,20 +196,32 @@ def main():
     # Step 2: Fetch prices from all connectors in parallel
     prices = []  # List of {connector, pair, price}
 
+    # Create set of valid pairs for filtering
+    valid_pairs = set()
+    for pairs in connector_pairs.values():
+        valid_pairs.update(p.upper() for p in pairs)
+
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
-            executor.submit(fetch_prices, connector, pairs): connector
+            executor.submit(fetch_prices, connector, pairs): (connector, pairs)
             for connector, pairs in connector_pairs.items()
         }
         for future in as_completed(futures):
-            connector = futures[future]
+            connector, requested_pairs = futures[future]
+            requested_set = {p.upper() for p in requested_pairs}
             try:
                 result = future.result()
                 if "error" in result:
                     continue
 
-                # Extract prices from response
+                # Extract prices from response - filter to only requested pairs
                 for pair, price_data in result.items():
+                    if pair == "error":
+                        continue
+                    # Only include pairs we actually requested
+                    if pair.upper() not in requested_set:
+                        continue
+
                     if isinstance(price_data, dict):
                         price = price_data.get("mid_price") or price_data.get("price")
                         bid = price_data.get("best_bid")
@@ -209,7 +230,7 @@ def main():
                         price = price_data
                         bid = ask = None
 
-                    if price and float(price) > 0:
+                    if price is not None and float(price) > 0:
                         prices.append({
                             "connector": connector,
                             "pair": pair,
