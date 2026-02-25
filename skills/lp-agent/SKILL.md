@@ -1,13 +1,13 @@
 ---
 name: lp-agent
-description: Manage concentrated liquidity (CLMM) positions on DEXs like Meteora and Raydium. Create, monitor, and rebalance LP positions automatically.
+description: Run automated trading strategies on concentrated liquidity (CLMM) positions on DEXs like Meteora and Raydium.
 metadata:
   author: hummingbot
 ---
 
 # lp-agent
 
-This skill helps you run and analyze concentrated liquidity (CLMM) positions on Solana DEXs like Meteora and Orca.
+This skill helps you run automated trading strategies on concentrated liquidity (CLMM) positions on Solana DEXs like Meteora and Orca.
 
 **Tasks** (start with any):
 1. **Strategy Selector** - Choose between LP Executor or Rebalancer Controller
