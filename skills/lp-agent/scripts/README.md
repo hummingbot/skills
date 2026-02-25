@@ -11,6 +11,7 @@ Scripts for exploring Meteora pools, managing LP positions, and analyzing perfor
 **Position Management:**
 - `manage_executor.py` — Create, monitor, and stop LP executors
 - `manage_controller.py` — Deploy and manage LP Rebalancer controllers
+- `manage_gateway.py` — Start/stop Gateway and configure RPC nodes
 
 **Analysis:**
 - `export_lp_positions.py` — Export LP position events to CSV
@@ -387,6 +388,73 @@ python scripts/manage_controller.py delete-config my_lp_config
 | `API_URL` | `http://localhost:8000` | Hummingbot API URL |
 | `API_USER` | `admin` | API username |
 | `API_PASS` | `admin` | API password |
+
+---
+
+## manage_gateway.py
+
+Start/stop Gateway and configure RPC nodes via hummingbot-api.
+
+### Usage
+
+```bash
+# Check Gateway status
+python scripts/manage_gateway.py status
+
+# Start Gateway
+python scripts/manage_gateway.py start
+python scripts/manage_gateway.py start --passphrase mypassword --port 15888
+
+# Stop Gateway
+python scripts/manage_gateway.py stop
+
+# Restart Gateway
+python scripts/manage_gateway.py restart
+
+# Get Gateway logs
+python scripts/manage_gateway.py logs
+python scripts/manage_gateway.py logs --limit 200
+
+# List all networks
+python scripts/manage_gateway.py networks
+
+# Get network config
+python scripts/manage_gateway.py network solana-mainnet-beta
+
+# Set custom RPC node (avoid rate limits)
+python scripts/manage_gateway.py network solana-mainnet-beta --node-url https://my-rpc.example.com
+```
+
+### Commands
+
+| Command | Description |
+|---|---|
+| `status` | Check if Gateway is running |
+| `start` | Start Gateway container |
+| `stop` | Stop Gateway container |
+| `restart` | Restart Gateway container |
+| `logs` | Get Gateway container logs |
+| `networks` | List all available networks |
+| `network <id>` | Get network config |
+| `network <id> --node-url <url>` | Set custom RPC node URL |
+
+### Custom RPC Nodes
+
+Gateway uses public RPC nodes by default, which can hit rate limits. Set your own RPC endpoint:
+
+```bash
+# Solana mainnet
+python scripts/manage_gateway.py network solana-mainnet-beta --node-url https://my-helius-endpoint.com
+
+# Check the config
+python scripts/manage_gateway.py network solana-mainnet-beta
+```
+
+Popular Solana RPC providers:
+- [Helius](https://helius.dev/) - Free tier available
+- [QuickNode](https://quicknode.com/)
+- [Alchemy](https://alchemy.com/)
+- [Triton](https://triton.one/)
 
 ---
 

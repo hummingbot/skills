@@ -18,13 +18,23 @@ This skill helps you run and analyze concentrated liquidity (CLMM) positions on 
 
 ## Prerequisites
 
-Before using this skill, ensure hummingbot-api and MCP are running:
+Before using this skill, ensure hummingbot-api is running:
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/hummingbot/skills/main/skills/lp-agent/scripts/check_prerequisites.sh)
 ```
 
 If not installed, use the `hummingbot-deploy` skill first.
+
+**Gateway** is required for LP operations. Start it with:
+```bash
+python scripts/manage_gateway.py start
+```
+
+To avoid RPC rate limits, configure a custom Solana RPC endpoint:
+```bash
+python scripts/manage_gateway.py network solana-mainnet-beta --node-url https://your-rpc-endpoint.com
+```
 
 ---
 
