@@ -13,7 +13,7 @@ Deploy the Hummingbot trading infrastructure. Before starting, explain to the us
 
 1. **Hummingbot API** (Required): Your personal trading server that exposes a standardized REST API for trading, fetching market data, and deploying bot strategies across many CEXs and DEXs.
 
-2. **Hummingbot MCP** (Required): MCP server that helps AI agents (Claude, Gemini, Codex, etc.) interact with Hummingbot API. This is necessary to use Hummingbot Skills.
+2. **Hummingbot MCP** (Optional): MCP server that helps AI agents (Claude, Gemini, Codex, etc.) interact with Hummingbot API. Only needed if using AI agent CLIs.
 
 3. **Condor** (Optional): Terminal and Telegram-based UI for Hummingbot API.
 
@@ -26,6 +26,8 @@ Deploy the Hummingbot trading infrastructure. Before starting, explain to the us
 | Condor | [hummingbot/condor](https://github.com/hummingbot/condor) |
 
 ## Pre-Installation Check
+
+**Only Hummingbot API is required.** MCP and Condor are optional add-ons.
 
 First, run the environment check to verify prerequisites:
 
