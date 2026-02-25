@@ -2,19 +2,26 @@
 #
 # Setup Gateway for LP operations
 #
-# Starts Gateway via hummingbot-api and optionally configures a custom Solana RPC endpoint.
+# Starts Gateway via hummingbot-api and optionally configures custom RPC endpoints.
+# Requires Hummingbot API to be running (deploy-hummingbot-api).
 #
 # Usage:
 #   # Start Gateway with defaults
 #   bash scripts/setup_gateway.sh
 #
+#   # Start Gateway with custom image
+#   bash scripts/setup_gateway.sh --image hummingbot/gateway:development
+#
 #   # Start Gateway with custom RPC
 #   bash scripts/setup_gateway.sh --rpc-url https://your-rpc-endpoint.com
+#
+#   # Configure RPC for a specific network
+#   bash scripts/setup_gateway.sh --network ethereum-mainnet --rpc-url https://your-eth-rpc.com
 #
 #   # Start with custom passphrase
 #   bash scripts/setup_gateway.sh --passphrase mypassword
 #
-#   # Check status only
+#   # Check Gateway status only
 #   bash scripts/setup_gateway.sh --status
 #
 set -e
@@ -35,24 +42,30 @@ API_PASS="${API_PASS:-admin}"
 
 # Defaults
 PASSPHRASE="hummingbot"
+IMAGE="hummingbot/gateway:latest"
 RPC_URL=""
 STATUS_ONLY=false
 NETWORK="solana-mainnet-beta"
+PORT=15888
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --passphrase) PASSPHRASE="$2"; shift 2 ;;
+        --image)      IMAGE="$2"; shift 2 ;;
         --rpc-url)    RPC_URL="$2"; shift 2 ;;
         --network)    NETWORK="$2"; shift 2 ;;
+        --port)       PORT="$2"; shift 2 ;;
         --status)     STATUS_ONLY=true; shift ;;
         -h|--help)
             echo "Usage: setup_gateway.sh [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  --passphrase TEXT   Gateway passphrase (default: hummingbot)"
-            echo "  --rpc-url URL       Custom Solana RPC endpoint"
+            echo "  --image IMAGE       Docker image (default: hummingbot/gateway:latest)"
+            echo "  --rpc-url URL       Custom RPC endpoint for --network"
             echo "  --network ID        Network ID (default: solana-mainnet-beta)"
+            echo "  --port PORT         Gateway port (default: 15888)"
             echo "  --status            Check status only"
             echo "  -h, --help          Show this help"
             exit 0
@@ -86,13 +99,13 @@ api_post() {
     curl -s -X POST -H "Authorization: Basic $AUTH" -H "Content-Type: application/json" -d "$2" "$API_URL$1" 2>/dev/null
 }
 
-# Check if API is accessible
+# --- Check prerequisite: Hummingbot API ---
 echo "Gateway Setup"
 echo "============="
 echo ""
 
-API_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/" 2>/dev/null || echo "000")
-if [ "$API_RESPONSE" != "200" ]; then
+source "$SCRIPT_DIR/check_api.sh"
+if ! check_api; then
     fail "Cannot connect to Hummingbot API at $API_URL"
     echo ""
     echo "Please deploy Hummingbot API first:"
@@ -101,7 +114,7 @@ if [ "$API_RESPONSE" != "200" ]; then
 fi
 ok "Hummingbot API is running at $API_URL"
 
-# Check Gateway status
+# --- Check Gateway status ---
 GW_STATUS=$(api_get "/gateway/status")
 GW_RUNNING=$(echo "$GW_STATUS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('running', False))" 2>/dev/null || echo "False")
 
@@ -121,12 +134,12 @@ if d.get('port'): print(f\"  Port: {d['port']}\")
     exit 0
 fi
 
-# Start Gateway if not running
+# --- Start Gateway if not running ---
 if [ "$GW_RUNNING" = "True" ]; then
     ok "Gateway is already running"
 else
-    echo "Starting Gateway..."
-    RESULT=$(api_post "/gateway/start" "{\"passphrase\": \"$PASSPHRASE\", \"image\": \"hummingbot/gateway:latest\", \"port\": 15888, \"dev_mode\": true}")
+    echo "Starting Gateway (image: $IMAGE)..."
+    RESULT=$(api_post "/gateway/start" "{\"passphrase\": \"$PASSPHRASE\", \"image\": \"$IMAGE\", \"port\": $PORT, \"dev_mode\": true}")
 
     SUCCESS=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('success', False))" 2>/dev/null || echo "False")
     if [ "$SUCCESS" = "True" ]; then
@@ -142,7 +155,7 @@ else
     sleep 5
 fi
 
-# Configure custom RPC if provided
+# --- Configure custom RPC if provided ---
 if [ -n "$RPC_URL" ]; then
     echo ""
     echo "Configuring custom RPC for $NETWORK..."
@@ -152,7 +165,7 @@ if [ -n "$RPC_URL" ]; then
     if [ "$SUCCESS" = "True" ]; then
         ok "RPC configured: $RPC_URL"
         warn "Restarting Gateway for changes to take effect..."
-        api_post "/gateway/restart" "{\"passphrase\": \"$PASSPHRASE\", \"image\": \"hummingbot/gateway:latest\", \"port\": 15888, \"dev_mode\": true}" >/dev/null
+        api_post "/gateway/restart" "{\"passphrase\": \"$PASSPHRASE\", \"image\": \"$IMAGE\", \"port\": $PORT, \"dev_mode\": true}" >/dev/null
         sleep 5
         ok "Gateway restarted with custom RPC"
     else
