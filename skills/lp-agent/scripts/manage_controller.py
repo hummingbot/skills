@@ -203,12 +203,15 @@ def deploy_bot(args):
         "controllers_config": args.configs,
         "credentials_profile": args.account,
         "image": args.image,
+        "headless": args.headless,
     }
 
     if args.max_global_drawdown:
         data["max_global_drawdown_quote"] = args.max_global_drawdown
     if args.max_controller_drawdown:
         data["max_controller_drawdown_quote"] = args.max_controller_drawdown
+    if args.script_config:
+        data["script_config"] = args.script_config
 
     result = api_request("POST", "/bot-orchestration/deploy-v2-controllers", data)
 
@@ -374,6 +377,8 @@ def main():
     deploy_parser.add_argument("--image", default="hummingbot/hummingbot:latest", help="Docker image")
     deploy_parser.add_argument("--max-global-drawdown", type=float, help="Max global drawdown in quote")
     deploy_parser.add_argument("--max-controller-drawdown", type=float, help="Max controller drawdown in quote")
+    deploy_parser.add_argument("--script-config", help="Script config name (auto-generated if not provided)")
+    deploy_parser.add_argument("--headless", action="store_true", default=False, help="Run in headless mode")
     deploy_parser.add_argument("--json", action="store_true", help="Output as JSON")
     deploy_parser.set_defaults(func=deploy_bot)
 
