@@ -12,9 +12,8 @@ This skill helps you run automated liquidity provision strategies on concentrate
 **Tasks** (start with any):
 1. **Strategy Selector** - Choose between LP Executor or Rebalancer Controller
 2. **Pool Explorer** - Find and explore Meteora pools
-3. **Deployment** - Deploy LP positions
-4. **Monitoring** - Track running positions
-5. **Analysis** - Visualize performance
+3. **Deployment** - Deploy, monitor, and stop LP strategies
+4. **Analysis** - Visualize performance
 
 ## Prerequisites
 
@@ -175,14 +174,14 @@ When selecting a pool, consider:
 
 ## Task 3: Deployment
 
-### Step 3.1: Deploy LP Rebalancer Controller (Recommended)
+### Deploy LP Rebalancer Controller (Recommended)
 
 > **Reference:** See `references/lp_rebalancer_guide.md` for full configuration details, rebalancing logic, and KEEP vs REBALANCE scenarios.
 
 Auto-rebalances positions when price moves out of range. Best for hands-off LP management.
 
 ```bash
-# Create LP Rebalancer config
+# 1. Create LP Rebalancer config
 python scripts/manage_controller.py create-config my_lp_config \
     --pool <pool_address> \
     --pair SOL-USDC \
@@ -190,10 +189,17 @@ python scripts/manage_controller.py create-config my_lp_config \
     --side 1 \
     --width 0.5 \
     --offset 0.01 \
-    --rebalance-seconds 60
+    --rebalance-seconds 60 \
+    --sell-max 100 \
+    --sell-min 75 \
+    --buy-max 90 \
+    --buy-min 70
 
-# Deploy bot with the config
+# 2. Deploy bot with the config
 python scripts/manage_controller.py deploy my_lp_bot --configs my_lp_config
+
+# 3. Monitor status
+python scripts/manage_controller.py status
 ```
 
 **Key Parameters:**
@@ -207,7 +213,7 @@ python scripts/manage_controller.py deploy my_lp_bot --configs my_lp_config
 | `--buy-max/--buy-min` | Price limits for BUY positions (anchor points) |
 | `--sell-max/--sell-min` | Price limits for SELL positions (anchor points) |
 
-### Step 3.2: Deploy Single LP Executor (Alternative)
+### Deploy Single LP Executor (Alternative)
 
 > **Reference:** See `references/lp_executor_guide.md` for state machine, single/double-sided positions, and limit range orders.
 
@@ -234,65 +240,22 @@ python scripts/manage_executor.py create \
 | `--auto-close-above` | Auto-close when price above range (for limit orders) |
 | `--auto-close-below` | Auto-close when price below range (for limit orders) |
 
-### Step 3.3: Verify Deployment
+### Monitor & Manage
 
-**For LP Rebalancer Controller:**
+**Check Status:**
 ```bash
-# Check bot status
+# Bot status
 python scripts/manage_controller.py status
 
-# Get bot logs
-python scripts/manage_controller.py logs my_lp_bot
-```
-
-**For LP Executor:**
-```bash
-# List executors
+# Executor list
 python scripts/manage_executor.py list --type lp_executor
 
-# Get specific executor
-python scripts/manage_executor.py get <executor_id>
-```
-
-Check state:
-- `OPENING` → Transaction in progress, wait 5-10 seconds
-- `IN_RANGE` or `OUT_OF_RANGE` → Success!
-- `FAILED` or `RETRIES_EXCEEDED` → Check error, possibly reduce range width
-
----
-
-## Task 4: Monitoring
-
-### Monitor Controller Status
-
-```bash
-# Get all active bots status
-python scripts/manage_controller.py status
-
-# Get bot logs
-python scripts/manage_controller.py logs my_lp_bot --limit 100
-
-# Get error logs only
-python scripts/manage_controller.py logs my_lp_bot --type error
-```
-
-### Monitor Executor Details
-
-```bash
-# List all LP executors
-python scripts/manage_executor.py list --type lp_executor
-
-# Get specific executor state
+# Executor details
 python scripts/manage_executor.py get <executor_id>
 
-# Get executor logs
-python scripts/manage_executor.py logs <executor_id>
-
-# Get summary of all executors
+# Executor summary
 python scripts/manage_executor.py summary
 ```
-
-### Key State Values to Monitor
 
 **Executor States:**
 - `OPENING` - Creating position on-chain
@@ -301,18 +264,10 @@ python scripts/manage_executor.py summary
 - `CLOSING` - Removing position
 - `FAILED` - Transaction failed
 
-**Controller Behavior:**
-- When `OUT_OF_RANGE` for `rebalance_seconds`, controller closes and reopens position
-- If price hits limits (`buy_price_min`, `sell_price_max`, etc.), controller KEEPs position instead of rebalancing
-
-### Stop Controller/Executor
-
+**Stop:**
 ```bash
 # Stop bot (stops all its controllers)
 python scripts/manage_controller.py stop my_lp_bot
-
-# Stop specific controllers within a bot
-python scripts/manage_controller.py stop-controllers my_lp_bot --controllers my_lp_config
 
 # Stop individual executor (closes position)
 python scripts/manage_executor.py stop <executor_id>
@@ -323,7 +278,7 @@ python scripts/manage_executor.py stop <executor_id> --keep-position
 
 ---
 
-## Task 5: Analysis
+## Task 4: Analysis
 
 Use the analysis scripts to export data and generate visual dashboards. Scripts are in this skill's `scripts/` directory.
 
