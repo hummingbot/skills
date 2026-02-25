@@ -165,13 +165,10 @@ def main():
     if args.connectors:
         connectors = [c.strip() for c in args.connectors.split(",")]
     else:
-        print("Fetching available connectors...", file=sys.stderr)
         connectors = get_available_connectors()
         if not connectors:
             print("Error: No connectors available. Check API connection.", file=sys.stderr)
             sys.exit(1)
-
-    print(f"Scanning {len(connectors)} connectors for {'/'.join(base_tokens)} vs {'/'.join(quote_tokens)}...", file=sys.stderr)
 
     # Step 1: Find matching trading pairs on each connector
     connector_pairs = {}
@@ -184,14 +181,12 @@ def main():
                 matching = find_matching_pairs(all_pairs, base_tokens, quote_tokens)
                 if matching:
                     connector_pairs[connector] = matching
-            except Exception as e:
-                print(f"  {connector}: error fetching pairs - {e}", file=sys.stderr)
+            except Exception:
+                pass  # Silently skip connectors that fail
 
     if not connector_pairs:
         print(f"No trading pairs found matching {base_tokens} / {quote_tokens}", file=sys.stderr)
         sys.exit(1)
-
-    print(f"Found pairs on {len(connector_pairs)} connectors", file=sys.stderr)
 
     # Step 2: Fetch prices from all connectors in parallel
     prices = []  # List of {connector, pair, price}
@@ -238,8 +233,8 @@ def main():
                             "bid": float(bid) if bid else None,
                             "ask": float(ask) if ask else None,
                         })
-            except Exception as e:
-                print(f"  {connector}: error - {e}", file=sys.stderr)
+            except Exception:
+                pass  # Silently skip connectors that fail
 
     if not prices:
         print("No prices retrieved from any connector", file=sys.stderr)
@@ -248,10 +243,22 @@ def main():
     # Sort by price
     prices.sort(key=lambda x: x["price"])
 
-    # Calculate arbitrage opportunities
+    # Filter outliers (prices > 20% from median)
+    if len(prices) >= 3:
+        median_price = prices[len(prices) // 2]["price"]
+        filtered_prices = [
+            p for p in prices
+            if abs(p["price"] - median_price) / median_price <= 0.20
+        ]
+        outliers = [p for p in prices if p not in filtered_prices]
+    else:
+        filtered_prices = prices
+        outliers = []
+
+    # Calculate arbitrage opportunities from filtered prices
     opportunities = []
-    for i, buy in enumerate(prices):
-        for sell in prices[i + 1:]:
+    for i, buy in enumerate(filtered_prices):
+        for sell in filtered_prices[i + 1:]:
             spread = (sell["price"] - buy["price"]) / buy["price"] * 100
             if spread >= args.min_spread:
                 opportunities.append({
@@ -273,27 +280,45 @@ def main():
         print(json.dumps({
             "base_tokens": base_tokens,
             "quote_tokens": quote_tokens,
-            "prices": prices,
+            "prices": filtered_prices,
+            "outliers": outliers,
             "opportunities": opportunities[:20],
         }, indent=2))
     else:
-        print(f"\nArbitrage Opportunities: {'/'.join(base_tokens)} vs {'/'.join(quote_tokens)}")
-        print("=" * 60)
+        # Header
+        print(f"\n{'='*60}")
+        print(f"  {'/'.join(base_tokens)} / {'/'.join(quote_tokens)} Arbitrage Scanner")
+        print(f"{'='*60}")
 
-        print("\nPrices Found:")
-        for p in prices:
-            print(f"  {p['connector']:20} {p['pair']:15} {format_price(p['price'])}")
+        # Price summary
+        if filtered_prices:
+            low = filtered_prices[0]
+            high = filtered_prices[-1]
+            spread_pct = (high["price"] - low["price"]) / low["price"] * 100
+            print(f"\n  Lowest:  {low['connector']:20} {format_price(low['price'])}")
+            print(f"  Highest: {high['connector']:20} {format_price(high['price'])}")
+            print(f"  Spread:  {spread_pct:.3f}% ({format_price(high['price'] - low['price'])})")
+            print(f"  Sources: {len(filtered_prices)} prices from {len(set(p['connector'] for p in filtered_prices))} connectors")
 
+        # Best opportunities
         if opportunities:
-            print(f"\nBest Opportunities (min spread: {args.min_spread}%):")
-            for opp in opportunities[:10]:
-                print(f"\n  Buy  {opp['buy_connector']:15} {opp['buy_pair']:12} @ {format_price(opp['buy_price'])}")
-                print(f"  Sell {opp['sell_connector']:15} {opp['sell_pair']:12} @ {format_price(opp['sell_price'])}")
-                print(f"  Spread: {opp['spread_pct']:.3f}% ({format_price(opp['spread_abs'])})")
+            print(f"\n  Top Arbitrage Opportunities:")
+            print(f"  {'-'*56}")
+            for i, opp in enumerate(opportunities[:5], 1):
+                print(f"  {i}. Buy  {opp['buy_connector']:18} @ {format_price(opp['buy_price'])}")
+                print(f"     Sell {opp['sell_connector']:18} @ {format_price(opp['sell_price'])}")
+                print(f"     Profit: {opp['spread_pct']:.3f}% ({format_price(opp['spread_abs'])})")
+                if i < min(5, len(opportunities)):
+                    print()
         else:
-            print(f"\nNo opportunities found with spread >= {args.min_spread}%")
+            print(f"\n  No opportunities found with spread >= {args.min_spread}%")
 
-        print(f"\nTotal: {len(prices)} prices from {len(set(p['connector'] for p in prices))} connectors")
+        # Outliers warning
+        if outliers:
+            print(f"\n  ⚠ {len(outliers)} outlier(s) excluded: ", end="")
+            print(", ".join(f"{o['connector']} ({format_price(o['price'])})" for o in outliers[:3]))
+
+        print()
 
 
 if __name__ == "__main__":
