@@ -7,7 +7,7 @@ commands:
   deploy-hummingbot-api:
     description: Deploy Hummingbot API trading infrastructure
   setup-gateway:
-    description: Start Gateway and configure Solana RPC endpoint
+    description: Start Gateway and configure network RPC endpoints
   add-wallet:
     description: Add or import a Solana wallet for trading
   explore-pools:
@@ -15,7 +15,7 @@ commands:
   select-strategy:
     description: Choose between LP Executor or Rebalancer Controller strategy
   run-strategy:
-    description: Deploy, monitor, and manage LP strategies
+    description: Run, monitor, and manage LP strategies
   analyze-performance:
     description: Export data and visualize LP position performance
 ---
@@ -29,11 +29,11 @@ This skill helps you run automated liquidity provision strategies on concentrate
 | Command | Description |
 |---------|-------------|
 | `deploy-hummingbot-api` | Deploy Hummingbot API trading infrastructure |
-| `setup-gateway` | Start Gateway and configure Solana RPC |
+| `setup-gateway` | Start Gateway, configure network RPC endpoints |
 | `add-wallet` | Add or import a Solana wallet |
 | `explore-pools` | Find and explore Meteora DLMM pools |
 | `select-strategy` | Choose LP Executor or Rebalancer Controller |
-| `run-strategy` | Deploy, monitor, and manage LP strategies |
+| `run-strategy` | Run, monitor, and manage LP strategies |
 | `analyze-performance` | Visualize LP position performance |
 
 **Typical workflow:** `deploy-hummingbot-api` → `setup-gateway` → `add-wallet` → `explore-pools` → `select-strategy` → `run-strategy` → `analyze-performance`
@@ -125,32 +125,19 @@ bash scripts/setup_gateway.sh --passphrase mypassword --port 15888
 | `--network ID` | `solana-mainnet-beta` | Network to configure RPC for |
 | `--port PORT` | `15888` | Gateway port |
 
-### Advanced Gateway Management
+### Advanced: manage_gateway.py
 
-For finer control, use `manage_gateway.py` directly:
+For finer control (stop, restart, logs, per-network config), use `manage_gateway.py`:
 
 ```bash
-# Check status
-python scripts/manage_gateway.py status
-
-# Start/stop/restart
-python scripts/manage_gateway.py start --passphrase mypassword
-python scripts/manage_gateway.py start --image hummingbot/gateway:development
-python scripts/manage_gateway.py stop
-python scripts/manage_gateway.py restart
-
-# View logs
-python scripts/manage_gateway.py logs [--limit 100]
-
-# List all supported networks
-python scripts/manage_gateway.py networks
-
-# Get network config (shows current nodeURL)
-python scripts/manage_gateway.py network solana-mainnet-beta
-
-# Set custom RPC node for any network
-python scripts/manage_gateway.py network solana-mainnet-beta --node-url https://my-rpc.example.com
-python scripts/manage_gateway.py network ethereum-mainnet --node-url https://my-eth-rpc.example.com
+python scripts/manage_gateway.py status                    # Check status
+python scripts/manage_gateway.py start                     # Start Gateway
+python scripts/manage_gateway.py stop                      # Stop Gateway
+python scripts/manage_gateway.py restart                   # Restart Gateway
+python scripts/manage_gateway.py logs                      # View logs
+python scripts/manage_gateway.py networks                  # List all networks
+python scripts/manage_gateway.py network solana-mainnet-beta                          # Get network config
+python scripts/manage_gateway.py network solana-mainnet-beta --node-url https://...   # Set RPC node
 ```
 
 ### Custom RPC Nodes
@@ -169,10 +156,7 @@ Popular Solana RPC providers:
 
 Add a Solana wallet for trading.
 
-**Prerequisites:** Hummingbot API (`deploy-hummingbot-api`) and Gateway (`setup-gateway`) must be running. Use the shared check scripts to verify:
-```bash
-bash scripts/check_api.sh && bash scripts/check_gateway.sh
-```
+**Requires:** `deploy-hummingbot-api` and `setup-gateway` completed first.
 
 ### Usage
 
@@ -211,7 +195,7 @@ python scripts/add_wallet.py balances --address <WALLET_ADDRESS> --all
 
 Find and explore Meteora DLMM pools before creating LP positions.
 
-**Prerequisites:** Hummingbot API and Gateway must be running for real-time data. Use `bash scripts/check_api.sh && bash scripts/check_gateway.sh` to verify.
+**Note:** Pool listing (`list_meteora_pools.py`) works without any prerequisites — it queries the Meteora API directly. Pool details (`get_meteora_pool.py`) optionally uses Gateway for real-time price and liquidity charts.
 
 ### List Pools
 
@@ -345,11 +329,11 @@ Creates ONE liquidity position with fixed price bounds. No auto-rebalancing.
 
 ## Command: run-strategy
 
-Deploy, monitor, and manage LP strategies.
+Run, monitor, and manage LP strategies.
 
-**Prerequisites:** Hummingbot API and Gateway must be running. Use `bash scripts/check_api.sh && bash scripts/check_gateway.sh` to verify.
+**Requires:** `deploy-hummingbot-api`, `setup-gateway`, and `add-wallet` completed first.
 
-### Deploy LP Rebalancer Controller (Recommended)
+### LP Rebalancer Controller (Recommended)
 
 > **Reference:** See `references/lp_rebalancer_guide.md` for full configuration details, rebalancing logic, and KEEP vs REBALANCE scenarios.
 
@@ -388,7 +372,7 @@ python scripts/manage_controller.py status
 | `--buy-max/--buy-min` | Price limits for BUY positions (anchor points) |
 | `--sell-max/--sell-min` | Price limits for SELL positions (anchor points) |
 
-### Deploy Single LP Executor (Alternative)
+### Single LP Executor (Alternative)
 
 > **Reference:** See `references/lp_executor_guide.md` for state machine, single/double-sided positions, and limit range orders.
 
@@ -545,25 +529,16 @@ python scripts/visualize_lp_positions.py --pair SOL-USDC
 python scripts/export_lp_positions.py --pair SOL-USDC
 ```
 
-### Shared Check Scripts
+### Checking Prerequisites
 
-Before running commands that depend on Hummingbot API or Gateway, use the shared check scripts:
+Before running commands that need the API or Gateway, verify they're running:
 
 ```bash
-# Check if Hummingbot API is running
-bash scripts/check_api.sh
-
-# Check if Gateway is running (also checks API)
-bash scripts/check_gateway.sh
-
-# Both support JSON output
-bash scripts/check_api.sh --json
-bash scripts/check_gateway.sh --json
-
-# Source in shell scripts for the check functions
-source scripts/check_api.sh
-check_api || echo "API not running"
+bash scripts/check_api.sh       # Is Hummingbot API running?
+bash scripts/check_gateway.sh   # Is Gateway running? (also checks API)
 ```
+
+Both support `--json` output. These scripts are also used internally by `setup_gateway.sh` and can be sourced by other shell scripts.
 
 ### Scripts Reference
 
