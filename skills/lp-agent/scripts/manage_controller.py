@@ -130,15 +130,11 @@ def create_config(args):
         "strategy_type": args.strategy_type,
     }
 
-    # Add optional price limits
-    if args.sell_max is not None:
-        config_data["sell_price_max"] = args.sell_max
-    if args.sell_min is not None:
-        config_data["sell_price_min"] = args.sell_min
-    if args.buy_max is not None:
-        config_data["buy_price_max"] = args.buy_max
-    if args.buy_min is not None:
-        config_data["buy_price_min"] = args.buy_min
+    # Add price limits
+    config_data["sell_price_max"] = args.sell_max
+    config_data["sell_price_min"] = args.sell_min
+    config_data["buy_price_max"] = args.buy_max
+    config_data["buy_price_min"] = args.buy_min
 
     # POST /controllers/configs/{config_name} to create/update
     result = api_request("POST", f"/controllers/configs/{args.config_name}", config_data)
@@ -335,21 +331,21 @@ def main():
     # create-config command
     create_parser = subparsers.add_parser("create-config", help="Create LP Rebalancer config")
     create_parser.add_argument("config_name", help="Config name")
-    create_parser.add_argument("--pool", required=True, help="Pool address")
-    create_parser.add_argument("--pair", required=True, help="Trading pair (e.g., SOL-USDC)")
-    create_parser.add_argument("--connector", default="meteora/clmm", help="Connector name (default: meteora/clmm)")
-    create_parser.add_argument("--network", default="solana-mainnet-beta", help="Network (default: solana-mainnet-beta)")
-    create_parser.add_argument("--amount", type=float, default=50, help="Total amount in quote currency (default: 50)")
-    create_parser.add_argument("--side", type=int, default=1, choices=[0, 1, 2], help="Side: 0=BOTH, 1=BUY, 2=SELL (default: 1)")
-    create_parser.add_argument("--width", type=float, default=0.5, help="Position width %% (default: 0.5)")
-    create_parser.add_argument("--offset", type=float, default=0.01, help="Position offset %% (default: 0.01)")
-    create_parser.add_argument("--rebalance-seconds", type=int, default=60, help="Rebalance seconds (default: 60)")
-    create_parser.add_argument("--rebalance-threshold", type=float, default=0.1, help="Rebalance threshold %% (default: 0.1)")
-    create_parser.add_argument("--sell-max", type=float, help="Sell price max (anchor)")
-    create_parser.add_argument("--sell-min", type=float, help="Sell price min")
-    create_parser.add_argument("--buy-max", type=float, help="Buy price max")
-    create_parser.add_argument("--buy-min", type=float, help="Buy price min (anchor)")
-    create_parser.add_argument("--strategy-type", type=int, default=0, choices=[0, 1, 2], help="Meteora strategy: 0=Spot, 1=Curve, 2=Bid-Ask (default: 0)")
+    create_parser.add_argument("--pool", default="HTvjzsfX3yU6BUodCjZ5vZkUrAxMDTrBs3CJaq43ashR", help="Pool address")
+    create_parser.add_argument("--pair", default="SOL-USDC", help="Trading pair (e.g., SOL-USDC)")
+    create_parser.add_argument("--connector", default="meteora/clmm", help="Connector name")
+    create_parser.add_argument("--network", default="solana-mainnet-beta", help="Network")
+    create_parser.add_argument("--amount", type=float, default=50, help="Total amount in quote currency")
+    create_parser.add_argument("--side", type=int, default=1, choices=[0, 1, 2], help="Side: 0=BOTH, 1=BUY, 2=SELL")
+    create_parser.add_argument("--width", type=float, default=0.5, help="Position width %%")
+    create_parser.add_argument("--offset", type=float, default=0.01, help="Position offset %%")
+    create_parser.add_argument("--rebalance-seconds", type=int, default=60, help="Rebalance seconds")
+    create_parser.add_argument("--rebalance-threshold", type=float, default=0.1, help="Rebalance threshold %%")
+    create_parser.add_argument("--sell-max", type=float, default=100, help="Sell price max (anchor)")
+    create_parser.add_argument("--sell-min", type=float, default=75, help="Sell price min")
+    create_parser.add_argument("--buy-max", type=float, default=90, help="Buy price max")
+    create_parser.add_argument("--buy-min", type=float, default=70, help="Buy price min (anchor)")
+    create_parser.add_argument("--strategy-type", type=int, default=0, choices=[0, 1, 2], help="Meteora strategy: 0=Spot, 1=Curve, 2=Bid-Ask")
     create_parser.add_argument("--json", action="store_true", help="Output as JSON")
     create_parser.set_defaults(func=create_config)
 
