@@ -9,16 +9,12 @@ metadata:
 
 This skill helps you run and analyze concentrated liquidity (CLMM) positions on Solana DEXs like Meteora and Orca.
 
-**Two paths available:**
-- **New Bot**: Selection → Deployment → Monitoring
-- **Analyze Existing**: Skip directly to Analysis
-
-**Tasks:**
-1. **Selection** - Choose to start a new bot OR analyze existing data
-2. **Pool Explorer** - Find and explore Meteora pools before deploying
-3. **Deployment** - Configure and deploy LP Executor or LP Rebalancer controller
-4. **Monitoring** - Track status and logs of running controllers/executors
-5. **Analysis** - Export data and generate visual dashboards to analyze performance
+**Tasks** (start with any):
+1. **Strategy Selector** - Choose between LP Executor or Rebalancer Controller
+2. **Pool Explorer** - Find and explore Meteora pools
+3. **Deployment** - Deploy LP positions
+4. **Monitoring** - Track running positions
+5. **Analysis** - Visualize performance
 
 ## Prerequisites
 
@@ -32,31 +28,49 @@ If not installed, use the `hummingbot-deploy` skill first.
 
 ---
 
-## Task 1: Selection
+## Task 1: Strategy Selector
 
-**First, ask the user:**
-"Do you want to **start a new LP bot** or **analyze an existing one**?"
+Help the user choose the right LP strategy. See `references/` for detailed guides.
 
-### Path A: Start New Bot
-If user wants to start a new bot, ask which type:
+### LP Rebalancer Controller (Recommended)
 
-**Option A1: LP Executor (Single Position)**
-- Creates ONE liquidity position with fixed price bounds
-- Does NOT auto-rebalance when price moves out of range
-- Best for: Short-term positions, manual management, testing
+> **Reference:** `references/lp_rebalancer_guide.md`
 
-**Option A2: LP Rebalancer Controller (Recommended)**
-- Creates and manages positions automatically
-- Auto-rebalances when price moves out of range
-- Supports price limits to control when to rebalance vs keep position
-- Best for: Hands-off LP management, longer-term strategies
+A controller that automatically manages LP positions with rebalancing logic.
 
-Then proceed to **Task 2: Pool Explorer** → **Task 3: Deployment** → **Task 4: Monitoring**
+| Feature | Description |
+|---------|-------------|
+| **Auto-rebalance** | Closes and reopens positions when price exits range |
+| **Price limits** | Configure BUY/SELL zones with anchor points |
+| **KEEP logic** | Avoids unnecessary rebalancing when at optimal position |
+| **Hands-off** | Set and forget - controller manages everything |
 
-### Path B: Analyze Existing Bot
-If user wants to analyze existing data, **skip directly to Task 5: Analysis**.
+**Best for:** Longer-term LP strategies, range-bound markets, automated fee collection.
 
-**Default to LP Positions analysis** (`export_lp_positions.py` / `visualize_lp_positions.py`) - this works for both running and stopped bots since position events are recorded immediately when positions are created/closed on-chain.
+### LP Executor (Single Position)
+
+> **Reference:** `references/lp_executor_guide.md`
+
+Creates ONE liquidity position with fixed price bounds. No auto-rebalancing.
+
+| Feature | Description |
+|---------|-------------|
+| **Fixed bounds** | Position stays at configured price range |
+| **Manual control** | User decides when to close/reopen |
+| **Limit orders** | Can auto-close when price exits range (like limit orders) |
+| **Simple** | Direct control over single position |
+
+**Best for:** Short-term positions, limit-order-style LP, manual management, testing.
+
+### Quick Comparison
+
+| Aspect | Rebalancer Controller | LP Executor |
+|--------|----------------------|-------------|
+| Rebalancing | Automatic | Manual |
+| Position count | One at a time, auto-managed | One, fixed |
+| Price limits | Yes (anchor points) | No (but has auto-close) |
+| Complexity | Higher (more config) | Lower (simpler) |
+| Use case | Set-and-forget | Precise control |
 
 
 ---
