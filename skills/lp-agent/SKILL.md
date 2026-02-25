@@ -4,6 +4,8 @@ description: Run automated liquidity provision strategies on concentrated liquid
 metadata:
   author: hummingbot
 commands:
+  start:
+    description: Onboarding wizard — check setup status and get started
   deploy-hummingbot-api:
     description: Deploy Hummingbot API trading infrastructure
   setup-gateway:
@@ -28,6 +30,7 @@ This skill helps you run automated liquidity provision strategies on concentrate
 
 | Command | Description |
 |---------|-------------|
+| `start` | Onboarding wizard — check setup status and get started |
 | `deploy-hummingbot-api` | Deploy Hummingbot API trading infrastructure |
 | `setup-gateway` | Start Gateway, configure network RPC endpoints |
 | `add-wallet` | Add or import a Solana wallet |
@@ -36,7 +39,83 @@ This skill helps you run automated liquidity provision strategies on concentrate
 | `run-strategy` | Run, monitor, and manage LP strategies |
 | `analyze-performance` | Visualize LP position performance |
 
-**Typical workflow:** `deploy-hummingbot-api` → `setup-gateway` → `add-wallet` → `explore-pools` → `select-strategy` → `run-strategy` → `analyze-performance`
+**New here?** Run `/lp-agent start` to check your setup and get a guided walkthrough.
+
+**Typical workflow:** `start` → `deploy-hummingbot-api` → `setup-gateway` → `add-wallet` → `explore-pools` → `select-strategy` → `run-strategy` → `analyze-performance`
+
+---
+
+## Command: start
+
+Welcome the user and guide them through setup. This is a conversational onboarding wizard — no scripts to run, just check infrastructure state and walk them through it.
+
+### Step 1: Welcome & Explain
+
+Introduce yourself and explain what lp-agent does:
+
+> I'm your LP agent — I help you run automated liquidity provision strategies on Meteora DLMM pools (Solana). I can:
+>
+> - **Deploy infrastructure** — Hummingbot API + Gateway for DEX trading
+> - **Manage wallets** — Add Solana wallets, check balances
+> - **Explore pools** — Search Meteora DLMM pools, compare APR/volume/TVL
+> - **Run strategies** — Auto-rebalancing LP controller or single-position executor
+> - **Analyze performance** — Dashboards with PnL, fees, and position history
+
+### Step 2: Check Infrastructure Status
+
+Run the check scripts to assess current state:
+
+```bash
+bash scripts/check_api.sh --json      # Is Hummingbot API running?
+bash scripts/check_gateway.sh --json  # Is Gateway running?
+python scripts/add_wallet.py list     # Any wallets connected?
+```
+
+### Step 3: Show Progress
+
+Present a checklist showing what's done and what's remaining:
+
+```
+Setup Progress:
+  [x] Hummingbot API    — Running at http://localhost:8000
+  [x] Gateway           — Running
+  [ ] Wallet            — No wallet connected
+  [ ] First LP strategy — Not yet
+
+Next step: Add a Solana wallet so you can start trading.
+  → Run /lp-agent add-wallet
+```
+
+Adapt the checklist to the actual state. If everything is unchecked, start from the top. If everything is checked, skip to the LP lifecycle overview.
+
+### Step 4: Guide Next Action
+
+Based on the first unchecked item, briefly explain what it does and offer to run it:
+
+| Missing | What to say |
+|---------|-------------|
+| Hummingbot API | "Let's deploy the API first — it's the trading backend. Need Docker installed. Want me to run the installer?" → `/lp-agent deploy-hummingbot-api` |
+| Gateway | "API is running! Now we need Gateway for DEX connectivity. Want me to start it?" → `/lp-agent setup-gateway` |
+| Wallet | "Infrastructure is ready. You'll need a Solana wallet with some SOL for fees. Want to add one?" → `/lp-agent add-wallet` |
+| All ready | Move to Step 5 |
+
+### Step 5: LP Lifecycle Overview
+
+Once infrastructure is ready (or if user wants to understand the flow first), explain the LP lifecycle:
+
+> **How LP strategies work:**
+>
+> 1. **Explore pools** (`/lp-agent explore-pools`) — Find a Meteora DLMM pool. Look at volume, APR, and fee/TVL ratio to pick a good one.
+>
+> 2. **Select strategy** (`/lp-agent select-strategy`) — Choose between:
+>    - **Rebalancer Controller** (recommended) — Automatically repositions when price moves out of range. Set-and-forget.
+>    - **LP Executor** — Single fixed position. You control when to close/reopen. Good for testing or limit-order-style LP.
+>
+> 3. **Run strategy** (`/lp-agent run-strategy`) — Configure parameters (amount, width, price limits) and deploy. Monitor status and stop when done.
+>
+> 4. **Analyze** (`/lp-agent analyze-performance`) — View PnL dashboard, fees earned, position history. Works for both running and stopped strategies.
+>
+> Want to explore some pools to get started?
 
 ---
 
