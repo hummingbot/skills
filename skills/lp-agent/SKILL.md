@@ -14,9 +14,9 @@ commands:
     description: Find and explore Meteora DLMM pools
   select-strategy:
     description: Choose between LP Executor or Rebalancer Controller strategy
-  deploy:
+  deploy-bot:
     description: Deploy, monitor, and manage LP strategies
-  analyze:
+  analyze-performance:
     description: Export data and visualize LP position performance
 ---
 
@@ -33,10 +33,10 @@ This skill helps you run automated liquidity provision strategies on concentrate
 | `add-wallet` | Add or import a Solana wallet |
 | `explore-pools` | Find and explore Meteora DLMM pools |
 | `select-strategy` | Choose LP Executor or Rebalancer Controller |
-| `deploy` | Deploy, monitor, and stop LP strategies |
-| `analyze` | Visualize LP position performance |
+| `deploy-bot` | Deploy, monitor, and stop LP strategies |
+| `analyze-performance` | Visualize LP position performance |
 
-**Typical workflow:** `deploy-hummingbot-api` → `setup-gateway` → `add-wallet` → `explore-pools` → `select-strategy` → `deploy` → `analyze`
+**Typical workflow:** `deploy-hummingbot-api` → `setup-gateway` → `add-wallet` → `explore-pools` → `select-strategy` → `deploy-bot` → `analyze-performance`
 
 ---
 
@@ -313,7 +313,7 @@ Creates ONE liquidity position with fixed price bounds. No auto-rebalancing.
 
 ---
 
-## Command: deploy
+## Command: deploy-bot
 
 Deploy, monitor, and manage LP strategies.
 
@@ -421,7 +421,7 @@ python scripts/manage_executor.py stop <executor_id> --keep-position
 
 ---
 
-## Command: analyze
+## Command: analyze-performance
 
 Export data and generate visual dashboards from LP position events. Scripts are in this skill's `scripts/` directory.
 
