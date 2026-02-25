@@ -31,7 +31,7 @@ import sys
 import urllib.request
 import urllib.error
 import base64
-from typing import Any
+from datetime import datetime
 
 
 def load_env():
@@ -91,10 +91,13 @@ def api_request(method: str, endpoint: str, data: dict | None = None) -> dict:
 
 def create_executor(args):
     """Create a new LP executor."""
-    config = {
+    # LP executor uses 'market' object for connector/pair
+    executor_config = {
         "type": "lp_executor",
-        "connector_name": args.connector,
-        "trading_pair": args.pair,
+        "market": {
+            "connector_name": args.connector,
+            "trading_pair": args.pair,
+        },
         "pool_address": args.pool,
         "lower_price": args.lower,
         "upper_price": args.upper,
@@ -105,67 +108,104 @@ def create_executor(args):
 
     # Add optional parameters
     if args.auto_close_above is not None:
-        config["auto_close_above_range_seconds"] = args.auto_close_above
+        executor_config["auto_close_above_range_seconds"] = args.auto_close_above
     if args.auto_close_below is not None:
-        config["auto_close_below_range_seconds"] = args.auto_close_below
+        executor_config["auto_close_below_range_seconds"] = args.auto_close_below
     if args.strategy_type is not None:
-        config["extra_params"] = {"strategyType": args.strategy_type}
+        executor_config["extra_params"] = {"strategyType": args.strategy_type}
 
-    result = api_request("POST", "/executors", {"executor_config": config})
+    request_data = {
+        "executor_config": executor_config,
+        "account_name": args.account,
+    }
+
+    result = api_request("POST", "/executors/", request_data)
     print(json.dumps(result, indent=2))
 
 
 def get_executor(args):
     """Get executor status."""
     result = api_request("GET", f"/executors/{args.executor_id}")
-    print(json.dumps(result, indent=2))
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"Executor: {result.get('executor_id', args.executor_id)}")
+        print("-" * 50)
+        print(f"  Type: {result.get('executor_type', result.get('type', ''))}")
+        print(f"  Status: {result.get('status', '')}")
+        print(f"  Trading Pair: {result.get('trading_pair', '')}")
+        print(f"  Connector: {result.get('connector_name', '')}")
+
+        custom_info = result.get("custom_info", {})
+        if custom_info:
+            state = custom_info.get("state", "")
+            if state:
+                print(f"  State: {state}")
+            position_address = custom_info.get("position_address", "")
+            if position_address:
+                print(f"  Position: {position_address[:20]}...")
+
+        pnl = result.get("net_pnl_quote", result.get("pnl", 0))
+        print(f"  PnL: ${pnl:.4f}" if pnl else "  PnL: $0.00")
 
 
 def list_executors(args):
     """List all executors."""
-    params = []
+    # Use POST /executors/search with filter
+    filter_request = {
+        "limit": args.limit,
+    }
+
     if args.type:
-        params.append(f"executor_type={args.type}")
+        filter_request["executor_types"] = [args.type]
     if args.status:
-        params.append(f"status={args.status}")
+        filter_request["status"] = args.status
 
-    endpoint = "/executors"
-    if params:
-        endpoint += "?" + "&".join(params)
-
-    result = api_request("GET", endpoint)
+    result = api_request("POST", "/executors/search", filter_request)
 
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        executors = result.get("executors", result) if isinstance(result, dict) else result
+        executors = result.get("data", [])
+        pagination = result.get("pagination", {})
+
         if not executors:
             print("No executors found.")
             return
 
-        print(f"{'ID':<40} {'Type':<15} {'Status':<12} {'Pair':<12} {'Created'}")
-        print("-" * 100)
+        print(f"Executors ({pagination.get('total_count', len(executors))} total):")
+        print("-" * 110)
+        print(f"{'ID':<46} {'Type':<15} {'Status':<12} {'Pair':<15} {'PnL':<10}")
+        print("-" * 110)
+
         for ex in executors:
-            ex_id = ex.get("id", "")[:38] if ex.get("id") else ""
-            ex_type = ex.get("type", "")
-            status = ex.get("status", ex.get("custom_info", {}).get("state", ""))
-            pair = ex.get("trading_pair", "")
-            created = ex.get("timestamp", "")
-            print(f"{ex_id:<40} {ex_type:<15} {status:<12} {pair:<12} {created}")
+            ex_id = ex.get("executor_id", "")
+            ex_type = ex.get("executor_type", ex.get("type", ""))[:13]
+            status = ex.get("status", "")[:10]
+            pair = ex.get("trading_pair", "")[:13]
+            pnl = ex.get("net_pnl_quote", ex.get("pnl", 0))
+            pnl_str = f"${pnl:.2f}" if pnl else "$0.00"
+            print(f"{ex_id:<46} {ex_type:<15} {status:<12} {pair:<15} {pnl_str:<10}")
 
 
 def get_logs(args):
     """Get executor logs."""
-    endpoint = f"/executors/{args.executor_id}/logs"
-    if args.limit:
-        endpoint += f"?limit={args.limit}"
+    params = [f"limit={args.limit}"]
+    if args.level:
+        params.append(f"level={args.level}")
 
+    endpoint = f"/executors/{args.executor_id}/logs?{'&'.join(params)}"
     result = api_request("GET", endpoint)
 
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        logs = result.get("logs", result) if isinstance(result, dict) else result
+        logs = result.get("logs", [])
+        total = result.get("total_count", len(logs))
+        print(f"Logs for {args.executor_id} ({total} total, showing {len(logs)}):")
+        print("-" * 80)
+
         for log in logs:
             ts = log.get("timestamp", "")
             level = log.get("level", "INFO")
@@ -177,13 +217,39 @@ def stop_executor(args):
     """Stop an executor."""
     data = {"keep_position": args.keep_position}
     result = api_request("POST", f"/executors/{args.executor_id}/stop", data)
-    print(json.dumps(result, indent=2))
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        if result.get("success"):
+            print(f"✓ Executor {args.executor_id} stopped")
+            if args.keep_position:
+                print("  Position kept on-chain")
+            else:
+                print("  Position closed")
+        else:
+            print(f"Response: {result}")
 
 
 def get_summary(args):
     """Get summary of all executors."""
     result = api_request("GET", "/executors/summary")
-    print(json.dumps(result, indent=2))
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print("Executor Summary")
+        print("-" * 40)
+        print(f"  Active: {result.get('active_count', 0)}")
+        print(f"  Completed: {result.get('completed_count', 0)}")
+        print(f"  Total PnL: ${result.get('total_pnl', 0):.2f}")
+        print(f"  Total Volume: ${result.get('total_volume', 0):.2f}")
+
+        by_type = result.get("by_type", {})
+        if by_type:
+            print("\n  By Type:")
+            for t, count in by_type.items():
+                print(f"    {t}: {count}")
 
 
 def main():
@@ -203,17 +269,20 @@ def main():
     create_parser.add_argument("--auto-close-above", type=int, help="Auto-close seconds when price above range")
     create_parser.add_argument("--auto-close-below", type=int, help="Auto-close seconds when price below range")
     create_parser.add_argument("--strategy-type", type=int, choices=[0, 1, 2], help="Meteora strategy: 0=Spot, 1=Curve, 2=Bid-Ask")
+    create_parser.add_argument("--account", default="master_account", help="Account name (default: master_account)")
     create_parser.set_defaults(func=create_executor)
 
     # get command
     get_parser = subparsers.add_parser("get", help="Get executor status")
     get_parser.add_argument("executor_id", help="Executor ID")
+    get_parser.add_argument("--json", action="store_true", help="Output as JSON")
     get_parser.set_defaults(func=get_executor)
 
     # list command
     list_parser = subparsers.add_parser("list", help="List executors")
-    list_parser.add_argument("--type", help="Filter by executor type")
-    list_parser.add_argument("--status", help="Filter by status")
+    list_parser.add_argument("--type", help="Filter by executor type (e.g., lp_executor)")
+    list_parser.add_argument("--status", help="Filter by status (e.g., RUNNING, TERMINATED)")
+    list_parser.add_argument("--limit", type=int, default=50, help="Max results (default: 50)")
     list_parser.add_argument("--json", action="store_true", help="Output as JSON")
     list_parser.set_defaults(func=list_executors)
 
@@ -221,6 +290,7 @@ def main():
     logs_parser = subparsers.add_parser("logs", help="Get executor logs")
     logs_parser.add_argument("executor_id", help="Executor ID")
     logs_parser.add_argument("--limit", type=int, default=50, help="Number of log entries (default: 50)")
+    logs_parser.add_argument("--level", choices=["ERROR", "WARNING", "INFO", "DEBUG"], help="Filter by log level")
     logs_parser.add_argument("--json", action="store_true", help="Output as JSON")
     logs_parser.set_defaults(func=get_logs)
 
@@ -228,10 +298,12 @@ def main():
     stop_parser = subparsers.add_parser("stop", help="Stop executor")
     stop_parser.add_argument("executor_id", help="Executor ID")
     stop_parser.add_argument("--keep-position", action="store_true", help="Keep position on-chain (don't close)")
+    stop_parser.add_argument("--json", action="store_true", help="Output as JSON")
     stop_parser.set_defaults(func=stop_executor)
 
     # summary command
     summary_parser = subparsers.add_parser("summary", help="Get executor summary")
+    summary_parser.add_argument("--json", action="store_true", help="Output as JSON")
     summary_parser.set_defaults(func=get_summary)
 
     args = parser.parse_args()

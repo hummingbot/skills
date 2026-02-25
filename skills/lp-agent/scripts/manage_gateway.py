@@ -7,21 +7,21 @@ Usage:
     python manage_gateway.py status
 
     # Start/stop/restart Gateway
-    python manage_gateway.py start
+    python manage_gateway.py start --passphrase mypassword
     python manage_gateway.py stop
     python manage_gateway.py restart
 
     # Get Gateway logs
     python manage_gateway.py logs [--limit 100]
 
+    # List all networks
+    python manage_gateway.py networks
+
     # Get network config
     python manage_gateway.py network solana-mainnet-beta
 
-    # Update network config (set custom RPC node)
+    # Set custom RPC node (avoid rate limits)
     python manage_gateway.py network solana-mainnet-beta --node-url https://my-rpc.example.com
-
-    # List all networks
-    python manage_gateway.py networks
 
 Environment:
     API_URL - API base URL (default: http://localhost:8000)
@@ -100,45 +100,43 @@ def get_status(args):
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        status = result.get("status", "unknown")
-        container = result.get("container_name", "")
+        is_running = result.get("running", False)
+        container_id = result.get("container_id", "")
         image = result.get("image", "")
         port = result.get("port", "")
 
-        if status == "running":
+        if is_running:
             print(f"✓ Gateway is running")
-            if container:
-                print(f"  Container: {container}")
+            if container_id:
+                print(f"  Container: {container_id[:12]}")
             if image:
                 print(f"  Image: {image}")
             if port:
                 print(f"  Port: {port}")
         else:
-            print(f"✗ Gateway is {status}")
-            if result.get("message"):
-                print(f"  {result['message']}")
+            print(f"✗ Gateway is not running")
 
 
 def start_gateway(args):
     """Start Gateway."""
-    data = {}
-    if args.passphrase:
-        data["passphrase"] = args.passphrase
-    if args.image:
-        data["image"] = args.image
-    if args.port:
-        data["port"] = args.port
+    # GatewayConfig requires passphrase
+    data = {
+        "passphrase": args.passphrase,
+        "image": args.image,
+        "port": args.port,
+        "dev_mode": True,
+    }
 
     print("Starting Gateway...")
-    result = api_request("POST", "/gateway/start", data if data else None)
+    result = api_request("POST", "/gateway/start", data)
 
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        if result.get("status") == "running" or result.get("success"):
+        if result.get("success"):
             print("✓ Gateway started successfully")
         else:
-            print(f"Gateway response: {result.get('message', result)}")
+            print(f"Response: {result.get('message', result)}")
 
 
 def stop_gateway(args):
@@ -149,100 +147,53 @@ def stop_gateway(args):
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        if result.get("status") == "stopped" or result.get("success"):
+        if result.get("success"):
             print("✓ Gateway stopped")
         else:
-            print(f"Gateway response: {result.get('message', result)}")
+            print(f"Response: {result.get('message', result)}")
 
 
 def restart_gateway(args):
     """Restart Gateway."""
     print("Restarting Gateway...")
-    result = api_request("POST", "/gateway/restart")
+    # Restart can optionally take config
+    data = None
+    if args.passphrase:
+        data = {
+            "passphrase": args.passphrase,
+            "image": args.image or "hummingbot/gateway:latest",
+            "port": args.port or 15888,
+            "dev_mode": True,
+        }
+
+    result = api_request("POST", "/gateway/restart", data)
 
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        if result.get("status") == "running" or result.get("success"):
+        if result.get("success"):
             print("✓ Gateway restarted successfully")
         else:
-            print(f"Gateway response: {result.get('message', result)}")
+            print(f"Response: {result.get('message', result)}")
 
 
 def get_logs(args):
     """Get Gateway logs."""
-    params = []
-    if args.limit:
-        params.append(f"tail={args.limit}")
-
-    endpoint = "/gateway/logs"
-    if params:
-        endpoint += "?" + "&".join(params)
-
+    endpoint = f"/gateway/logs?tail={args.limit}"
     result = api_request("GET", endpoint)
 
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        logs = result.get("logs", result) if isinstance(result, dict) else result
-        if isinstance(logs, list):
-            for log in logs:
-                print(log)
-        elif isinstance(logs, str):
-            print(logs)
+        if result.get("success"):
+            logs = result.get("logs", "")
+            if isinstance(logs, str):
+                print(logs)
+            elif isinstance(logs, list):
+                for line in logs:
+                    print(line)
         else:
-            print(json.dumps(logs, indent=2))
-
-
-def get_network(args):
-    """Get network config."""
-    result = api_request("GET", f"/gateway/networks/{args.network_id}")
-
-    if args.json:
-        print(json.dumps(result, indent=2))
-    else:
-        print(f"Network: {args.network_id}")
-        print("-" * 40)
-
-        config = result.get("config", result)
-        for key, value in config.items():
-            if key == "nodeURL":
-                print(f"  Node URL: {value}")
-            elif key == "tokenListSource":
-                print(f"  Token List: {value}")
-            elif key == "tokenListType":
-                print(f"  Token List Type: {value}")
-            elif key == "nativeCurrencySymbol":
-                print(f"  Native Currency: {value}")
-            else:
-                print(f"  {key}: {value}")
-
-
-def update_network(args):
-    """Update network config."""
-    data = {}
-
-    if args.node_url:
-        data["nodeURL"] = args.node_url
-    if args.token_list:
-        data["tokenListSource"] = args.token_list
-
-    if not data:
-        print("Error: No updates specified. Use --node-url or --token-list", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Updating network {args.network_id}...")
-    result = api_request("POST", f"/gateway/networks/{args.network_id}", data)
-
-    if args.json:
-        print(json.dumps(result, indent=2))
-    else:
-        if result.get("success") or result.get("status") == "updated":
-            print(f"✓ Network {args.network_id} updated")
-            for key, value in data.items():
-                print(f"  {key}: {value}")
-        else:
-            print(f"Response: {result.get('message', result)}")
+            print(f"Error: {result.get('message', result)}")
 
 
 def list_networks(args):
@@ -252,31 +203,64 @@ def list_networks(args):
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        networks = result.get("networks", result) if isinstance(result, dict) else result
+        networks = result.get("networks", [])
+        count = result.get("count", len(networks))
 
-        if isinstance(networks, list):
-            print("Available Networks:")
-            print("-" * 40)
-            for net in networks:
-                if isinstance(net, dict):
-                    name = net.get("id", net.get("name", ""))
-                    chain = net.get("chain", "")
-                    print(f"  {name}" + (f" ({chain})" if chain else ""))
-                else:
-                    print(f"  {net}")
-        elif isinstance(networks, dict):
-            print("Available Networks:")
-            print("-" * 40)
-            for chain, chain_networks in networks.items():
-                print(f"\n{chain}:")
-                if isinstance(chain_networks, list):
-                    for net in chain_networks:
-                        print(f"  - {net}")
-                elif isinstance(chain_networks, dict):
-                    for net_id, net_config in chain_networks.items():
-                        print(f"  - {net_id}")
+        print(f"Available Networks ({count}):")
+        print("-" * 40)
+
+        # Group by chain
+        by_chain = {}
+        for net in networks:
+            chain = net.get("chain", "unknown")
+            if chain not in by_chain:
+                by_chain[chain] = []
+            by_chain[chain].append(net.get("network_id", net.get("network", "")))
+
+        for chain, nets in sorted(by_chain.items()):
+            print(f"\n{chain}:")
+            for net_id in nets:
+                print(f"  - {net_id}")
+
+
+def get_network(args):
+    """Get or update network config."""
+    if args.node_url:
+        # Update network config
+        data = {"nodeURL": args.node_url}
+        print(f"Updating network {args.network_id}...")
+        result = api_request("POST", f"/gateway/networks/{args.network_id}", data)
+
+        if args.json:
+            print(json.dumps(result, indent=2))
         else:
-            print(networks)
+            if result.get("success"):
+                print(f"✓ Network {args.network_id} updated")
+                print(f"  nodeURL: {args.node_url}")
+                if result.get("restart_required"):
+                    print(f"\n  ⚠ Restart Gateway for changes to take effect:")
+                    print(f"    python manage_gateway.py restart")
+            else:
+                print(f"Response: {result.get('message', result)}")
+    else:
+        # Get network config
+        result = api_request("GET", f"/gateway/networks/{args.network_id}")
+
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(f"Network: {args.network_id}")
+            print("-" * 40)
+
+            for key, value in result.items():
+                if key in ("node_url", "nodeURL"):
+                    print(f"  Node URL: {value}")
+                elif key in ("token_list_source", "tokenListSource"):
+                    print(f"  Token List: {value}")
+                elif key in ("native_currency_symbol", "nativeCurrencySymbol"):
+                    print(f"  Native Currency: {value}")
+                elif not key.startswith("_"):
+                    print(f"  {key}: {value}")
 
 
 def main():
@@ -290,9 +274,9 @@ def main():
 
     # start command
     start_parser = subparsers.add_parser("start", help="Start Gateway")
-    start_parser.add_argument("--passphrase", help="Gateway passphrase")
-    start_parser.add_argument("--image", help="Docker image (default: hummingbot/gateway:latest)")
-    start_parser.add_argument("--port", type=int, help="Port to expose (default: 15888)")
+    start_parser.add_argument("--passphrase", default="hummingbot", help="Gateway passphrase (default: hummingbot)")
+    start_parser.add_argument("--image", default="hummingbot/gateway:latest", help="Docker image")
+    start_parser.add_argument("--port", type=int, default=15888, help="Port (default: 15888)")
     start_parser.add_argument("--json", action="store_true", help="Output as JSON")
     start_parser.set_defaults(func=start_gateway)
 
@@ -303,6 +287,9 @@ def main():
 
     # restart command
     restart_parser = subparsers.add_parser("restart", help="Restart Gateway")
+    restart_parser.add_argument("--passphrase", help="Gateway passphrase (optional, uses existing config if not provided)")
+    restart_parser.add_argument("--image", help="Docker image")
+    restart_parser.add_argument("--port", type=int, help="Port")
     restart_parser.add_argument("--json", action="store_true", help="Output as JSON")
     restart_parser.set_defaults(func=restart_gateway)
 
@@ -321,16 +308,8 @@ def main():
     network_parser = subparsers.add_parser("network", help="Get or update network config")
     network_parser.add_argument("network_id", help="Network ID (e.g., solana-mainnet-beta)")
     network_parser.add_argument("--node-url", help="Set custom RPC node URL")
-    network_parser.add_argument("--token-list", help="Set token list source URL")
     network_parser.add_argument("--json", action="store_true", help="Output as JSON")
-
-    def network_handler(args):
-        if args.node_url or args.token_list:
-            update_network(args)
-        else:
-            get_network(args)
-
-    network_parser.set_defaults(func=network_handler)
+    network_parser.set_defaults(func=get_network)
 
     args = parser.parse_args()
     args.func(args)

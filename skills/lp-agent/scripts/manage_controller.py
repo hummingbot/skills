@@ -6,8 +6,14 @@ Usage:
     # Get LP Rebalancer config template
     python manage_controller.py template
 
-    # Create LP Rebalancer controller config
+    # Create LP Rebalancer config
     python manage_controller.py create-config my_lp_config --pool <pool_address> --pair SOL-USDC --amount 100
+
+    # List all configs
+    python manage_controller.py list-configs
+
+    # Get config details
+    python manage_controller.py describe-config my_lp_config
 
     # Deploy bot with controller
     python manage_controller.py deploy my_bot --configs my_lp_config
@@ -15,15 +21,8 @@ Usage:
     # Get active bots status
     python manage_controller.py status
 
-    # Get bot logs
-    python manage_controller.py logs <bot_name> [--limit 50] [--type error]
-
-    # Stop bot
-    python manage_controller.py stop <bot_name>
-
-    # Start/stop controllers within a bot
-    python manage_controller.py start-controllers <bot_name> --controllers config1 config2
-    python manage_controller.py stop-controllers <bot_name> --controllers config1 config2
+    # Stop a bot
+    python manage_controller.py stop my_bot
 
 Environment:
     API_URL - API base URL (default: http://localhost:8000)
@@ -38,7 +37,6 @@ import sys
 import urllib.request
 import urllib.error
 import base64
-from typing import Any
 
 
 def load_env():
@@ -99,45 +97,115 @@ def api_request(method: str, endpoint: str, data: dict | None = None) -> dict:
 def get_template(args):
     """Get LP Rebalancer config template."""
     result = api_request("GET", "/controllers/generic/lp_rebalancer/config/template")
-    print(json.dumps(result, indent=2))
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print("LP Rebalancer Config Template")
+        print("-" * 50)
+        for field, info in result.items():
+            default = info.get("default", "")
+            field_type = info.get("type", "")
+            required = info.get("required", False)
+            req_str = " (required)" if required else ""
+            print(f"  {field}: {default} [{field_type}]{req_str}")
 
 
 def create_config(args):
     """Create LP Rebalancer controller config."""
     config_data = {
+        "id": args.config_name,
         "controller_name": "lp_rebalancer",
+        "controller_type": "generic",
         "connector_name": args.connector,
         "network": args.network,
         "trading_pair": args.pair,
         "pool_address": args.pool,
-        "total_amount_quote": args.amount,
+        "total_amount_quote": str(args.amount),
         "side": args.side,
-        "position_width_pct": args.width,
-        "position_offset_pct": args.offset,
+        "position_width_pct": str(args.width),
+        "position_offset_pct": str(args.offset),
         "rebalance_seconds": args.rebalance_seconds,
-        "rebalance_threshold_pct": args.rebalance_threshold,
-        "sell_price_max": args.sell_max,
-        "sell_price_min": args.sell_min,
-        "buy_price_max": args.buy_max,
-        "buy_price_min": args.buy_min,
+        "rebalance_threshold_pct": str(args.rebalance_threshold),
         "strategy_type": args.strategy_type,
     }
 
-    result = api_request("POST", "/controllers/config", {
-        "action": "upsert",
-        "target": "config",
-        "config_name": args.config_name,
-        "config_data": config_data,
-    })
-    print(json.dumps(result, indent=2))
+    # Add optional price limits
+    if args.sell_max is not None:
+        config_data["sell_price_max"] = args.sell_max
+    if args.sell_min is not None:
+        config_data["sell_price_min"] = args.sell_min
+    if args.buy_max is not None:
+        config_data["buy_price_max"] = args.buy_max
+    if args.buy_min is not None:
+        config_data["buy_price_min"] = args.buy_min
+
+    # POST /controllers/configs/{config_name} to create/update
+    result = api_request("POST", f"/controllers/configs/{args.config_name}", config_data)
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"✓ Config '{args.config_name}' created")
+        print(f"  Pool: {args.pool}")
+        print(f"  Pair: {args.pair}")
+        print(f"  Amount: {args.amount} (quote)")
+
+
+def list_configs(args):
+    """List all controller configs."""
+    result = api_request("GET", "/controllers/configs/")
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        if not result:
+            print("No configs found.")
+            return
+
+        print(f"Controller Configs ({len(result)}):")
+        print("-" * 80)
+        print(f"{'Name':<25} {'Controller':<20} {'Pair':<15} {'Amount'}")
+        print("-" * 80)
+
+        for cfg in result:
+            name = cfg.get("id", "")[:23]
+            controller = cfg.get("controller_name", "")[:18]
+            pair = cfg.get("trading_pair", "")[:13]
+            amount = cfg.get("total_amount_quote", "")
+            print(f"{name:<25} {controller:<20} {pair:<15} {amount}")
+
+
+def describe_config(args):
+    """Get details of a specific config."""
+    result = api_request("GET", f"/controllers/configs/{args.config_name}")
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"Config: {args.config_name}")
+        print("-" * 50)
+        for key, value in result.items():
+            if not key.startswith("_"):
+                print(f"  {key}: {value}")
+
+
+def delete_config(args):
+    """Delete a controller config."""
+    result = api_request("DELETE", f"/controllers/configs/{args.config_name}")
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"✓ Config '{args.config_name}' deleted")
 
 
 def deploy_bot(args):
-    """Deploy bot with controller configs."""
+    """Deploy bot with controller configs using V2 deployment."""
     data = {
-        "bot_name": args.bot_name,
+        "instance_name": args.bot_name,
         "controllers_config": args.configs,
-        "account_name": args.account,
+        "credentials_profile": args.account,
         "image": args.image,
     }
 
@@ -146,134 +214,113 @@ def deploy_bot(args):
     if args.max_controller_drawdown:
         data["max_controller_drawdown_quote"] = args.max_controller_drawdown
 
-    result = api_request("POST", "/bots/deploy", data)
-    print(json.dumps(result, indent=2))
+    result = api_request("POST", "/bot-orchestration/deploy-v2-controllers", data)
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        if result.get("success"):
+            print(f"✓ Bot deployed")
+            print(f"  Name: {result.get('unique_instance_name', args.bot_name)}")
+            print(f"  Controllers: {', '.join(args.configs)}")
+            print(f"  Script Config: {result.get('script_config_generated', '')}")
+        else:
+            print(f"Deployment response: {result}")
 
 
 def get_status(args):
     """Get active bots status."""
-    result = api_request("GET", "/bots/status")
+    result = api_request("GET", "/bot-orchestration/status")
 
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        bots = result.get("bots", result) if isinstance(result, dict) else result
-        if not bots:
+        data = result.get("data", result)
+        if not data:
             print("No active bots.")
             return
 
-        for bot in bots:
-            name = bot.get("bot_name", "")
-            status = bot.get("status", "")
-            pnl = bot.get("unrealized_pnl", 0)
-            rpnl = bot.get("realized_pnl", 0)
-            volume = bot.get("volume_traded", 0)
-            print(f"\n=== {name} ({status}) ===")
-            print(f"  Unrealized PnL: ${pnl:.2f}")
-            print(f"  Realized PnL:   ${rpnl:.2f}")
-            print(f"  Volume:         ${volume:.2f}")
+        print("Active Bots:")
+        print("-" * 60)
 
-            controllers = bot.get("controllers", [])
-            if controllers:
-                print(f"  Controllers:")
-                for ctrl in controllers:
-                    ctrl_name = ctrl.get("config_name", ctrl.get("id", ""))
-                    ctrl_status = ctrl.get("status", "")
-                    print(f"    - {ctrl_name}: {ctrl_status}")
+        for bot_name, bot_data in data.items():
+            status = bot_data.get("status", "unknown")
+            print(f"\n{bot_name} ({status})")
+
+            # Performance data if available
+            perf = bot_data.get("performance", {})
+            if perf:
+                pnl = perf.get("unrealized_pnl_quote", 0)
+                rpnl = perf.get("realized_pnl_quote", 0)
+                volume = perf.get("volume_traded", 0)
+                print(f"  Unrealized PnL: ${pnl:.2f}")
+                print(f"  Realized PnL: ${rpnl:.2f}")
+                print(f"  Volume: ${volume:.2f}")
 
 
-def get_logs(args):
-    """Get bot logs."""
-    params = []
-    if args.limit:
-        params.append(f"limit={args.limit}")
-    if args.type:
-        params.append(f"log_type={args.type}")
-    if args.search:
-        params.append(f"search_term={args.search}")
-
-    endpoint = f"/bots/{args.bot_name}/logs"
-    if params:
-        endpoint += "?" + "&".join(params)
-
-    result = api_request("GET", endpoint)
+def get_bot_status(args):
+    """Get specific bot status."""
+    result = api_request("GET", f"/bot-orchestration/{args.bot_name}/status")
 
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        logs = result.get("logs", result) if isinstance(result, dict) else result
-        for log in logs:
-            ts = log.get("timestamp", "")
-            level = log.get("level", "INFO")
-            msg = log.get("message", str(log))
-            print(f"[{ts}] {level}: {msg}")
+        data = result.get("data", result)
+        print(f"Bot: {args.bot_name}")
+        print("-" * 50)
+        print(f"  Status: {data.get('status', 'unknown')}")
+
+        perf = data.get("performance", {})
+        if perf:
+            print(f"  Unrealized PnL: ${perf.get('unrealized_pnl_quote', 0):.2f}")
+            print(f"  Realized PnL: ${perf.get('realized_pnl_quote', 0):.2f}")
+            print(f"  Volume: ${perf.get('volume_traded', 0):.2f}")
 
 
 def stop_bot(args):
     """Stop a bot."""
-    result = api_request("POST", f"/bots/{args.bot_name}/stop", {"action": "stop_bot"})
-    print(json.dumps(result, indent=2))
-
-
-def manage_controllers(args, action: str):
-    """Start or stop controllers within a bot."""
     data = {
-        "action": action,
-        "controller_names": args.controllers,
+        "bot_name": args.bot_name,
+        "skip_order_cancellation": args.skip_cancel,
+        "async_backend": True,
     }
-    result = api_request("POST", f"/bots/{args.bot_name}/controllers", data)
-    print(json.dumps(result, indent=2))
-
-
-def start_controllers(args):
-    """Start controllers within a bot."""
-    manage_controllers(args, "start_controllers")
-
-
-def stop_controllers(args):
-    """Stop controllers within a bot."""
-    manage_controllers(args, "stop_controllers")
-
-
-def list_configs(args):
-    """List all controller configs."""
-    result = api_request("POST", "/controllers/config", {"action": "list"})
+    result = api_request("POST", "/bot-orchestration/stop-bot", data)
 
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        configs = result.get("configs", result) if isinstance(result, dict) else result
-        if not configs:
-            print("No configs found.")
-            return
-
-        print(f"{'Name':<30} {'Controller':<20} {'Pair':<15} {'Amount'}")
-        print("-" * 80)
-        for cfg in configs:
-            name = cfg.get("id", cfg.get("config_name", ""))[:28]
-            controller = cfg.get("controller_name", "")[:18]
-            pair = cfg.get("trading_pair", "")[:13]
-            amount = cfg.get("total_amount_quote", "")
-            print(f"{name:<30} {controller:<20} {pair:<15} {amount}")
+        response = result.get("response", result)
+        if response.get("success"):
+            print(f"✓ Bot '{args.bot_name}' stopped")
+        else:
+            print(f"Response: {response}")
 
 
-def describe_config(args):
-    """Get details of a specific config."""
-    result = api_request("POST", "/controllers/config", {
-        "action": "describe",
-        "config_name": args.config_name,
-    })
-    print(json.dumps(result, indent=2))
+def stop_and_archive(args):
+    """Stop and archive a bot."""
+    endpoint = f"/bot-orchestration/stop-and-archive-bot/{args.bot_name}"
+    params = []
+    if args.skip_cancel:
+        params.append("skip_order_cancellation=true")
+    if args.s3_bucket:
+        params.append(f"s3_bucket={args.s3_bucket}")
+        params.append("archive_locally=false")
+    else:
+        params.append("archive_locally=true")
 
+    if params:
+        endpoint += "?" + "&".join(params)
 
-def delete_config(args):
-    """Delete a controller config."""
-    result = api_request("POST", "/controllers/config", {
-        "action": "delete",
-        "target": "config",
-        "config_name": args.config_name,
-    })
-    print(json.dumps(result, indent=2))
+    result = api_request("POST", endpoint)
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        if result.get("status") == "success":
+            print(f"✓ Stop and archive initiated for '{args.bot_name}'")
+            print(f"  {result.get('message', '')}")
+        else:
+            print(f"Response: {result}")
 
 
 def main():
@@ -282,6 +329,7 @@ def main():
 
     # template command
     template_parser = subparsers.add_parser("template", help="Get LP Rebalancer config template")
+    template_parser.add_argument("--json", action="store_true", help="Output as JSON")
     template_parser.set_defaults(func=get_template)
 
     # create-config command
@@ -302,6 +350,7 @@ def main():
     create_parser.add_argument("--buy-max", type=float, help="Buy price max")
     create_parser.add_argument("--buy-min", type=float, help="Buy price min (anchor)")
     create_parser.add_argument("--strategy-type", type=int, default=0, choices=[0, 1, 2], help="Meteora strategy: 0=Spot, 1=Curve, 2=Bid-Ask (default: 0)")
+    create_parser.add_argument("--json", action="store_true", help="Output as JSON")
     create_parser.set_defaults(func=create_config)
 
     # list-configs command
@@ -312,11 +361,13 @@ def main():
     # describe-config command
     describe_parser = subparsers.add_parser("describe-config", help="Get config details")
     describe_parser.add_argument("config_name", help="Config name")
+    describe_parser.add_argument("--json", action="store_true", help="Output as JSON")
     describe_parser.set_defaults(func=describe_config)
 
     # delete-config command
     delete_parser = subparsers.add_parser("delete-config", help="Delete a config")
     delete_parser.add_argument("config_name", help="Config name")
+    delete_parser.add_argument("--json", action="store_true", help="Output as JSON")
     delete_parser.set_defaults(func=delete_config)
 
     # deploy command
@@ -327,6 +378,7 @@ def main():
     deploy_parser.add_argument("--image", default="hummingbot/hummingbot:latest", help="Docker image")
     deploy_parser.add_argument("--max-global-drawdown", type=float, help="Max global drawdown in quote")
     deploy_parser.add_argument("--max-controller-drawdown", type=float, help="Max controller drawdown in quote")
+    deploy_parser.add_argument("--json", action="store_true", help="Output as JSON")
     deploy_parser.set_defaults(func=deploy_bot)
 
     # status command
@@ -334,31 +386,26 @@ def main():
     status_parser.add_argument("--json", action="store_true", help="Output as JSON")
     status_parser.set_defaults(func=get_status)
 
-    # logs command
-    logs_parser = subparsers.add_parser("logs", help="Get bot logs")
-    logs_parser.add_argument("bot_name", help="Bot name")
-    logs_parser.add_argument("--limit", type=int, default=50, help="Number of log entries (default: 50)")
-    logs_parser.add_argument("--type", choices=["error", "general", "all"], default="all", help="Log type (default: all)")
-    logs_parser.add_argument("--search", help="Search term to filter logs")
-    logs_parser.add_argument("--json", action="store_true", help="Output as JSON")
-    logs_parser.set_defaults(func=get_logs)
+    # bot-status command
+    bot_status_parser = subparsers.add_parser("bot-status", help="Get specific bot status")
+    bot_status_parser.add_argument("bot_name", help="Bot name")
+    bot_status_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    bot_status_parser.set_defaults(func=get_bot_status)
 
     # stop command
     stop_parser = subparsers.add_parser("stop", help="Stop a bot")
     stop_parser.add_argument("bot_name", help="Bot name")
+    stop_parser.add_argument("--skip-cancel", action="store_true", help="Skip order cancellation")
+    stop_parser.add_argument("--json", action="store_true", help="Output as JSON")
     stop_parser.set_defaults(func=stop_bot)
 
-    # start-controllers command
-    start_ctrl_parser = subparsers.add_parser("start-controllers", help="Start controllers within a bot")
-    start_ctrl_parser.add_argument("bot_name", help="Bot name")
-    start_ctrl_parser.add_argument("--controllers", nargs="+", required=True, help="Controller names to start")
-    start_ctrl_parser.set_defaults(func=start_controllers)
-
-    # stop-controllers command
-    stop_ctrl_parser = subparsers.add_parser("stop-controllers", help="Stop controllers within a bot")
-    stop_ctrl_parser.add_argument("bot_name", help="Bot name")
-    stop_ctrl_parser.add_argument("--controllers", nargs="+", required=True, help="Controller names to stop")
-    stop_ctrl_parser.set_defaults(func=stop_controllers)
+    # stop-and-archive command
+    archive_parser = subparsers.add_parser("stop-and-archive", help="Stop and archive a bot")
+    archive_parser.add_argument("bot_name", help="Bot name")
+    archive_parser.add_argument("--skip-cancel", action="store_true", help="Skip order cancellation")
+    archive_parser.add_argument("--s3-bucket", help="S3 bucket for archiving (default: local archive)")
+    archive_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    archive_parser.set_defaults(func=stop_and_archive)
 
     args = parser.parse_args()
     args.func(args)
