@@ -1,6 +1,6 @@
 # LP Agent Scripts
 
-Utility scripts for exploring Meteora pools and analyzing LP position data.
+Scripts for exploring Meteora pools, managing LP positions, and analyzing performance.
 
 ## Scripts
 
@@ -8,9 +8,16 @@ Utility scripts for exploring Meteora pools and analyzing LP position data.
 - `list_meteora_pools.py` — Search and list Meteora DLMM pools
 - `get_meteora_pool.py` — Get detailed pool information with liquidity distribution
 
+**Position Management:**
+- `manage_executor.py` — Create, monitor, and stop LP executors
+- `manage_controller.py` — Deploy and manage LP Rebalancer controllers
+
 **Analysis:**
 - `export_lp_positions.py` — Export LP position events to CSV
 - `visualize_lp_positions.py` — Generate interactive HTML dashboard from LP position events
+
+**Prerequisites:**
+- `check_prerequisites.sh` — Check if hummingbot-api is running
 
 ---
 
@@ -254,6 +261,132 @@ visualize_lp_positions.py --pair PAIR [--db PATH] [--connector NAME] [--hours N]
 - ADD liquidity with deposited amounts and Solscan TX link
 - REMOVE liquidity with withdrawn amounts, fees, and Solscan TX link
 - PnL breakdown (IL + fees)
+
+---
+
+## manage_executor.py
+
+Create, monitor, and stop LP executors via hummingbot-api.
+
+### Usage
+
+```bash
+# Create LP executor
+python scripts/manage_executor.py create \
+    --pool <pool_address> \
+    --pair SOL-USDC \
+    --quote-amount 100 \
+    --lower 180 \
+    --upper 185
+
+# Get executor status
+python scripts/manage_executor.py get <executor_id>
+
+# List all executors
+python scripts/manage_executor.py list
+python scripts/manage_executor.py list --type lp_executor --json
+
+# Get executor logs
+python scripts/manage_executor.py logs <executor_id> --limit 50
+
+# Stop executor (closes position)
+python scripts/manage_executor.py stop <executor_id>
+
+# Stop executor but keep position on-chain
+python scripts/manage_executor.py stop <executor_id> --keep-position
+
+# Get summary of all executors
+python scripts/manage_executor.py summary
+```
+
+### Create Options
+
+| Argument | Description |
+|---|---|
+| `--pool` | Pool address (required) |
+| `--pair` | Trading pair e.g., SOL-USDC (required) |
+| `--lower` | Lower price bound (required) |
+| `--upper` | Upper price bound (required) |
+| `--connector` | Connector name (default: meteora/clmm) |
+| `--base-amount` | Base token amount (default: 0) |
+| `--quote-amount` | Quote token amount |
+| `--side` | 0=BOTH, 1=BUY, 2=SELL (default: 1) |
+| `--auto-close-above` | Auto-close seconds when price above range |
+| `--auto-close-below` | Auto-close seconds when price below range |
+| `--strategy-type` | Meteora: 0=Spot, 1=Curve, 2=Bid-Ask |
+
+---
+
+## manage_controller.py
+
+Deploy and manage LP Rebalancer controllers via hummingbot-api.
+
+### Usage
+
+```bash
+# Get LP Rebalancer config template
+python scripts/manage_controller.py template
+
+# Create LP Rebalancer config
+python scripts/manage_controller.py create-config my_lp_config \
+    --pool <pool_address> \
+    --pair SOL-USDC \
+    --amount 100 \
+    --width 0.5
+
+# List all configs
+python scripts/manage_controller.py list-configs
+
+# Get config details
+python scripts/manage_controller.py describe-config my_lp_config
+
+# Deploy bot with controller config
+python scripts/manage_controller.py deploy my_bot --configs my_lp_config
+
+# Get active bots status
+python scripts/manage_controller.py status
+
+# Get bot logs
+python scripts/manage_controller.py logs my_bot --limit 50 --type error
+
+# Stop a bot
+python scripts/manage_controller.py stop my_bot
+
+# Start/stop controllers within a running bot
+python scripts/manage_controller.py start-controllers my_bot --controllers my_lp_config
+python scripts/manage_controller.py stop-controllers my_bot --controllers my_lp_config
+
+# Delete a config
+python scripts/manage_controller.py delete-config my_lp_config
+```
+
+### Create-Config Options
+
+| Argument | Description |
+|---|---|
+| `--pool` | Pool address (required) |
+| `--pair` | Trading pair e.g., SOL-USDC (required) |
+| `--connector` | Connector name (default: meteora/clmm) |
+| `--network` | Network (default: solana-mainnet-beta) |
+| `--amount` | Total amount in quote currency (default: 50) |
+| `--side` | 0=BOTH, 1=BUY, 2=SELL (default: 1) |
+| `--width` | Position width % (default: 0.5) |
+| `--offset` | Position offset % (default: 0.01) |
+| `--rebalance-seconds` | Seconds out-of-range before rebalancing (default: 60) |
+| `--rebalance-threshold` | Price % beyond bounds before timer starts (default: 0.1) |
+| `--sell-max` | Sell price max (anchor point) |
+| `--sell-min` | Sell price min |
+| `--buy-max` | Buy price max |
+| `--buy-min` | Buy price min (anchor point) |
+| `--strategy-type` | Meteora: 0=Spot, 1=Curve, 2=Bid-Ask (default: 0) |
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `API_URL` | `http://localhost:8000` | Hummingbot API URL |
+| `API_USER` | `admin` | API username |
+| `API_PASS` | `admin` | API password |
 
 ---
 

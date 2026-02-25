@@ -171,47 +171,31 @@ When selecting a pool, consider:
 
 Auto-rebalances positions when price moves out of range. Best for hands-off LP management.
 
-```
-modify_controllers(
-    action="upsert",
-    target="config",
-    config_name="my_lp_config",
-    config_data={
-        "controller_name": "lp_rebalancer",
-        "connector_name": "meteora/clmm",
-        "network": "solana-mainnet-beta",
-        "trading_pair": "SOL-USDC",
-        "pool_address": "<pool_address>",
-        "total_amount_quote": 100,
-        "side": 1,
-        "position_width_pct": 0.5,
-        "position_offset_pct": 0.01,
-        "rebalance_seconds": 60,
-        "rebalance_threshold_pct": 0.1,
-        "sell_price_max": null,
-        "sell_price_min": null,
-        "buy_price_max": null,
-        "buy_price_min": null,
-        "strategy_type": 0
-    }
-)
-```
+```bash
+# Create LP Rebalancer config
+python scripts/manage_controller.py create-config my_lp_config \
+    --pool <pool_address> \
+    --pair SOL-USDC \
+    --amount 100 \
+    --side 1 \
+    --width 0.5 \
+    --offset 0.01 \
+    --rebalance-seconds 60
 
-Then deploy with:
-```
-deploy_bot_with_controllers(bot_name="my_lp_bot", controllers_config=["my_lp_config"])
+# Deploy bot with the config
+python scripts/manage_controller.py deploy my_lp_bot --configs my_lp_config
 ```
 
 **Key Parameters:**
 
 | Parameter | Description |
 |-----------|-------------|
-| `total_amount_quote` | Position size in quote currency |
-| `side` | 0=BOTH, 1=BUY (quote-only), 2=SELL (base-only) |
-| `position_width_pct` | Position width % (must fit bin_step limits) |
-| `rebalance_seconds` | Seconds out-of-range before rebalancing |
-| `buy_price_max/min` | Price limits for BUY positions (anchor points) |
-| `sell_price_max/min` | Price limits for SELL positions (anchor points) |
+| `--amount` | Position size in quote currency |
+| `--side` | 0=BOTH, 1=BUY (quote-only), 2=SELL (base-only) |
+| `--width` | Position width % (must fit bin_step limits) |
+| `--rebalance-seconds` | Seconds out-of-range before rebalancing |
+| `--buy-max/--buy-min` | Price limits for BUY positions (anchor points) |
+| `--sell-max/--sell-min` | Price limits for SELL positions (anchor points) |
 
 ### Step 3.2: Deploy Single LP Executor (Alternative)
 
@@ -219,52 +203,48 @@ deploy_bot_with_controllers(bot_name="my_lp_bot", controllers_config=["my_lp_con
 
 Creates ONE position with fixed bounds. Does NOT auto-rebalance.
 
-```
-manage_executors(
-    action="create",
-    executor_config={
-        "type": "lp_executor",
-        "connector_name": "meteora/clmm",
-        "pool_address": "<pool_address>",
-        "trading_pair": "SOL-USDC",
-        "base_amount": 0,
-        "quote_amount": 100,
-        "lower_price": 180,
-        "upper_price": 185,
-        "side": 1
-    }
-)
+```bash
+python scripts/manage_executor.py create \
+    --pool <pool_address> \
+    --pair SOL-USDC \
+    --quote-amount 100 \
+    --lower 180 \
+    --upper 185 \
+    --side 1
 ```
 
 **Key Parameters:**
 
 | Parameter | Description |
 |-----------|-------------|
-| `connector_name` | Must include `/clmm` suffix (e.g., `meteora/clmm`) |
-| `lower_price/upper_price` | Position price bounds |
-| `base_amount/quote_amount` | Token amounts (set one to 0 for single-sided) |
-| `side` | 0=BOTH, 1=BUY, 2=SELL |
-| `auto_close_above_range_seconds` | Auto-close when price above range (for limit orders) |
-| `auto_close_below_range_seconds` | Auto-close when price below range (for limit orders) |
+| `--connector` | Must include `/clmm` suffix (default: `meteora/clmm`) |
+| `--lower/--upper` | Position price bounds |
+| `--base-amount/--quote-amount` | Token amounts (set one to 0 for single-sided) |
+| `--side` | 0=BOTH, 1=BUY, 2=SELL |
+| `--auto-close-above` | Auto-close when price above range (for limit orders) |
+| `--auto-close-below` | Auto-close when price below range (for limit orders) |
 
 ### Step 3.3: Verify Deployment
 
 **For LP Rebalancer Controller:**
-```
-# Check controller status
-manage_controllers(action="get_active")
+```bash
+# Check bot status
+python scripts/manage_controller.py status
 
-# See executors created by the controller
-manage_executors(action="search", executor_types=["lp_executor"])
+# Get bot logs
+python scripts/manage_controller.py logs my_lp_bot
 ```
 
 **For LP Executor:**
-```
-# Poll until state changes from OPENING
-manage_executors(action="get", executor_id="<executor_id>")
+```bash
+# List executors
+python scripts/manage_executor.py list --type lp_executor
+
+# Get specific executor
+python scripts/manage_executor.py get <executor_id>
 ```
 
-Check `custom_info.state`:
+Check state:
 - `OPENING` → Transaction in progress, wait 5-10 seconds
 - `IN_RANGE` or `OUT_OF_RANGE` → Success!
 - `FAILED` or `RETRIES_EXCEEDED` → Check error, possibly reduce range width
@@ -275,30 +255,36 @@ Check `custom_info.state`:
 
 ### Monitor Controller Status
 
-```
-# List active controllers
-manage_controllers(action="get_active")
+```bash
+# Get all active bots status
+python scripts/manage_controller.py status
 
-# Get controller details
-manage_controllers(action="get", controller_id="<controller_id>")
+# Get bot logs
+python scripts/manage_controller.py logs my_lp_bot --limit 100
 
-# See all executors from the controller
-manage_executors(action="search", executor_types=["lp_executor"])
+# Get error logs only
+python scripts/manage_controller.py logs my_lp_bot --type error
 ```
 
 ### Monitor Executor Details
 
-```
+```bash
+# List all LP executors
+python scripts/manage_executor.py list --type lp_executor
+
 # Get specific executor state
-manage_executors(action="get", executor_id="<executor_id>")
+python scripts/manage_executor.py get <executor_id>
+
+# Get executor logs
+python scripts/manage_executor.py logs <executor_id>
 
 # Get summary of all executors
-manage_executors(action="get_summary")
+python scripts/manage_executor.py summary
 ```
 
 ### Key State Values to Monitor
 
-**Executor States (`custom_info.state`):**
+**Executor States:**
 - `OPENING` - Creating position on-chain
 - `IN_RANGE` - Position active, earning fees
 - `OUT_OF_RANGE` - Price outside position bounds
@@ -309,21 +295,20 @@ manage_executors(action="get_summary")
 - When `OUT_OF_RANGE` for `rebalance_seconds`, controller closes and reopens position
 - If price hits limits (`buy_price_min`, `sell_price_max`, etc.), controller KEEPs position instead of rebalancing
 
-### Check Logs for Errors
-
-```
-# Use Bash to tail hummingbot logs
-tail -100 /path/to/hummingbot/logs/logs_*.log | grep -i "lp\|error\|fail"
-```
-
 ### Stop Controller/Executor
 
-```
-# Stop controller (stops all its executors)
-manage_controllers(action="stop", controller_id="<controller_id>")
+```bash
+# Stop bot (stops all its controllers)
+python scripts/manage_controller.py stop my_lp_bot
 
-# Stop individual executor
-manage_executors(action="stop", executor_id="<executor_id>", keep_position=false)
+# Stop specific controllers within a bot
+python scripts/manage_controller.py stop-controllers my_lp_bot --controllers my_lp_config
+
+# Stop individual executor (closes position)
+python scripts/manage_executor.py stop <executor_id>
+
+# Stop executor but keep position on-chain
+python scripts/manage_executor.py stop <executor_id> --keep-position
 ```
 
 ---
@@ -387,28 +372,45 @@ python scripts/export_lp_positions.py --summary
 ### Common Workflows
 
 **Start LP Rebalancer:**
-1. Find pool: `manage_gateway_clmm(action="list_pools", ...)`
-2. Check bin_step: `manage_gateway_clmm(action="get_pool_info", ...)`
-3. Deploy: `manage_controllers(action="create", controller_config={...})`
-4. Verify: `manage_controllers(action="get_active")`
+```bash
+# 1. Find pool
+python scripts/list_meteora_pools.py --query SOL-USDC
+
+# 2. Check bin_step
+python scripts/get_meteora_pool.py <pool_address>
+
+# 3. Create config and deploy
+python scripts/manage_controller.py create-config my_lp --pool <pool_address> --pair SOL-USDC --amount 100
+python scripts/manage_controller.py deploy my_bot --configs my_lp
+
+# 4. Verify
+python scripts/manage_controller.py status
+```
 
 **Analyze LP Positions:**
-1. Visualize: `python scripts/visualize_lp_positions.py --pair SOL-USDC`
-2. Review dashboard in browser
-3. Export CSV: `python scripts/export_lp_positions.py --pair SOL-USDC`
+```bash
+# Visualize
+python scripts/visualize_lp_positions.py --pair SOL-USDC
 
-### MCP Tools Reference
+# Export CSV
+python scripts/export_lp_positions.py --pair SOL-USDC
+```
 
-| Tool | Actions |
-|------|---------|
-| `manage_gateway_clmm` | `list_pools`, `get_pool_info`, `get_positions`, `collect_fees` |
-| `manage_controllers` | `create`, `get_active`, `get`, `stop`, `update` |
-| `manage_executors` | `create`, `get`, `search`, `stop`, `get_summary` |
+### Scripts Reference
+
+| Script | Purpose |
+|--------|---------|
+| `list_meteora_pools.py` | Search and list pools |
+| `get_meteora_pool.py` | Get pool details with liquidity chart |
+| `manage_executor.py` | Create, list, stop LP executors |
+| `manage_controller.py` | Create configs, deploy bots, get status |
+| `export_lp_positions.py` | Export position events to CSV |
+| `visualize_lp_positions.py` | Generate HTML dashboard |
 
 ### Error Troubleshooting
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| "InvalidRealloc" | Position range too wide | Reduce `position_width_pct` (check bin_step limits) |
+| "InvalidRealloc" | Position range too wide | Reduce `--width` (check bin_step limits) |
 | State stuck "OPENING" | Transaction failed | Stop executor, reduce range, retry |
 | "Insufficient balance" | Not enough tokens | Check wallet has tokens + 0.06 SOL for rent |
