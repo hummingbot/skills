@@ -10,8 +10,8 @@ metadata:
 This skill helps you run automated liquidity provision strategies on concentrated liquidity (CLMM) DEXs using Hummingbot API.
 
 **Tasks** (start with any):
-1. **Strategy Selector** - Choose between LP Executor or Rebalancer Controller
-2. **Pool Explorer** - Find and explore Meteora pools
+1. **Pool Explorer** - Find and explore Meteora pools
+2. **Strategy Selector** - Choose between LP Executor or Rebalancer Controller
 3. **Deployment** - Deploy, monitor, and stop LP strategies
 4. **Analysis** - Visualize performance
 
@@ -37,54 +37,7 @@ python scripts/manage_gateway.py network solana-mainnet-beta --node-url https://
 
 ---
 
-## Task 1: Strategy Selector
-
-Help the user choose the right LP strategy. See `references/` for detailed guides.
-
-### LP Rebalancer Controller (Recommended)
-
-> **Reference:** `references/lp_rebalancer_guide.md`
-
-A controller that automatically manages LP positions with rebalancing logic.
-
-| Feature | Description |
-|---------|-------------|
-| **Auto-rebalance** | Closes and reopens positions when price exits range |
-| **Price limits** | Configure BUY/SELL zones with anchor points |
-| **KEEP logic** | Avoids unnecessary rebalancing when at optimal position |
-| **Hands-off** | Set and forget - controller manages everything |
-
-**Best for:** Longer-term LP strategies, range-bound markets, automated fee collection.
-
-### LP Executor (Single Position)
-
-> **Reference:** `references/lp_executor_guide.md`
-
-Creates ONE liquidity position with fixed price bounds. No auto-rebalancing.
-
-| Feature | Description |
-|---------|-------------|
-| **Fixed bounds** | Position stays at configured price range |
-| **Manual control** | User decides when to close/reopen |
-| **Limit orders** | Can auto-close when price exits range (like limit orders) |
-| **Simple** | Direct control over single position |
-
-**Best for:** Short-term positions, limit-order-style LP, manual management, testing.
-
-### Quick Comparison
-
-| Aspect | Rebalancer Controller | LP Executor |
-|--------|----------------------|-------------|
-| Rebalancing | Automatic | Manual |
-| Position count | One at a time, auto-managed | One, fixed |
-| Price limits | Yes (anchor points) | No (but has auto-close) |
-| Complexity | Higher (more config) | Lower (simpler) |
-| Use case | Set-and-forget | Precise control |
-
-
----
-
-## Task 2: Pool Explorer
+## Task 1: Pool Explorer
 
 Use these scripts to find and explore Meteora DLMM pools before creating LP positions. Scripts are in this skill's `scripts/` directory.
 
@@ -169,6 +122,52 @@ When selecting a pool, consider:
    - `bin_step=1` → max ~0.69% width (tight ranges)
    - `bin_step=10` → max ~6.9% width (medium ranges)
    - `bin_step=100` → max ~69% width (wide ranges)
+
+---
+
+## Task 2: Strategy Selector
+
+Help the user choose the right LP strategy. See `references/` for detailed guides.
+
+### LP Rebalancer Controller (Recommended)
+
+> **Reference:** `references/lp_rebalancer_guide.md`
+
+A controller that automatically manages LP positions with rebalancing logic.
+
+| Feature | Description |
+|---------|-------------|
+| **Auto-rebalance** | Closes and reopens positions when price exits range |
+| **Price limits** | Configure BUY/SELL zones with anchor points |
+| **KEEP logic** | Avoids unnecessary rebalancing when at optimal position |
+| **Hands-off** | Set and forget - controller manages everything |
+
+**Best for:** Longer-term LP strategies, range-bound markets, automated fee collection.
+
+### LP Executor (Single Position)
+
+> **Reference:** `references/lp_executor_guide.md`
+
+Creates ONE liquidity position with fixed price bounds. No auto-rebalancing.
+
+| Feature | Description |
+|---------|-------------|
+| **Fixed bounds** | Position stays at configured price range |
+| **Manual control** | User decides when to close/reopen |
+| **Limit orders** | Can auto-close when price exits range (like limit orders) |
+| **Simple** | Direct control over single position |
+
+**Best for:** Short-term positions, limit-order-style LP, manual management, testing.
+
+### Quick Comparison
+
+| Aspect | Rebalancer Controller | LP Executor |
+|--------|----------------------|-------------|
+| Rebalancing | Automatic | Manual |
+| Position count | One at a time, auto-managed | One, fixed |
+| Price limits | Yes (anchor points) | No (but has auto-close) |
+| Complexity | Higher (more config) | Lower (simpler) |
+| Use case | Set-and-forget | Precise control |
 
 ---
 
