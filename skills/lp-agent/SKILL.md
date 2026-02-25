@@ -151,28 +151,18 @@ When selecting a pool, consider:
 
 ## Task 3: Deployment
 
-### Step 3.1: Find a Pool
+### Step 3.1: Deploy LP Rebalancer Controller (Recommended)
+
+> **Reference:** See `references/lp_rebalancer_guide.md` for full configuration details, rebalancing logic, and KEEP vs REBALANCE scenarios.
+
+Auto-rebalances positions when price moves out of range. Best for hands-off LP management.
 
 ```
-# List popular pools
-manage_gateway_clmm(action="list_pools", connector="meteora", search_term="SOL")
-
-# Get pool details (IMPORTANT: check bin_step for range limits)
-manage_gateway_clmm(action="get_pool_info", connector="meteora", network="solana-mainnet-beta", pool_address="<address>")
-```
-
-**CRITICAL - Check bin_step for range limits:**
-- `bin_step=1` → max ~0.69% width
-- `bin_step=10` → max ~6.9% width
-- `bin_step=100` → max ~69% width
-- Formula: `max_width_pct = bin_step * 69 / 100`
-
-### Step 3.2: Deploy LP Rebalancer Controller (Recommended)
-
-```
-manage_controllers(
-    action="create",
-    controller_config={
+modify_controllers(
+    action="upsert",
+    target="config",
+    config_name="my_lp_config",
+    config_data={
         "controller_name": "lp_rebalancer",
         "connector_name": "meteora/clmm",
         "network": "solana-mainnet-beta",
@@ -193,30 +183,27 @@ manage_controllers(
 )
 ```
 
-**LP Rebalancer Config Fields:**
+Then deploy with:
+```
+deploy_bot_with_controllers(bot_name="my_lp_bot", controllers_config=["my_lp_config"])
+```
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| `connector_name` | CLMM connector (e.g., `meteora/clmm`, `orca/clmm`) | `meteora/clmm` |
-| `network` | Network name | `solana-mainnet-beta` |
-| `trading_pair` | Pair format "BASE-QUOTE" | Required |
-| `pool_address` | Pool contract address | Required |
-| `total_amount_quote` | Amount in quote currency for each position | `50` |
-| `side` | 0=BOTH, 1=BUY (quote-only), 2=SELL (base-only) | `1` |
-| `position_width_pct` | Position width as % (must fit bin_step limits) | `0.5` |
-| `position_offset_pct` | Offset from price to start out-of-range | `0.01` |
-| `rebalance_seconds` | Seconds out-of-range before rebalancing | `60` |
-| `rebalance_threshold_pct` | Price must be this % out before timer starts | `0.1` |
-| `sell_price_max/min` | Price limits for sell positions (null = no limit) | `null` |
-| `buy_price_max/min` | Price limits for buy positions (null = no limit) | `null` |
-| `strategy_type` | Meteora: 0=Spot, 1=Curve, 2=Bid-Ask | `0` |
+**Key Parameters:**
 
-**Side Values:**
-- `0` = Both-sided (base + quote) - provides liquidity on both sides
-- `1` = Buy (quote-only) - range below current price, buys base as price drops
-- `2` = Sell (base-only) - range above current price, sells base as price rises
+| Parameter | Description |
+|-----------|-------------|
+| `total_amount_quote` | Position size in quote currency |
+| `side` | 0=BOTH, 1=BUY (quote-only), 2=SELL (base-only) |
+| `position_width_pct` | Position width % (must fit bin_step limits) |
+| `rebalance_seconds` | Seconds out-of-range before rebalancing |
+| `buy_price_max/min` | Price limits for BUY positions (anchor points) |
+| `sell_price_max/min` | Price limits for SELL positions (anchor points) |
 
-### Step 3.3: Deploy Single LP Executor (Alternative)
+### Step 3.2: Deploy Single LP Executor (Alternative)
+
+> **Reference:** See `references/lp_executor_guide.md` for state machine, single/double-sided positions, and limit range orders.
+
+Creates ONE position with fixed bounds. Does NOT auto-rebalance.
 
 ```
 manage_executors(
@@ -226,8 +213,6 @@ manage_executors(
         "connector_name": "meteora/clmm",
         "pool_address": "<pool_address>",
         "trading_pair": "SOL-USDC",
-        "base_token": "SOL",
-        "quote_token": "USDC",
         "base_amount": 0,
         "quote_amount": 100,
         "lower_price": 180,
@@ -237,7 +222,18 @@ manage_executors(
 )
 ```
 
-### Step 3.4: Verify Deployment
+**Key Parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| `connector_name` | Must include `/clmm` suffix (e.g., `meteora/clmm`) |
+| `lower_price/upper_price` | Position price bounds |
+| `base_amount/quote_amount` | Token amounts (set one to 0 for single-sided) |
+| `side` | 0=BOTH, 1=BUY, 2=SELL |
+| `auto_close_above_range_seconds` | Auto-close when price above range (for limit orders) |
+| `auto_close_below_range_seconds` | Auto-close when price below range (for limit orders) |
+
+### Step 3.3: Verify Deployment
 
 **For LP Rebalancer Controller:**
 ```
