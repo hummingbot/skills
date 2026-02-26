@@ -170,7 +170,7 @@ for i in $(seq 0 $((CASE_COUNT - 1))); do
     echo -e "  ${DIM}$description${NC}"
 
     # Build claude command
-    CLAUDE_ARGS=(-p --dangerously-skip-permissions --output-format stream-json)
+    CLAUDE_ARGS=(-p --dangerously-skip-permissions --output-format stream-json --verbose)
     if [[ -n "$MODEL" ]]; then
         CLAUDE_ARGS+=(--model "$MODEL")
     fi

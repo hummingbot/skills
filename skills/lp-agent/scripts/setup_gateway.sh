@@ -99,6 +99,23 @@ api_post() {
     curl -s -X POST -H "Authorization: Basic $AUTH" -H "Content-Type: application/json" -d "$2" "$API_URL$1" 2>/dev/null
 }
 
+# Poll Gateway status until running (max 30s)
+wait_for_gateway() {
+    local max_attempts=15
+    local attempt=0
+    while [ $attempt -lt $max_attempts ]; do
+        local status running
+        status=$(api_get "/gateway/status")
+        running=$(echo "$status" | python3 -c "import sys,json; print(json.load(sys.stdin).get('running', False))" 2>/dev/null || echo "False")
+        if [ "$running" = "True" ]; then
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+    return 1
+}
+
 # --- Check prerequisite: Hummingbot API ---
 echo "Gateway Setup"
 echo "============="
@@ -152,7 +169,11 @@ else
 
     # Wait for Gateway to be ready
     echo "Waiting for Gateway to initialize..."
-    sleep 5
+    if wait_for_gateway; then
+        ok "Gateway is ready"
+    else
+        warn "Gateway may still be starting. Check status with: bash scripts/setup_gateway.sh --status"
+    fi
 fi
 
 # --- Configure custom RPC if provided ---
@@ -166,8 +187,11 @@ if [ -n "$RPC_URL" ]; then
         ok "RPC configured: $RPC_URL"
         warn "Restarting Gateway for changes to take effect..."
         api_post "/gateway/restart" "{\"passphrase\": \"$PASSPHRASE\", \"image\": \"$IMAGE\", \"port\": $PORT, \"dev_mode\": true}" >/dev/null
-        sleep 5
-        ok "Gateway restarted with custom RPC"
+        if wait_for_gateway; then
+            ok "Gateway restarted with custom RPC"
+        else
+            warn "Gateway may still be restarting"
+        fi
     else
         fail "Failed to configure RPC"
     fi
