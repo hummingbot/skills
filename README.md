@@ -26,6 +26,7 @@ npx skills remove                                             # Remove installed
 | Skill | Description |
 |-------|-------------|
 | [hummingbot-deploy](./skills/hummingbot-deploy/) | Deploy Hummingbot infrastructure |
+| [hummingbot](./skills/hummingbot/) | Portfolio, trading, bots, and market data via Hummingbot API (OpenClaw native) |
 | [lp-agent](./skills/lp-agent/) | CLMM liquidity provision agent |
 
 ## Usage
