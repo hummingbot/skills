@@ -18,6 +18,15 @@ Usage:
     # Stop executor
     python manage_executor.py stop <executor_id> [--keep-position]
 
+    # Get executor summary
+    python manage_executor.py summary
+
+    # Get held positions summary
+    python manage_executor.py positions
+
+    # Get executor config schema
+    python manage_executor.py config lp_executor
+
 Environment:
     API_URL - API base URL (default: http://localhost:8000)
     API_USER - API username (default: admin)
@@ -240,16 +249,92 @@ def get_summary(args):
     else:
         print("Executor Summary")
         print("-" * 40)
-        print(f"  Active: {result.get('active_count', 0)}")
-        print(f"  Completed: {result.get('completed_count', 0)}")
-        print(f"  Total PnL: ${result.get('total_pnl', 0):.2f}")
-        print(f"  Total Volume: ${result.get('total_volume', 0):.2f}")
+        print(f"  Active: {result.get('total_active', 0)}")
+        print(f"  Total PnL: ${result.get('total_pnl_quote', 0):.2f}")
+        print(f"  Total Volume: ${result.get('total_volume_quote', 0):.2f}")
 
         by_type = result.get("by_type", {})
         if by_type:
             print("\n  By Type:")
             for t, count in by_type.items():
                 print(f"    {t}: {count}")
+
+        by_status = result.get("by_status", {})
+        if by_status:
+            print("\n  By Status:")
+            for s, count in by_status.items():
+                print(f"    {s}: {count}")
+
+
+def get_positions_summary(args):
+    """Get summary of held positions from executors stopped with keep_position=True."""
+    result = api_request("GET", "/executors/positions/summary")
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print("Positions Summary")
+        print("-" * 60)
+        print(f"  Total Positions: {result.get('total_positions', 0)}")
+        print(f"  Total Realized PnL: ${result.get('total_realized_pnl', 0):.4f}")
+
+        unrealized = result.get('total_unrealized_pnl')
+        if unrealized is not None:
+            print(f"  Total Unrealized PnL: ${unrealized:.4f}")
+
+        positions = result.get("positions", [])
+        if positions:
+            print("\n  Positions:")
+            print("-" * 60)
+            for pos in positions:
+                pair = pos.get("trading_pair", "")
+                connector = pos.get("connector_name", "")
+                net_base = pos.get("net_amount_base", 0)
+                realized = pos.get("realized_pnl_quote", 0)
+                unrealized = pos.get("unrealized_pnl_quote")
+                side = pos.get("position_side", "")
+
+                print(f"    {pair} ({connector})")
+                print(f"      Side: {side}, Net Base: {net_base:.6f}")
+                print(f"      Realized PnL: ${realized:.4f}", end="")
+                if unrealized is not None:
+                    print(f", Unrealized: ${unrealized:.4f}")
+                else:
+                    print()
+
+
+def get_config_schema(args):
+    """Get configuration schema for an executor type."""
+    result = api_request("GET", f"/executors/types/{args.executor_type}/config")
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"Config Schema: {result.get('executor_type', args.executor_type)}")
+        print(f"Config Class: {result.get('config_class', '')}")
+        print("-" * 60)
+
+        fields = result.get("fields", [])
+        if fields:
+            print("\nFields:")
+            for field in fields:
+                name = field.get("name", "")
+                ftype = field.get("type", "")
+                required = "required" if field.get("required") else "optional"
+                default = field.get("default")
+                desc = field.get("description", "")
+
+                print(f"  {name} ({ftype}, {required})")
+                if default is not None:
+                    print(f"    Default: {default}")
+                if desc:
+                    print(f"    {desc[:60]}...")
+
+        nested = result.get("nested_types", {})
+        if nested and not args.brief:
+            print("\nNested Types:")
+            for type_name, type_info in nested.items():
+                print(f"  {type_name}: {type_info.get('description', '')[:50]}")
 
 
 def main():
@@ -305,6 +390,18 @@ def main():
     summary_parser = subparsers.add_parser("summary", help="Get executor summary")
     summary_parser.add_argument("--json", action="store_true", help="Output as JSON")
     summary_parser.set_defaults(func=get_summary)
+
+    # positions command
+    positions_parser = subparsers.add_parser("positions", help="Get held positions summary")
+    positions_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    positions_parser.set_defaults(func=get_positions_summary)
+
+    # config command
+    config_parser = subparsers.add_parser("config", help="Get executor config schema")
+    config_parser.add_argument("executor_type", help="Executor type: position_executor, grid_executor, dca_executor, arbitrage_executor, twap_executor, xemm_executor, order_executor")
+    config_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    config_parser.add_argument("--brief", action="store_true", help="Show brief output (skip nested types)")
+    config_parser.set_defaults(func=get_config_schema)
 
     args = parser.parse_args()
     args.func(args)
