@@ -47,7 +47,7 @@ This skill helps you run automated liquidity provision strategies on concentrate
 
 ## Command: start
 
-Welcome the user and guide them through setup. This is a conversational onboarding wizard — no scripts to run, just check infrastructure state and walk them through it.
+Welcome the user and guide them through setup. This is a conversational onboarding wizard — check infrastructure state, interpret results, and walk them through each step.
 
 ### Step 1: Welcome & Explain
 
@@ -63,7 +63,7 @@ Introduce yourself and explain what lp-agent does:
 
 ### Step 2: Check Infrastructure Status
 
-Run the check scripts to assess current state:
+Run these scripts and interpret the JSON output:
 
 ```bash
 bash scripts/check_api.sh --json      # Is Hummingbot API running?
@@ -71,33 +71,62 @@ bash scripts/check_gateway.sh --json  # Is Gateway running?
 python scripts/add_wallet.py list     # Any wallets connected?
 ```
 
+**Interpreting Results:**
+
+| Script | Success Output | Failure Output |
+|--------|---------------|----------------|
+| `check_api.sh --json` | `{"running": true, "url": "http://localhost:8000", ...}` | `{"running": false, ...}` or connection error |
+| `check_gateway.sh --json` | `{"running": true, ...}` | `{"running": false, ...}` |
+| `add_wallet.py list` | Shows wallet addresses like `[solana] ABC123...` | `No wallets found.` or empty list `[]` |
+
 ### Step 3: Show Progress
 
-Present a checklist showing what's done and what's remaining:
+Present a checklist showing what's done and what's remaining based on the script outputs:
 
 ```
 Setup Progress:
   [x] Hummingbot API    — Running at http://localhost:8000
   [x] Gateway           — Running
   [ ] Wallet            — No wallet connected
-  [ ] First LP strategy — Not yet
 
 Next step: Add a Solana wallet so you can start trading.
-  → Run /lp-agent add-wallet
 ```
 
 Adapt the checklist to the actual state. If everything is unchecked, start from the top. If everything is checked, skip to the LP lifecycle overview.
 
 ### Step 4: Guide Next Action
 
-Based on the first unchecked item, briefly explain what it does and offer to run it:
+Based on the first unchecked item, offer to help:
 
 | Missing | What to say |
 |---------|-------------|
 | Hummingbot API | "Let's deploy the API first — it's the trading backend. Need Docker installed. Want me to run the installer?" → `/lp-agent deploy-hummingbot-api` |
 | Gateway | "API is running! Now we need Gateway for DEX connectivity. Want me to start it?" → `/lp-agent setup-gateway` |
-| Wallet | "Infrastructure is ready. You'll need a Solana wallet with some SOL for fees. Want to add one?" → `/lp-agent add-wallet` |
+| Wallet | See **Adding a Wallet** below |
 | All ready | Move to Step 5 |
+
+**Adding a Wallet:**
+
+When wallet is the next step, tell the user:
+
+> Infrastructure is ready. You need a Solana wallet with SOL for transaction fees (~0.06 SOL per LP position).
+>
+> To add a wallet, run:
+> ```
+> python scripts/add_wallet.py add
+> ```
+> You'll be prompted to paste your private key (secure, not saved in shell history).
+
+**Interpreting add_wallet.py output:**
+
+| Output | Meaning |
+|--------|---------|
+| `✓ Wallet added successfully` + address | Success — wallet is connected |
+| `Enter private key (base58):` then `✓ Wallet added` | Success after prompt |
+| `Error: HTTP 400` or validation error | Invalid private key format |
+| `Error: Cannot connect to API` | API not running — run `check_api.sh` first |
+
+After wallet is added, verify with `python scripts/add_wallet.py list` — should show the new address.
 
 ### Step 5: LP Lifecycle Overview
 
@@ -156,6 +185,15 @@ bash scripts/deploy_hummingbot_api.sh reset
 - Docker and Docker Compose
 - Git
 
+### Interpreting Output
+
+| Output | Meaning | Next Step |
+|--------|---------|-----------|
+| `✓ Hummingbot API deployed successfully` | Success | Proceed to `setup-gateway` |
+| `✓ Already installed and running` | Already set up | Proceed to `setup-gateway` |
+| `Error: Docker not found` | Docker not installed | Install Docker first |
+| `Error: Port 8000 already in use` | Another service on port | Stop conflicting service or use different port |
+
 ### After Installation
 
 Once the API is running:
@@ -198,7 +236,7 @@ bash scripts/setup_gateway.sh --passphrase mypassword --port 15888
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--status` | | Check Gateway status only (don't start) |
-| `--image IMAGE` | `hummingbot/gateway:latest` | Docker image to use |
+| `--image IMAGE` | `hummingbot/gateway:development` | Docker image to use |
 | `--passphrase TEXT` | `hummingbot` | Gateway passphrase |
 | `--rpc-url URL` | | Custom RPC endpoint for `--network` |
 | `--network ID` | `solana-mainnet-beta` | Network to configure RPC for |
@@ -219,6 +257,16 @@ python scripts/manage_gateway.py network solana-mainnet-beta                    
 python scripts/manage_gateway.py network solana-mainnet-beta --node-url https://...   # Set RPC node
 ```
 
+### Interpreting Output
+
+| Output | Meaning | Next Step |
+|--------|---------|-----------|
+| `✓ Gateway is running` or `✓ Gateway started` | Success | Proceed to `add-wallet` |
+| `✓ Gateway is already running` | Already set up | Proceed to `add-wallet` |
+| `✗ Cannot connect to Hummingbot API` | API not running | Run `/lp-agent deploy-hummingbot-api` first |
+| `✗ Failed to start Gateway` | Docker issue | Check Docker is running, check logs |
+| `✓ RPC configured` + `✓ Gateway restarted` | Custom RPC set | Ready to use |
+
 ### Custom RPC Nodes
 
 Gateway uses public RPC nodes by default, which can hit rate limits. Set a custom nodeUrl per network to avoid this.
@@ -237,36 +285,54 @@ Add a Solana wallet for trading.
 
 **Requires:** `deploy-hummingbot-api` and `setup-gateway` completed first.
 
-### Usage
+### Adding a Wallet
 
 ```bash
-# List connected wallets
-python scripts/add_wallet.py list
-
-# Add wallet (prompted for private key — secure, not in shell history)
 python scripts/add_wallet.py add
-
-# Add wallet with private key directly
-python scripts/add_wallet.py add --private-key <BASE58_KEY>
-
-# Add wallet on a specific chain/network
-python scripts/add_wallet.py add --chain solana --network mainnet-beta
-
-# Check balances
-python scripts/add_wallet.py balances --address <WALLET_ADDRESS>
-
-# Check specific token balances
-python scripts/add_wallet.py balances --address <WALLET_ADDRESS> --tokens SOL USDC
-
-# Show all balances including zero
-python scripts/add_wallet.py balances --address <WALLET_ADDRESS> --all
 ```
 
-### Important Notes
+You'll be prompted to paste your private key (base58 format). The key is entered securely and won't appear in shell history.
 
-- **Security**: Omit `--private-key` to be prompted securely (key won't appear in shell history)
-- **SOL requirement**: Wallet needs SOL for transaction fees (~0.06 SOL per LP position for rent)
-- **Default chain**: Solana mainnet-beta (override with `--chain` and `--network`)
+**Interpreting Output:**
+
+| Output | Meaning | Next Step |
+|--------|---------|-----------|
+| `✓ Wallet added successfully` + `Address: ABC...` | Success | Verify with `list` command |
+| `Error: HTTP 400 - Bad Request` | Invalid private key format | Check key is base58 encoded |
+| `Error: HTTP 503` | Gateway not available | Run `bash scripts/check_gateway.sh` |
+| `Error: Cannot connect to API` | API not running | Run `/lp-agent deploy-hummingbot-api` |
+
+### Listing Wallets
+
+```bash
+python scripts/add_wallet.py list
+```
+
+**Interpreting Output:**
+
+| Output | Meaning |
+|--------|---------|
+| `[solana] ABC123...XYZ` | Wallet connected on Solana |
+| `No wallets found.` | No wallets added yet |
+| Empty list `[]` (with --json) | No wallets added yet |
+
+### Checking Balances
+
+```bash
+# Check all balances
+python scripts/add_wallet.py balances
+
+# Filter by account
+python scripts/add_wallet.py balances --account master_account
+
+# Show zero balances too
+python scripts/add_wallet.py balances --all
+```
+
+### Requirements
+
+- **SOL for fees**: Wallet needs SOL for transaction fees (~0.06 SOL per LP position for rent)
+- **Default chain**: Solana mainnet-beta
 
 ---
 

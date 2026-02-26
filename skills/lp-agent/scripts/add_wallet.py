@@ -89,13 +89,14 @@ def api_request(method: str, endpoint: str, data: dict | None = None) -> dict:
 
 def list_wallets(args):
     """List wallets connected to Gateway."""
-    result = api_request("GET", "/gateway/wallets")
+    result = api_request("GET", "/accounts/gateway/wallets")
 
     if args.json:
         print(json.dumps(result, indent=2))
         return
 
-    wallets = result.get("wallets", result)
+    # Result is a list directly from the API
+    wallets = result if isinstance(result, list) else result.get("wallets", [])
 
     if not wallets:
         print("No wallets found.")
@@ -107,23 +108,13 @@ def list_wallets(args):
     print("Connected Wallets")
     print("-" * 60)
 
-    if isinstance(wallets, dict):
-        for chain, addresses in wallets.items():
-            if addresses:
-                print(f"\n{chain}:")
-                for addr in addresses:
-                    if isinstance(addr, dict):
-                        print(f"  {addr.get('address', addr)}")
-                    else:
-                        print(f"  {addr}")
-    elif isinstance(wallets, list):
-        for w in wallets:
-            if isinstance(w, dict):
-                chain = w.get("chain", "")
-                addr = w.get("address", "")
-                print(f"  [{chain}] {addr}")
-            else:
-                print(f"  {w}")
+    for w in wallets:
+        if isinstance(w, dict):
+            chain = w.get("chain", "")
+            addr = w.get("address", "")
+            print(f"  [{chain}] {addr}")
+        else:
+            print(f"  {w}")
 
 
 def add_wallet(args):
@@ -145,12 +136,11 @@ def add_wallet(args):
 
     data = {
         "chain": args.chain,
-        "network": args.network,
-        "privateKey": private_key,
+        "private_key": private_key,
     }
 
     print(f"Adding {args.chain} wallet...")
-    result = api_request("POST", "/gateway/wallets", data)
+    result = api_request("POST", "/accounts/gateway/add-wallet", data)
 
     if args.json:
         print(json.dumps(result, indent=2))
@@ -160,49 +150,55 @@ def add_wallet(args):
     if address:
         print(f"✓ Wallet added successfully")
         print(f"  Chain: {args.chain}")
-        print(f"  Network: {args.network}")
         print(f"  Address: {address}")
     else:
         print(f"Response: {result}")
 
 
 def get_balances(args):
-    """Get wallet balances."""
+    """Get wallet balances via portfolio state."""
     params = {
-        "chain": args.chain,
-        "network": args.network,
-        "address": args.address,
+        "refresh": True,
+        "skip_gateway": False,
     }
 
-    if args.tokens:
-        params["tokenSymbols"] = args.tokens
+    if args.account:
+        params["account_names"] = [args.account]
 
-    result = api_request("POST", "/gateway/balances", params)
+    result = api_request("POST", "/portfolio/state", params)
 
     if args.json:
         print(json.dumps(result, indent=2))
         return
 
-    print(f"Balances for {args.address[:8]}...{args.address[-6:]}")
+    # Portfolio state returns: {account_name: {connector_name: [token_balances]}}
+    if not result:
+        print("No portfolio data found.")
+        return
+
+    print("Wallet Balances")
     print("-" * 50)
 
-    balances = result.get("balances", result)
-
-    if isinstance(balances, dict):
-        for token, amount in sorted(balances.items()):
-            if float(amount) > 0 or args.all:
-                print(f"  {token}: {amount}")
-    elif isinstance(balances, list):
-        for b in balances:
-            if isinstance(b, dict):
-                token = b.get("symbol", b.get("token", "?"))
-                amount = b.get("balance", b.get("amount", 0))
-                if float(amount) > 0 or args.all:
-                    print(f"  {token}: {amount}")
-
-    native = result.get("nativeBalance", result.get("native_balance"))
-    if native:
-        print(f"\n  Native (SOL): {native}")
+    for account_name, connectors in result.items():
+        print(f"\nAccount: {account_name}")
+        for connector_name, tokens in connectors.items():
+            # Filter to show only gateway connectors if address is specified
+            if args.address and args.address not in connector_name:
+                continue
+            print(f"  Connector: {connector_name}")
+            if isinstance(tokens, list):
+                for token in tokens:
+                    if isinstance(token, dict):
+                        symbol = token.get("symbol", token.get("token", "?"))
+                        balance = token.get("balance", token.get("amount", 0))
+                        value = token.get("value_usd", token.get("value", ""))
+                        if float(balance) > 0 or args.all:
+                            value_str = f" (${value:.2f})" if value else ""
+                            print(f"    {symbol}: {balance}{value_str}")
+            elif isinstance(tokens, dict):
+                for symbol, balance in tokens.items():
+                    if float(balance) > 0 or args.all:
+                        print(f"    {symbol}: {balance}")
 
 
 def main():
@@ -218,16 +214,13 @@ def main():
     add_parser = subparsers.add_parser("add", help="Add a wallet")
     add_parser.add_argument("--private-key", help="Private key (base58). Omit to be prompted securely.")
     add_parser.add_argument("--chain", default="solana", help="Blockchain (default: solana)")
-    add_parser.add_argument("--network", default="mainnet-beta", help="Network (default: mainnet-beta)")
     add_parser.add_argument("--json", action="store_true", help="Output as JSON")
     add_parser.set_defaults(func=add_wallet)
 
     # balances command
     bal_parser = subparsers.add_parser("balances", help="Get wallet balances")
-    bal_parser.add_argument("--address", required=True, help="Wallet address")
-    bal_parser.add_argument("--tokens", nargs="+", help="Specific token symbols to check")
-    bal_parser.add_argument("--chain", default="solana", help="Blockchain (default: solana)")
-    bal_parser.add_argument("--network", default="mainnet-beta", help="Network (default: mainnet-beta)")
+    bal_parser.add_argument("--account", default="master_account", help="Account name (default: master_account)")
+    bal_parser.add_argument("--address", help="Filter by wallet address (optional)")
     bal_parser.add_argument("--all", action="store_true", help="Show zero balances too")
     bal_parser.add_argument("--json", action="store_true", help="Output as JSON")
     bal_parser.set_defaults(func=get_balances)

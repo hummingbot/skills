@@ -42,7 +42,7 @@ API_PASS="${API_PASS:-admin}"
 
 # Defaults
 PASSPHRASE="hummingbot"
-IMAGE="hummingbot/gateway:latest"
+IMAGE="hummingbot/gateway:development"
 RPC_URL=""
 STATUS_ONLY=false
 NETWORK="solana-mainnet-beta"
@@ -62,7 +62,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --passphrase TEXT   Gateway passphrase (default: hummingbot)"
-            echo "  --image IMAGE       Docker image (default: hummingbot/gateway:latest)"
+            echo "  --image IMAGE       Docker image (default: hummingbot/gateway:development)"
             echo "  --rpc-url URL       Custom RPC endpoint for --network"
             echo "  --network ID        Network ID (default: solana-mainnet-beta)"
             echo "  --port PORT         Gateway port (default: 15888)"
