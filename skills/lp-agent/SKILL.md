@@ -580,20 +580,67 @@ python scripts/manage_executor.py stop <executor_id>
 python scripts/manage_executor.py stop <executor_id> --keep-position
 ```
 
+### After Stopping — Analyze Results
+
+**If the user ran an LP Executor** (via `manage_executor.py create` or direct API), immediately offer to analyze it:
+
+> Your executor has been stopped. Want me to generate a performance dashboard?
+
+Then run:
+```bash
+python scripts/visualize_lp_executor.py --id <executor_id>
+```
+
+The executor ID is returned when the executor is created (printed as `Executor ID: <id>`). If the user doesn't have it handy, fetch it from the API:
+
+```bash
+curl -s -u admin:admin -X POST http://localhost:8000/executors/search \
+  -H "Content-Type: application/json" \
+  -d '{"type":"lp_executor"}' | python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+items=data.get('data',data) if isinstance(data,dict) else data
+for ex in (items if isinstance(items,list) else [items]):
+    print(ex.get('executor_id') or ex.get('id'), ex.get('trading_pair'), ex.get('status'))
+"
+```
+
+To also export the raw data to CSV:
+```bash
+python scripts/export_lp_executor.py --id <executor_id>
+```
+
+**If the user ran a Rebalancer Controller bot**, the data lives in a SQLite file — use `analyze-performance` with the SQLite-based scripts instead.
+
 ---
 
 ## Command: analyze-performance
 
 Export data and generate visual dashboards from LP position events. Scripts are in this skill's `scripts/` directory.
 
-LP position events (ADD/REMOVE) are recorded **immediately** when transactions complete on-chain, so analysis works for both running and stopped bots.
+### Which Script to Use?
+
+**Always ask yourself: was this position deployed as an LP Executor (via `manage_executor.py` or direct API) or via a Rebalancer Controller bot?**
+
+| How it was deployed | Script to use |
+|---------------------|--------------|
+| **LP Executor** — `manage_executor.py create` or direct `POST /executors/` API | `visualize_lp_executor.py --id <executor_id>` ✅ |
+| **Rebalancer Controller** — `manage_controller.py deploy` (bot container, SQLite) | `visualize_lp_positions.py --pair <pair>` |
+| Not sure? | Run `curl -s -u admin:admin -X POST http://localhost:8000/executors/search -H "Content-Type: application/json" -d '{"type":"lp_executor"}'` — if the executor ID appears, use the executor scripts |
+
+**If the user has been running an LP Executor in this session** (executor ID is known from context), skip the question and go straight to:
+```bash
+python scripts/visualize_lp_executor.py --id <executor_id>
+```
 
 ### Available Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/export_lp_positions.py` | Export LP position events to CSV |
-| `scripts/visualize_lp_positions.py` | Generate HTML dashboard from position events |
+| `scripts/export_lp_positions.py` | Export LP position events to CSV (SQLite/bot-container based) |
+| `scripts/visualize_lp_positions.py` | Generate HTML dashboard from position events (SQLite/bot-container based) |
+| `scripts/export_lp_executor.py` | Export a single LP executor to CSV by `--id` (REST API, no SQLite) |
+| `scripts/visualize_lp_executor.py` | Generate HTML dashboard for a single LP executor by `--id` (REST API) |
 
 ### Visualize LP Positions
 
@@ -633,6 +680,45 @@ python scripts/export_lp_positions.py --pair SOL-USDC --output exports/positions
 # Show summary without exporting
 python scripts/export_lp_positions.py --summary
 ```
+
+### Executor Performance (API-based)
+
+These scripts work directly from the **Hummingbot REST API** — no SQLite database needed.
+Use them when executors were deployed via the API directly (e.g., via `manage_executor.py`),
+because those do not always produce SQLite records the way bot containers do.
+
+**Export a single LP executor to CSV:**
+
+```bash
+python scripts/export_lp_executor.py --id <executor_id>
+python scripts/export_lp_executor.py --id <executor_id> --output exports/my_run.csv
+python scripts/export_lp_executor.py --id <executor_id> --print   # JSON to stdout
+```
+
+CSV columns (LP executor schema):
+- **Identity:** `id, account_name, controller_id, connector_name, trading_pair`
+- **State:** `status, close_type, is_active, is_trading, error_count`
+- **Timing:** `created_at, closed_at, close_timestamp, duration_seconds`
+- **PnL:** `net_pnl_quote, net_pnl_pct, cum_fees_quote, filled_amount_quote`
+- **Config (deployment):** `pool_address, lower_price, upper_price, base_amount_config, quote_amount_config, side, position_offset_pct, auto_close_above_range_seconds, auto_close_below_range_seconds, keep_position`
+- **custom_info (live/final):** `state, position_address, current_price, lower_price_actual, upper_price_actual, base_amount_current, quote_amount_current, base_fee, quote_fee, fees_earned_quote, total_value_quote, unrealized_pnl_quote, position_rent, position_rent_refunded, tx_fee, out_of_range_seconds, max_retries_reached, initial_base_amount, initial_quote_amount`
+
+**Visualize a single LP executor (HTML dashboard):**
+
+```bash
+python scripts/visualize_lp_executor.py --id <executor_id>
+python scripts/visualize_lp_executor.py --id <executor_id> --output report.html
+python scripts/visualize_lp_executor.py --id <executor_id> --no-open
+```
+
+**Dashboard panels:**
+- KPI cards: status, net PnL, fees earned, duration, LP range
+- Price chart with LP lower/upper bounds + open/close markers (5m KuCoin candles; auto-skipped for exotic pairs)
+- Token balance bar: initial vs final base + quote amounts
+- PnL breakdown: fees earned vs IL/price impact vs net PnL
+- Full position summary table with Solscan links for pool and position addresses
+- Dark theme (`#0d1117` / `#161b27`), responsive layout, Chart.js from CDN
+- Auth auto-loaded from `~/mcp/.env` (`HUMMINGBOT_API_URL`, `HUMMINGBOT_USERNAME`, `HUMMINGBOT_PASSWORD`)
 
 ---
 
@@ -699,8 +785,10 @@ Both support `--json` output. These scripts are also used internally by `setup_g
 | `get_meteora_pool.py` | Get pool details with liquidity chart |
 | `manage_executor.py` | Create, list, stop LP executors |
 | `manage_controller.py` | Create configs, deploy bots, get status |
-| `export_lp_positions.py` | Export position events to CSV |
-| `visualize_lp_positions.py` | Generate HTML dashboard |
+| `export_lp_positions.py` | Export position events to CSV (SQLite/bot-container) |
+| `visualize_lp_positions.py` | Generate HTML dashboard (SQLite/bot-container) |
+| `export_lp_executor.py` | Export single LP executor to CSV by `--id` (REST API) |
+| `visualize_lp_executor.py` | HTML dashboard for single LP executor by `--id` (REST API) |
 
 ### Error Troubleshooting
 
