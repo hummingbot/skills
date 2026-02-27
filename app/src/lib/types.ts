@@ -4,6 +4,7 @@ export interface Skill {
   description: string;
   path: string;
   author?: string;
+  installs: number;
 }
 
 export interface SkillsData {

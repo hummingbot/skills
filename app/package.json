@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "update-installs": "node scripts/update-installs.js"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
