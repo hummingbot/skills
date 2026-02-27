@@ -24,9 +24,9 @@ Usage:
     python manage_gateway.py network solana-mainnet-beta --node-url https://my-rpc.example.com
 
 Environment:
-    API_URL - API base URL (default: http://localhost:8000)
-    API_USER - API username (default: admin)
-    API_PASS - API password (default: admin)
+    HUMMINGBOT_API_URL - API base URL (default: http://localhost:8000)
+    USERNAME - API username (default: admin)
+    PASSWORD - API password (default: admin)
 """
 
 import argparse
@@ -40,7 +40,7 @@ import base64
 
 def load_env():
     """Load environment from .env files."""
-    for path in [".env", os.path.expanduser("~/.hummingbot/.env"), os.path.expanduser("~/.env")]:
+    for path in ["hummingbot-api/.env", os.path.expanduser("~/.hummingbot/.env"), ".env"]:
         if os.path.exists(path):
             with open(path) as f:
                 for line in f:
@@ -55,9 +55,9 @@ def get_api_config():
     """Get API configuration from environment."""
     load_env()
     return {
-        "url": os.environ.get("API_URL", "http://localhost:8000"),
-        "user": os.environ.get("API_USER", "admin"),
-        "password": os.environ.get("API_PASS", "admin"),
+        "url": os.environ.get("HUMMINGBOT_API_URL", "http://localhost:8000"),
+        "user": os.environ.get("USERNAME", "admin"),
+        "password": os.environ.get("PASSWORD", "admin"),
     }
 
 

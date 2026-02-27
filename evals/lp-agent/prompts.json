@@ -1,0 +1,278 @@
+{
+  "skill": "lp-agent",
+  "test_cases": [
+    {
+      "id": "start_onboarding",
+      "command": "start",
+      "prompt": "/lp-agent start",
+      "description": "Onboarding wizard — should welcome user, check infra status, show progress checklist",
+      "expect_patterns": [
+        "liquidity|LP",
+        "Hummingbot API|hummingbot-api",
+        "Gateway|gateway",
+        "wallet|Wallet"
+      ],
+      "expect_scripts": ["check_api.sh", "check_gateway.sh"],
+      "tags": ["conversational", "onboarding"]
+    },
+    {
+      "id": "start_whats_next",
+      "command": "start",
+      "prompt": "I just installed lp-agent. What can it do and what should I set up first?",
+      "description": "Natural language onboarding — should explain capabilities and guide setup",
+      "expect_patterns": [
+        "deploy|install|setup",
+        "Gateway|gateway",
+        "pool|pools",
+        "strategy|strategies"
+      ],
+      "expect_scripts": [],
+      "tags": ["conversational", "onboarding"]
+    },
+
+    {
+      "id": "deploy_status",
+      "command": "deploy-hummingbot-api",
+      "prompt": "Check if Hummingbot API is already installed and running",
+      "description": "Should run status check script",
+      "expect_patterns": ["status|running|not running|install"],
+      "expect_scripts": ["deploy_hummingbot_api.sh status|check_api.sh"],
+      "tags": ["infrastructure", "status"]
+    },
+    {
+      "id": "deploy_install_defaults",
+      "command": "deploy-hummingbot-api",
+      "prompt": "/lp-agent deploy-hummingbot-api\n\nInstall with default credentials, don't prompt me for anything.",
+      "description": "Should install with --defaults flag",
+      "expect_patterns": ["install|deploy|setup"],
+      "expect_scripts": ["deploy_hummingbot_api.sh install --defaults"],
+      "tags": ["infrastructure", "install"]
+    },
+    {
+      "id": "deploy_logs",
+      "command": "deploy-hummingbot-api",
+      "prompt": "Show me the Hummingbot API container logs",
+      "description": "Should run logs subcommand",
+      "expect_patterns": ["log"],
+      "expect_scripts": ["deploy_hummingbot_api.sh logs"],
+      "tags": ["infrastructure", "debug"]
+    },
+
+    {
+      "id": "gateway_status",
+      "command": "setup-gateway",
+      "prompt": "Is Gateway running?",
+      "description": "Should check gateway status",
+      "expect_patterns": ["Gateway|gateway"],
+      "expect_scripts": ["setup_gateway.sh --status|check_gateway.sh"],
+      "tags": ["infrastructure", "status"]
+    },
+    {
+      "id": "gateway_start_defaults",
+      "command": "setup-gateway",
+      "prompt": "/lp-agent setup-gateway\n\nStart Gateway with default settings.",
+      "description": "Should start gateway with defaults",
+      "expect_patterns": ["Gateway|gateway|start"],
+      "expect_scripts": ["setup_gateway.sh"],
+      "tags": ["infrastructure", "install"]
+    },
+    {
+      "id": "gateway_custom_rpc",
+      "command": "setup-gateway",
+      "prompt": "Start Gateway and configure it to use my Helius RPC endpoint: https://mainnet.helius-rpc.com/?api-key=abc123",
+      "description": "Should start gateway with --rpc-url flag",
+      "expect_patterns": ["RPC|rpc|helius"],
+      "expect_scripts": ["setup_gateway.sh --rpc-url"],
+      "tags": ["infrastructure", "config"]
+    },
+    {
+      "id": "gateway_network_config",
+      "command": "setup-gateway",
+      "prompt": "Configure the ethereum-mainnet RPC to use https://eth-mainnet.g.alchemy.com/v2/mykey",
+      "description": "Should use --network and --rpc-url flags together",
+      "expect_patterns": ["ethereum|network|RPC"],
+      "expect_scripts": ["setup_gateway.sh --network ethereum-mainnet --rpc-url|manage_gateway.py network ethereum-mainnet"],
+      "tags": ["infrastructure", "config"]
+    },
+
+    {
+      "id": "wallet_list",
+      "command": "add-wallet",
+      "prompt": "Show me what wallets are connected",
+      "description": "Should list connected wallets",
+      "expect_patterns": ["wallet"],
+      "expect_scripts": ["add_wallet.py list"],
+      "tags": ["wallet", "status"]
+    },
+    {
+      "id": "wallet_add_secure",
+      "command": "add-wallet",
+      "prompt": "/lp-agent add-wallet\n\nI want to add my Solana wallet. Prompt me for the private key securely.",
+      "description": "Should add wallet without --private-key flag for secure input",
+      "expect_patterns": ["wallet|private key|secure"],
+      "expect_scripts": ["add_wallet.py add"],
+      "tags": ["wallet", "setup"]
+    },
+    {
+      "id": "wallet_balances",
+      "command": "add-wallet",
+      "prompt": "Check SOL and USDC balances for wallet address 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+      "description": "Should check specific token balances",
+      "expect_patterns": ["balance|SOL|USDC"],
+      "expect_scripts": ["add_wallet.py balances --address 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU"],
+      "tags": ["wallet", "status"]
+    },
+
+    {
+      "id": "explore_top_pools",
+      "command": "explore-pools",
+      "prompt": "Show me the top Meteora DLMM pools by volume",
+      "description": "Should list pools sorted by volume (default)",
+      "expect_patterns": ["pool|Pool"],
+      "expect_scripts": ["list_meteora_pools.py"],
+      "tags": ["pools", "discovery"]
+    },
+    {
+      "id": "explore_search_token",
+      "command": "explore-pools",
+      "prompt": "Find Meteora pools for SOL-USDC trading",
+      "description": "Should search pools with --query",
+      "expect_patterns": ["SOL|USDC|pool"],
+      "expect_scripts": ["list_meteora_pools.py --query SOL-USDC|list_meteora_pools.py --query SOL"],
+      "tags": ["pools", "discovery"]
+    },
+    {
+      "id": "explore_sort_apr",
+      "command": "explore-pools",
+      "prompt": "What Meteora DLMM pools have the best APR right now?",
+      "description": "Should list pools sorted by APR",
+      "expect_patterns": ["APR|apr|pool"],
+      "expect_scripts": ["list_meteora_pools.py --sort apr"],
+      "tags": ["pools", "discovery"]
+    },
+    {
+      "id": "explore_pool_details",
+      "command": "explore-pools",
+      "prompt": "Get detailed information about pool ATrBUW2reZiyftzMQA1hEo8b7w7o8ZLrhPd7M7sPMSms",
+      "description": "Should fetch pool details with address",
+      "expect_patterns": ["pool|bin|TVL|volume|fee"],
+      "expect_scripts": ["get_meteora_pool.py ATrBUW2reZiyftzMQA1hEo8b7w7o8ZLrhPd7M7sPMSms"],
+      "tags": ["pools", "details"]
+    },
+    {
+      "id": "explore_pool_help_choose",
+      "command": "explore-pools",
+      "prompt": "I want to provide liquidity for SOL. Help me find and compare the best pools. I care most about fees earned relative to TVL.",
+      "description": "Should search pools, explain fee/TVL ratio, and recommend",
+      "expect_patterns": ["fee|TVL|pool"],
+      "expect_scripts": ["list_meteora_pools.py"],
+      "tags": ["pools", "advisory"]
+    },
+
+    {
+      "id": "select_compare",
+      "command": "select-strategy",
+      "prompt": "/lp-agent select-strategy\n\nCompare the two LP strategy types for me.",
+      "description": "Should explain Rebalancer Controller vs LP Executor with tradeoffs",
+      "expect_patterns": [
+        "Rebalancer|rebalancer|Controller|controller",
+        "Executor|executor",
+        "rebalance|auto"
+      ],
+      "expect_scripts": [],
+      "tags": ["conversational", "advisory"]
+    },
+    {
+      "id": "select_recommend_passive",
+      "command": "select-strategy",
+      "prompt": "I want a hands-off LP strategy that automatically manages my position. I don't want to babysit it. Which strategy should I use?",
+      "description": "Should recommend Rebalancer Controller for hands-off management",
+      "expect_patterns": ["Rebalancer|rebalancer|Controller|controller|recommend"],
+      "expect_scripts": [],
+      "tags": ["conversational", "advisory"]
+    },
+    {
+      "id": "select_recommend_testing",
+      "command": "select-strategy",
+      "prompt": "I just want to test LP with a small amount and a single position. I want full manual control.",
+      "description": "Should recommend LP Executor for testing/manual control",
+      "expect_patterns": ["Executor|executor|single|manual"],
+      "expect_scripts": [],
+      "tags": ["conversational", "advisory"]
+    },
+
+    {
+      "id": "run_create_rebalancer",
+      "command": "run-strategy",
+      "prompt": "Create an LP Rebalancer config named 'sol_usdc_lp' for pool FMLoPhpEuzzWMoTMJDGDT1MPkBa3w7KaYCqNvGmNbwTo, trading SOL-USDC with $200, buy side only, 0.5% width",
+      "description": "Should create rebalancer config with correct parameters",
+      "expect_patterns": ["config|create"],
+      "expect_scripts": ["manage_controller.py create-config sol_usdc_lp --pool FMLoPhpEuzzWMoTMJDGDT1MPkBa3w7KaYCqNvGmNbwTo"],
+      "tags": ["strategy", "config"]
+    },
+    {
+      "id": "run_deploy_bot",
+      "command": "run-strategy",
+      "prompt": "Deploy a bot named 'my_lp_bot' using the config 'sol_usdc_lp'",
+      "description": "Should deploy bot with config reference",
+      "expect_patterns": ["deploy|bot|start"],
+      "expect_scripts": ["manage_controller.py deploy my_lp_bot --configs sol_usdc_lp"],
+      "tags": ["strategy", "deploy"]
+    },
+    {
+      "id": "run_status",
+      "command": "run-strategy",
+      "prompt": "What's the status of my running LP bots?",
+      "description": "Should check bot and executor status",
+      "expect_patterns": ["status|running|bot"],
+      "expect_scripts": ["manage_controller.py status|manage_executor.py list|manage_executor.py summary"],
+      "tags": ["strategy", "monitoring"]
+    },
+    {
+      "id": "run_create_executor",
+      "command": "run-strategy",
+      "prompt": "Create a single LP position on pool FMLoPhpEuzzWMoTMJDGDT1MPkBa3w7KaYCqNvGmNbwTo for SOL-USDC. Use $50 USDC, buy side, price range 170-175.",
+      "description": "Should create LP executor with correct bounds",
+      "expect_patterns": ["executor|position|create"],
+      "expect_scripts": ["manage_executor.py create"],
+      "tags": ["strategy", "executor"]
+    },
+    {
+      "id": "run_stop_bot",
+      "command": "run-strategy",
+      "prompt": "Stop the bot named 'my_lp_bot'",
+      "description": "Should stop bot by name",
+      "expect_patterns": ["stop"],
+      "expect_scripts": ["manage_controller.py stop my_lp_bot"],
+      "tags": ["strategy", "lifecycle"]
+    },
+
+    {
+      "id": "analyze_visualize",
+      "command": "analyze-performance",
+      "prompt": "Generate a performance dashboard for my SOL-USDC LP positions",
+      "description": "Should run visualize script with pair filter",
+      "expect_patterns": ["dashboard|visuali|chart|HTML"],
+      "expect_scripts": ["visualize_lp_positions.py --pair SOL-USDC"],
+      "tags": ["analysis", "visualization"]
+    },
+    {
+      "id": "analyze_export",
+      "command": "analyze-performance",
+      "prompt": "Export my LP position data to CSV",
+      "description": "Should run export script",
+      "expect_patterns": ["export|CSV|csv"],
+      "expect_scripts": ["export_lp_positions.py"],
+      "tags": ["analysis", "export"]
+    },
+    {
+      "id": "analyze_recent",
+      "command": "analyze-performance",
+      "prompt": "Show me how my SOL-USDC positions performed in the last 24 hours",
+      "description": "Should visualize with --hours 24 filter",
+      "expect_patterns": ["24|hour|recent"],
+      "expect_scripts": ["visualize_lp_positions.py --pair SOL-USDC --hours 24"],
+      "tags": ["analysis", "visualization"]
+    }
+  ]
+}

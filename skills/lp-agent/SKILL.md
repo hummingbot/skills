@@ -3,43 +3,344 @@ name: lp-agent
 description: Run automated liquidity provision strategies on concentrated liquidity (CLMM) DEXs using Hummingbot API.
 metadata:
   author: hummingbot
+commands:
+  start:
+    description: Onboarding wizard — check setup status and get started
+  deploy-hummingbot-api:
+    description: Deploy Hummingbot API trading infrastructure
+  setup-gateway:
+    description: Start Gateway and configure network RPC endpoints
+  add-wallet:
+    description: Add or import a Solana wallet for trading
+  explore-pools:
+    description: Find and explore Meteora DLMM pools
+  select-strategy:
+    description: Choose between LP Executor or Rebalancer Controller strategy
+  run-strategy:
+    description: Run, monitor, and manage LP strategies
+  analyze-performance:
+    description: Export data and visualize LP position performance
 ---
 
 # lp-agent
 
 This skill helps you run automated liquidity provision strategies on concentrated liquidity (CLMM) DEXs using Hummingbot API.
 
-**Tasks** (start with any):
-1. **Pool Explorer** - Find and explore Meteora pools
-2. **Strategy Selector** - Choose between LP Executor or Rebalancer Controller
-3. **Deployment** - Deploy, monitor, and stop LP strategies
-4. **Analysis** - Visualize performance
+**Commands** (run as `/lp-agent <command>`):
 
-## Prerequisites
+| Command | Description |
+|---------|-------------|
+| `start` | Onboarding wizard — check setup status and get started |
+| `deploy-hummingbot-api` | Deploy Hummingbot API trading infrastructure |
+| `setup-gateway` | Start Gateway, configure network RPC endpoints |
+| `add-wallet` | Add or import a Solana wallet |
+| `explore-pools` | Find and explore Meteora DLMM pools |
+| `select-strategy` | Choose LP Executor or Rebalancer Controller |
+| `run-strategy` | Run, monitor, and manage LP strategies |
+| `analyze-performance` | Visualize LP position performance |
 
-Before using this skill, ensure hummingbot-api is running:
+**New here?** Run `/lp-agent start` to check your setup and get a guided walkthrough.
 
-```bash
-bash <(curl -s https://raw.githubusercontent.com/hummingbot/skills/main/skills/lp-agent/scripts/check_prerequisites.sh)
-```
-
-If not installed, use the `hummingbot-deploy` skill first.
-
-**Gateway** is required for LP operations. Start it with:
-```bash
-python scripts/manage_gateway.py start
-```
-
-To avoid RPC rate limits, configure a custom Solana RPC endpoint:
-```bash
-python scripts/manage_gateway.py network solana-mainnet-beta --node-url https://your-rpc-endpoint.com
-```
+**Typical workflow:** `start` → `deploy-hummingbot-api` → `setup-gateway` → `add-wallet` → `explore-pools` → `select-strategy` → `run-strategy` → `analyze-performance`
 
 ---
 
-## Task 1: Pool Explorer
+## Command: start
 
-Use these scripts to find and explore Meteora DLMM pools before creating LP positions. Scripts are in this skill's `scripts/` directory.
+Welcome the user and guide them through setup. This is a conversational onboarding wizard — check infrastructure state, interpret results, and walk them through each step.
+
+### Step 1: Welcome & Explain
+
+Introduce yourself and explain what lp-agent does:
+
+> I'm your LP agent — I help you run automated liquidity provision strategies on Meteora DLMM pools (Solana). I can:
+>
+> - **Deploy infrastructure** — Hummingbot API + Gateway for DEX trading
+> - **Manage wallets** — Add Solana wallets, check balances
+> - **Explore pools** — Search Meteora DLMM pools, compare APR/volume/TVL
+> - **Run strategies** — Auto-rebalancing LP controller or single-position executor
+> - **Analyze performance** — Dashboards with PnL, fees, and position history
+
+### Step 2: Check Infrastructure Status
+
+Run these scripts and interpret the JSON output:
+
+```bash
+bash scripts/check_api.sh --json      # Is Hummingbot API running?
+bash scripts/check_gateway.sh --json  # Is Gateway running?
+python scripts/add_wallet.py list     # Any wallets connected?
+```
+
+**Interpreting Results:**
+
+| Script | Success Output | Failure Output |
+|--------|---------------|----------------|
+| `check_api.sh --json` | `{"running": true, "url": "http://localhost:8000", ...}` | `{"running": false, ...}` or connection error |
+| `check_gateway.sh --json` | `{"running": true, ...}` | `{"running": false, ...}` |
+| `add_wallet.py list` | Shows wallet addresses like `[solana] ABC123...` | `No wallets found.` or empty list `[]` |
+
+### Step 3: Show Progress
+
+Present a checklist showing what's done and what's remaining based on the script outputs:
+
+```
+Setup Progress:
+  [x] Hummingbot API    — Running at http://localhost:8000
+  [x] Gateway           — Running
+  [ ] Wallet            — No wallet connected
+
+Next step: Add a Solana wallet so you can start trading.
+```
+
+Adapt the checklist to the actual state. If everything is unchecked, start from the top. If everything is checked, skip to the LP lifecycle overview.
+
+### Step 4: Guide Next Action
+
+Based on the first unchecked item, offer to help:
+
+| Missing | What to say |
+|---------|-------------|
+| Hummingbot API | "Let's deploy the API first — it's the trading backend. Need Docker installed. Want me to run the installer?" → `/lp-agent deploy-hummingbot-api` |
+| Gateway | "API is running! Now we need Gateway for DEX connectivity. Want me to start it?" → `/lp-agent setup-gateway` |
+| Wallet | See **Adding a Wallet** below |
+| All ready | Move to Step 5 |
+
+**Adding a Wallet:**
+
+When wallet is the next step, tell the user:
+
+> Infrastructure is ready. You need a Solana wallet with SOL for transaction fees (~0.06 SOL per LP position).
+>
+> To add a wallet, run:
+> ```
+> python scripts/add_wallet.py add
+> ```
+> You'll be prompted to paste your private key (secure, not saved in shell history).
+
+**Interpreting add_wallet.py output:**
+
+| Output | Meaning |
+|--------|---------|
+| `✓ Wallet added successfully` + address | Success — wallet is connected |
+| `Enter private key (base58):` then `✓ Wallet added` | Success after prompt |
+| `Error: HTTP 400` or validation error | Invalid private key format |
+| `Error: Cannot connect to API` | API not running — run `check_api.sh` first |
+
+After wallet is added, verify with `python scripts/add_wallet.py list` — should show the new address.
+
+### Step 5: LP Lifecycle Overview
+
+Once infrastructure is ready (or if user wants to understand the flow first), explain the LP lifecycle:
+
+> **How LP strategies work:**
+>
+> 1. **Explore pools** (`/lp-agent explore-pools`) — Find a Meteora DLMM pool. Look at volume, APR, and fee/TVL ratio to pick a good one.
+>
+> 2. **Select strategy** (`/lp-agent select-strategy`) — Choose between:
+>    - **Rebalancer Controller** (recommended) — Automatically repositions when price moves out of range. Set-and-forget.
+>    - **LP Executor** — Single fixed position. You control when to close/reopen. Good for testing or limit-order-style LP.
+>
+> 3. **Run strategy** (`/lp-agent run-strategy`) — Configure parameters (amount, width, price limits) and deploy. Monitor status and stop when done.
+>
+> 4. **Analyze** (`/lp-agent analyze-performance`) — View PnL dashboard, fees earned, position history. Works for both running and stopped strategies.
+>
+> Want to explore some pools to get started?
+
+---
+
+## Command: deploy-hummingbot-api
+
+Deploy the Hummingbot API trading infrastructure. This is the first step before using any LP features.
+
+### What Gets Installed
+
+**Hummingbot API** — A personal trading server that exposes a REST API for trading, market data, and deploying bot strategies across CEXs and DEXs.
+
+- Repository: [hummingbot/hummingbot-api](https://github.com/hummingbot/hummingbot-api)
+
+### Usage
+
+```bash
+# Check if already installed
+bash scripts/deploy_hummingbot_api.sh status
+
+# Install (interactive, prompts for credentials)
+bash scripts/deploy_hummingbot_api.sh install
+
+# Install with defaults (non-interactive: admin/admin)
+bash scripts/deploy_hummingbot_api.sh install --defaults
+
+# Upgrade existing installation
+bash scripts/deploy_hummingbot_api.sh upgrade
+
+# View container logs
+bash scripts/deploy_hummingbot_api.sh logs
+
+# Reset (stop and remove everything)
+bash scripts/deploy_hummingbot_api.sh reset
+```
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Git
+
+### Interpreting Output
+
+| Output | Meaning | Next Step |
+|--------|---------|-----------|
+| `✓ Hummingbot API deployed successfully` | Success | Proceed to `setup-gateway` |
+| `✓ Already installed and running` | Already set up | Proceed to `setup-gateway` |
+| `Error: Docker not found` | Docker not installed | Install Docker first |
+| `Error: Port 8000 already in use` | Another service on port | Stop conflicting service or use different port |
+
+### After Installation
+
+Once the API is running:
+1. Swagger UI is at `http://localhost:8000/docs`
+2. Default credentials: admin/admin
+3. Proceed to `setup-gateway` to enable DEX trading
+
+---
+
+## Command: setup-gateway
+
+Start the Gateway service, check its status, and configure key network parameters like RPC node URLs. Gateway is required for all LP operations on DEXs.
+
+**Prerequisite:** Hummingbot API must be running (`deploy-hummingbot-api`). The script checks this automatically.
+
+### Usage
+
+```bash
+# Check Gateway status
+bash scripts/setup_gateway.sh --status
+
+# Start Gateway with defaults
+bash scripts/setup_gateway.sh
+
+# Start Gateway with custom image (e.g., development build)
+bash scripts/setup_gateway.sh --image hummingbot/gateway:development
+
+# Start with custom Solana RPC (recommended to avoid rate limits)
+bash scripts/setup_gateway.sh --rpc-url https://your-rpc-endpoint.com
+
+# Configure RPC for a different network
+bash scripts/setup_gateway.sh --network ethereum-mainnet --rpc-url https://your-eth-rpc.com
+
+# Start with custom passphrase and port
+bash scripts/setup_gateway.sh --passphrase mypassword --port 15888
+```
+
+### Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--status` | | Check Gateway status only (don't start) |
+| `--image IMAGE` | `hummingbot/gateway:development` | Docker image to use |
+| `--passphrase TEXT` | `hummingbot` | Gateway passphrase |
+| `--rpc-url URL` | | Custom RPC endpoint for `--network` |
+| `--network ID` | `solana-mainnet-beta` | Network to configure RPC for |
+| `--port PORT` | `15888` | Gateway port |
+
+### Advanced: manage_gateway.py
+
+For finer control (stop, restart, logs, per-network config), use `manage_gateway.py`:
+
+```bash
+python scripts/manage_gateway.py status                    # Check status
+python scripts/manage_gateway.py start                     # Start Gateway
+python scripts/manage_gateway.py stop                      # Stop Gateway
+python scripts/manage_gateway.py restart                   # Restart Gateway
+python scripts/manage_gateway.py logs                      # View logs
+python scripts/manage_gateway.py networks                  # List all networks
+python scripts/manage_gateway.py network solana-mainnet-beta                          # Get network config
+python scripts/manage_gateway.py network solana-mainnet-beta --node-url https://...   # Set RPC node
+```
+
+### Interpreting Output
+
+| Output | Meaning | Next Step |
+|--------|---------|-----------|
+| `✓ Gateway is running` or `✓ Gateway started` | Success | Proceed to `add-wallet` |
+| `✓ Gateway is already running` | Already set up | Proceed to `add-wallet` |
+| `✗ Cannot connect to Hummingbot API` | API not running | Run `/lp-agent deploy-hummingbot-api` first |
+| `✗ Failed to start Gateway` | Docker issue | Check Docker is running, check logs |
+| `✓ RPC configured` + `✓ Gateway restarted` | Custom RPC set | Ready to use |
+
+### Custom RPC Nodes
+
+Gateway uses public RPC nodes by default, which can hit rate limits. Set a custom nodeUrl per network to avoid this.
+
+Popular Solana RPC providers:
+- [Helius](https://helius.dev/) — Free tier available
+- [QuickNode](https://quicknode.com/)
+- [Alchemy](https://alchemy.com/)
+- [Triton](https://triton.one/)
+
+---
+
+## Command: add-wallet
+
+Add a Solana wallet for trading.
+
+**Requires:** `deploy-hummingbot-api` and `setup-gateway` completed first.
+
+### Adding a Wallet
+
+```bash
+python scripts/add_wallet.py add
+```
+
+You'll be prompted to paste your private key (base58 format). The key is entered securely and won't appear in shell history.
+
+**Interpreting Output:**
+
+| Output | Meaning | Next Step |
+|--------|---------|-----------|
+| `✓ Wallet added successfully` + `Address: ABC...` | Success | Verify with `list` command |
+| `Error: HTTP 400 - Bad Request` | Invalid private key format | Check key is base58 encoded |
+| `Error: HTTP 503` | Gateway not available | Run `bash scripts/check_gateway.sh` |
+| `Error: Cannot connect to API` | API not running | Run `/lp-agent deploy-hummingbot-api` |
+
+### Listing Wallets
+
+```bash
+python scripts/add_wallet.py list
+```
+
+**Interpreting Output:**
+
+| Output | Meaning |
+|--------|---------|
+| `[solana] ABC123...XYZ` | Wallet connected on Solana |
+| `No wallets found.` | No wallets added yet |
+| Empty list `[]` (with --json) | No wallets added yet |
+
+### Checking Balances
+
+```bash
+# Check all balances
+python scripts/add_wallet.py balances
+
+# Filter by account
+python scripts/add_wallet.py balances --account master_account
+
+# Show zero balances too
+python scripts/add_wallet.py balances --all
+```
+
+### Requirements
+
+- **SOL for fees**: Wallet needs SOL for transaction fees (~0.06 SOL per LP position for rent)
+- **Default chain**: Solana mainnet-beta
+
+---
+
+## Command: explore-pools
+
+Find and explore Meteora DLMM pools before creating LP positions.
+
+**Note:** Pool listing (`list_meteora_pools.py`) works without any prerequisites — it queries the Meteora API directly. Pool details (`get_meteora_pool.py`) optionally uses Gateway for real-time price and liquidity charts.
 
 ### List Pools
 
@@ -125,7 +426,7 @@ When selecting a pool, consider:
 
 ---
 
-## Task 2: Strategy Selector
+## Command: select-strategy
 
 Help the user choose the right LP strategy. See `references/` for detailed guides.
 
@@ -171,9 +472,13 @@ Creates ONE liquidity position with fixed price bounds. No auto-rebalancing.
 
 ---
 
-## Task 3: Deployment
+## Command: run-strategy
 
-### Deploy LP Rebalancer Controller (Recommended)
+Run, monitor, and manage LP strategies.
+
+**Requires:** `deploy-hummingbot-api`, `setup-gateway`, and `add-wallet` completed first.
+
+### LP Rebalancer Controller (Recommended)
 
 > **Reference:** See `references/lp_rebalancer_guide.md` for full configuration details, rebalancing logic, and KEEP vs REBALANCE scenarios.
 
@@ -212,7 +517,7 @@ python scripts/manage_controller.py status
 | `--buy-max/--buy-min` | Price limits for BUY positions (anchor points) |
 | `--sell-max/--sell-min` | Price limits for SELL positions (anchor points) |
 
-### Deploy Single LP Executor (Alternative)
+### Single LP Executor (Alternative)
 
 > **Reference:** See `references/lp_executor_guide.md` for state machine, single/double-sided positions, and limit range orders.
 
@@ -277,9 +582,9 @@ python scripts/manage_executor.py stop <executor_id> --keep-position
 
 ---
 
-## Task 4: Analysis
+## Command: analyze-performance
 
-Use the analysis scripts to export data and generate visual dashboards. Scripts are in this skill's `scripts/` directory.
+Export data and generate visual dashboards from LP position events. Scripts are in this skill's `scripts/` directory.
 
 LP position events (ADD/REMOVE) are recorded **immediately** when transactions complete on-chain, so analysis works for both running and stopped bots.
 
@@ -335,19 +640,28 @@ python scripts/export_lp_positions.py --summary
 
 ### Common Workflows
 
-**Start LP Rebalancer:**
+**Full Setup (first time):**
 ```bash
-# 1. Find pool
+# 1. Deploy API
+bash scripts/deploy_hummingbot_api.sh install
+
+# 2. Start Gateway
+bash scripts/setup_gateway.sh --rpc-url https://your-rpc-endpoint.com
+
+# 3. Add wallet
+python scripts/add_wallet.py add
+
+# 4. Find pool
 python scripts/list_meteora_pools.py --query SOL-USDC
 
-# 2. Check bin_step
+# 5. Check bin_step
 python scripts/get_meteora_pool.py <pool_address>
 
-# 3. Create config and deploy
+# 6. Create config and deploy
 python scripts/manage_controller.py create-config my_lp --pool <pool_address> --pair SOL-USDC --amount 100
 python scripts/manage_controller.py deploy my_bot --configs my_lp
 
-# 4. Verify
+# 7. Verify
 python scripts/manage_controller.py status
 ```
 
@@ -360,10 +674,27 @@ python scripts/visualize_lp_positions.py --pair SOL-USDC
 python scripts/export_lp_positions.py --pair SOL-USDC
 ```
 
+### Checking Prerequisites
+
+Before running commands that need the API or Gateway, verify they're running:
+
+```bash
+bash scripts/check_api.sh       # Is Hummingbot API running?
+bash scripts/check_gateway.sh   # Is Gateway running? (also checks API)
+```
+
+Both support `--json` output. These scripts are also used internally by `setup_gateway.sh` and can be sourced by other shell scripts.
+
 ### Scripts Reference
 
 | Script | Purpose |
 |--------|---------|
+| `check_api.sh` | Check if Hummingbot API is running (shared) |
+| `check_gateway.sh` | Check if Gateway is running (shared) |
+| `deploy_hummingbot_api.sh` | Install/upgrade/manage Hummingbot API |
+| `setup_gateway.sh` | Start Gateway and configure RPC |
+| `add_wallet.py` | Add wallets and check balances |
+| `manage_gateway.py` | Advanced Gateway management |
 | `list_meteora_pools.py` | Search and list pools |
 | `get_meteora_pool.py` | Get pool details with liquidity chart |
 | `manage_executor.py` | Create, list, stop LP executors |

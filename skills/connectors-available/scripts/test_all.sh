@@ -3,9 +3,18 @@
 # Usage: ./test_all.sh [--connectors "conn1,conn2"] [--timeout 10] [--output file.json]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-API_URL="${API_URL:-localhost:8000}"
-API_USER="${API_USER:-admin}"
-API_PASS="${API_PASS:-admin}"
+
+# Load .env if present
+for f in hummingbot-api/.env ~/.hummingbot/.env .env; do
+    if [ -f "$f" ]; then
+        set -a; source "$f"; set +a
+        break
+    fi
+done
+
+API_URL="${HUMMINGBOT_API_URL:-http://localhost:8000}"
+API_USER="${USERNAME:-admin}"
+API_PASS="${PASSWORD:-admin}"
 TIMEOUT=10
 CONNECTORS=""
 OUTPUT_FILE="$SCRIPT_DIR/../data/trading_rules.json"
@@ -26,7 +35,7 @@ mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 # Get all connectors if not specified
 if [[ -z "$CONNECTORS" ]]; then
-    CONNECTORS=$(curl -s $AUTH "http://$API_URL/connectors/" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin)))")
+    CONNECTORS=$(curl -s $AUTH "$API_URL/connectors/" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin)))")
 fi
 
 echo ""
@@ -45,7 +54,7 @@ for connector in "${CONN_ARRAY[@]}"; do
 
     # Fetch trading rules
     result=$(curl -s $AUTH --max-time "$TIMEOUT" \
-        "http://$API_URL/connectors/$connector/trading-rules" 2>&1)
+        "$API_URL/connectors/$connector/trading-rules" 2>&1)
 
     # Check for error
     if echo "$result" | grep -q '"detail"'; then

@@ -5,7 +5,15 @@
 #
 set -eu
 
-API_URL="${API_URL:-http://localhost:8000}"
+# Load .env if present
+for f in hummingbot-api/.env ~/.hummingbot/.env .env; do
+    if [ -f "$f" ]; then
+        set -a; source "$f"; set +a
+        break
+    fi
+done
+
+API_URL="${HUMMINGBOT_API_URL:-http://localhost:8000}"
 
 echo "Verifying Hummingbot API installation..."
 echo ""
@@ -21,6 +29,6 @@ else
     echo ""
     echo "Troubleshooting:"
     echo "  1. Check if containers are running: docker ps | grep hummingbot"
-    echo "  2. View logs: cd ~/hummingbot-api && docker compose logs -f"
+    echo "  2. View logs: cd ./hummingbot-api && docker compose logs -f"
     exit 1
 fi

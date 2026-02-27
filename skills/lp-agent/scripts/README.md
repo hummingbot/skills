@@ -1,8 +1,15 @@
 # LP Agent Scripts
 
-Scripts for exploring Meteora pools, managing LP positions, and analyzing performance.
+Scripts for deploying infrastructure, exploring Meteora pools, managing LP positions, and analyzing performance.
 
 ## Scripts
+
+**Infrastructure:**
+- `deploy_hummingbot_api.sh` — Install/upgrade/manage Hummingbot API
+- `setup_gateway.sh` — Start Gateway (with custom image), configure RPC per network
+- `check_api.sh` — Shared: check if Hummingbot API is running (source or run directly)
+- `check_gateway.sh` — Shared: check if Gateway is running (source or run directly)
+- `add_wallet.py` — Add wallets and check balances
 
 **Pool Explorer:**
 - `list_meteora_pools.py` — Search and list Meteora DLMM pools
@@ -11,14 +18,11 @@ Scripts for exploring Meteora pools, managing LP positions, and analyzing perfor
 **Position Management:**
 - `manage_executor.py` — Create, monitor, and stop LP executors
 - `manage_controller.py` — Deploy and manage LP Rebalancer controllers
-- `manage_gateway.py` — Start/stop Gateway and configure RPC nodes
+- `manage_gateway.py` — Start/stop Gateway and configure RPC nodes (advanced)
 
 **Analysis:**
 - `export_lp_positions.py` — Export LP position events to CSV
 - `visualize_lp_positions.py` — Generate interactive HTML dashboard from LP position events
-
-**Prerequisites:**
-- `check_prerequisites.sh` — Check if hummingbot-api is running
 
 ---
 
@@ -418,9 +422,11 @@ python scripts/manage_controller.py delete-config my_lp_config
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `API_URL` | `http://localhost:8000` | Hummingbot API URL |
-| `API_USER` | `admin` | API username |
-| `API_PASS` | `admin` | API password |
+| `HUMMINGBOT_API_URL` | `http://localhost:8000` | Hummingbot API URL |
+| `USERNAME` | `admin` | API username |
+| `PASSWORD` | `admin` | API password |
+
+Scripts check for `.env` in: `./hummingbot-api/.env` → `~/.hummingbot/.env` → `.env`
 
 ---
 
@@ -491,8 +497,189 @@ Popular Solana RPC providers:
 
 ---
 
+## deploy_hummingbot_api.sh
+
+Install, upgrade, and manage the Hummingbot API trading infrastructure.
+
+### Requirements
+
+- Docker and Docker Compose
+- Git
+
+### Usage
+
+```bash
+# Check installation status
+bash scripts/deploy_hummingbot_api.sh status
+
+# Install (interactive)
+bash scripts/deploy_hummingbot_api.sh install
+
+# Install with defaults (non-interactive, admin/admin)
+bash scripts/deploy_hummingbot_api.sh install --defaults
+
+# Upgrade
+bash scripts/deploy_hummingbot_api.sh upgrade
+
+# View logs
+bash scripts/deploy_hummingbot_api.sh logs
+
+# Reset (stop and remove)
+bash scripts/deploy_hummingbot_api.sh reset
+```
+
+### Commands
+
+| Command | Description |
+|---|---|
+| `status` | Check if Hummingbot API is installed and running |
+| `install` | Clone repo and deploy (use `--defaults` for non-interactive) |
+| `upgrade` | Pull latest and redeploy |
+| `logs` | Show container logs |
+| `reset` | Stop containers and remove installation |
+
+---
+
+## check_api.sh
+
+Shared check script: verifies Hummingbot API is running. Can be sourced by other scripts or run directly.
+
+### Usage
+
+```bash
+# Run directly
+bash scripts/check_api.sh
+bash scripts/check_api.sh --json
+
+# Source in another script
+source scripts/check_api.sh
+check_api || echo "API not running"
+```
+
+---
+
+## check_gateway.sh
+
+Shared check script: verifies Gateway is running (also checks API). Can be sourced or run directly.
+
+### Usage
+
+```bash
+# Run directly
+bash scripts/check_gateway.sh
+bash scripts/check_gateway.sh --json
+
+# Source in another script
+source scripts/check_gateway.sh
+check_gateway || echo "Gateway not running"
+```
+
+---
+
+## setup_gateway.sh
+
+Start Gateway (with optional custom image), check status, and configure RPC endpoints per network. Gateway is required for all LP operations.
+
+### Requirements
+
+- Hummingbot API running (install with `deploy_hummingbot_api.sh`) — checked automatically via `check_api.sh`
+- Python 3.10+
+
+### Usage
+
+```bash
+# Check Gateway status
+bash scripts/setup_gateway.sh --status
+
+# Start Gateway with defaults
+bash scripts/setup_gateway.sh
+
+# Start with custom image (e.g., development build)
+bash scripts/setup_gateway.sh --image hummingbot/gateway:development
+
+# Start with custom RPC (recommended)
+bash scripts/setup_gateway.sh --rpc-url https://your-rpc-endpoint.com
+
+# Configure RPC for a different network
+bash scripts/setup_gateway.sh --network ethereum-mainnet --rpc-url https://your-eth-rpc.com
+
+# Custom passphrase and port
+bash scripts/setup_gateway.sh --passphrase mypassword --port 15888
+```
+
+### Options
+
+| Option | Default | Description |
+|---|---|---|
+| `--status` | | Check status only, don't start |
+| `--image IMAGE` | `hummingbot/gateway:latest` | Docker image to use |
+| `--passphrase TEXT` | `hummingbot` | Gateway passphrase |
+| `--rpc-url URL` | | Custom RPC endpoint for `--network` |
+| `--network ID` | `solana-mainnet-beta` | Network to configure RPC for |
+| `--port PORT` | `15888` | Gateway port |
+
+---
+
+## add_wallet.py
+
+Add and manage wallets via hummingbot-api Gateway.
+
+### Requirements
+
+- Python 3.10+
+- No pip dependencies — uses only the standard library
+- Gateway running (start with `setup_gateway.sh`)
+
+### Usage
+
+```bash
+# List connected wallets
+python scripts/add_wallet.py list
+
+# Add wallet (prompted for private key — secure)
+python scripts/add_wallet.py add
+
+# Add wallet with private key
+python scripts/add_wallet.py add --private-key <BASE58_KEY>
+
+# Check balances
+python scripts/add_wallet.py balances --address <WALLET_ADDRESS>
+
+# Check specific tokens
+python scripts/add_wallet.py balances --address <WALLET_ADDRESS> --tokens SOL USDC
+```
+
+### Commands
+
+| Command | Description |
+|---|---|
+| `list` | List all connected wallets |
+| `add` | Add a wallet (prompted or via `--private-key`) |
+| `balances` | Get wallet token balances |
+
+### Add Options
+
+| Option | Description |
+|---|---|
+| `--private-key` | Private key in base58. Omit to be prompted securely. |
+| `--chain` | Blockchain (default: solana) |
+| `--network` | Network (default: mainnet-beta) |
+
+### Balances Options
+
+| Option | Description |
+|---|---|
+| `--address` | Wallet address (required) |
+| `--tokens` | Specific token symbols to check |
+| `--chain` | Blockchain (default: solana) |
+| `--network` | Network (default: mainnet-beta) |
+| `--all` | Show zero balances too |
+
+---
+
 ## Notes
 
-- All scripts use only the Python standard library (no pip install required)
+- All Python scripts use only the standard library (no pip install required)
+- Shell scripts require Docker, Docker Compose, and Git
 - The HTML dashboard is fully self-contained (data inlined as JSON), shareable and archivable
 - LP position events are stored immediately on-chain, so analysis works for both running and stopped bots
