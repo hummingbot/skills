@@ -422,9 +422,11 @@ python scripts/manage_controller.py delete-config my_lp_config
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `API_URL` | `http://localhost:8000` | Hummingbot API URL |
-| `API_USER` | `admin` | API username |
-| `API_PASS` | `admin` | API password |
+| `HUMMINGBOT_API_URL` | `http://localhost:8000` | Hummingbot API URL |
+| `USERNAME` | `admin` | API username |
+| `PASSWORD` | `admin` | API password |
+
+Scripts check for `.env` in: `./hummingbot-api/.env` → `~/.hummingbot/.env` → `.env`
 
 ---
 

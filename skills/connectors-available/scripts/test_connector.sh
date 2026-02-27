@@ -2,10 +2,18 @@
 # Test if a connector is accessible from current location
 # Usage: ./test_connector.sh --connector <name> [--timeout 10]
 
+# Load .env if present
+for f in hummingbot-api/.env ~/.hummingbot/.env .env; do
+    if [ -f "$f" ]; then
+        set -a; source "$f"; set +a
+        break
+    fi
+done
+
 CONNECTOR=""
-API_URL="${API_URL:-localhost:8000}"
-API_USER="${API_USER:-admin}"
-API_PASS="${API_PASS:-admin}"
+API_URL="${HUMMINGBOT_API_URL:-http://localhost:8000}"
+API_USER="${USERNAME:-admin}"
+API_PASS="${PASSWORD:-admin}"
 TIMEOUT=10
 
 while [[ $# -gt 0 ]]; do
@@ -23,7 +31,7 @@ fi
 
 # Test by fetching trading rules - if it returns data, connector is available
 result=$(curl -s -u "$API_USER:$API_PASS" --max-time "$TIMEOUT" \
-    "http://$API_URL/connectors/$CONNECTOR/trading-rules" 2>&1)
+    "$API_URL/connectors/$CONNECTOR/trading-rules" 2>&1)
 
 # Check for error responses
 if echo "$result" | grep -q '"detail"'; then

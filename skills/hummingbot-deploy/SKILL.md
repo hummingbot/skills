@@ -39,16 +39,16 @@ This checks: container detection, TTY, Docker, Docker Compose, Git, Make.
 
 ## Install Hummingbot API
 
-**If ~/hummingbot-api already exists**, verify it's running by checking docker logs:
+**If ./hummingbot-api already exists**, verify it's running by checking docker logs:
 ```bash
-cd ~/hummingbot-api && make deploy && sleep 2 && docker logs hummingbot-api 2>&1 | grep -i "uvicorn running"
+cd ./hummingbot-api && make deploy && sleep 2 && docker logs hummingbot-api 2>&1 | grep -i "uvicorn running"
 ```
 If logs show "Uvicorn running", skip to "Install MCP Server". Otherwise, reset and reinstall.
 
 **Fresh install:**
 ```bash
-git clone https://github.com/hummingbot/hummingbot-api.git ~/hummingbot-api
-cd ~/hummingbot-api
+git clone https://github.com/hummingbot/hummingbot-api.git ./hummingbot-api
+cd ./hummingbot-api
 ```
 
 **On regular machines** (interactive TTY - check_env.sh shows "Interactive TTY: Yes"):
@@ -126,8 +126,8 @@ After all components are installed, tell the user:
 ## Install Condor (Optional)
 
 ```bash
-git clone https://github.com/hummingbot/condor.git ~/condor
-cd ~/condor
+git clone https://github.com/hummingbot/condor.git ./condor
+cd ./condor
 bash setup-environment.sh  # Prompts for Telegram bot token
 make deploy
 ```
@@ -135,7 +135,7 @@ make deploy
 ## Upgrade
 
 ```bash
-cd ~/hummingbot-api && git pull && make deploy
+cd ./hummingbot-api && git pull && make deploy
 ```
 
 ## Verify Installation
@@ -148,10 +148,10 @@ bash <(curl -s https://raw.githubusercontent.com/hummingbot/skills/main/skills/h
 
 ```bash
 # View logs
-cd ~/hummingbot-api && docker compose logs -f
+cd ./hummingbot-api && docker compose logs -f
 
 # Reset
-cd ~/hummingbot-api && docker compose down -v && rm -rf ~/hummingbot-api
+cd ./hummingbot-api && docker compose down -v && rm -rf ./hummingbot-api
 ```
 
 ## See Also

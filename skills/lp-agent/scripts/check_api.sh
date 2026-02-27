@@ -14,14 +14,14 @@
 set -e
 
 # Load .env if present
-for f in .env ~/.hummingbot/.env ~/.env; do
+for f in hummingbot-api/.env ~/.hummingbot/.env .env; do
     if [ -f "$f" ]; then
         set -a; source "$f"; set +a
         break
     fi
 done
 
-API_URL="${API_URL:-http://localhost:8000}"
+API_URL="${HUMMINGBOT_API_URL:-http://localhost:8000}"
 
 check_api() {
     local response

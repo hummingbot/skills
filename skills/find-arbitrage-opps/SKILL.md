@@ -87,10 +87,12 @@ Best Opportunities:
 ## Environment Variables
 
 ```bash
-export API_URL=http://localhost:8000
-export API_USER=admin
-export API_PASS=admin
+export HUMMINGBOT_API_URL=http://localhost:8000
+export USERNAME=admin
+export PASSWORD=admin
 ```
+
+Scripts check for `.env` in: `./hummingbot-api/.env` → `~/.hummingbot/.env` → `.env`
 
 ## Requirements
 

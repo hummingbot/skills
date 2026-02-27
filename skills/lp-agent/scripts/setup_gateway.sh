@@ -29,16 +29,16 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load .env
-for f in .env ~/.hummingbot/.env ~/.env; do
+for f in hummingbot-api/.env ~/.hummingbot/.env .env; do
     if [ -f "$f" ]; then
         set -a; source "$f"; set +a
         break
     fi
 done
 
-API_URL="${API_URL:-http://localhost:8000}"
-API_USER="${API_USER:-admin}"
-API_PASS="${API_PASS:-admin}"
+API_URL="${HUMMINGBOT_API_URL:-http://localhost:8000}"
+API_USER="${USERNAME:-admin}"
+API_PASS="${PASSWORD:-admin}"
 
 # Defaults
 PASSPHRASE="hummingbot"

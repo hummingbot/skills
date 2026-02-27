@@ -23,7 +23,7 @@
 #
 set -e
 
-INSTALL_DIR="${HUMMINGBOT_API_DIR:-$HOME/hummingbot-api}"
+INSTALL_DIR="${HUMMINGBOT_API_DIR:-./hummingbot-api}"
 REPO_URL="https://github.com/hummingbot/hummingbot-api.git"
 
 # Colors (if terminal supports it)
@@ -87,7 +87,7 @@ cmd_status() {
         docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || true
 
         # Verify API is responding
-        API_URL="${API_URL:-http://localhost:8000}"
+        API_URL="${HUMMINGBOT_API_URL:-http://localhost:8000}"
         if curl -s "$API_URL/docs" 2>/dev/null | grep -qi "swagger"; then
             echo ""
             ok "API is accessible at $API_URL"
