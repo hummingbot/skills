@@ -642,26 +642,12 @@ These scripts work directly from the **Hummingbot REST API** — no SQLite datab
 Use them when executors were deployed via the API directly (e.g., via `manage_executor.py`),
 because those do not always produce SQLite records the way bot containers do.
 
-**Export executor history to CSV:**
+**Export a single LP executor to CSV:**
 
 ```bash
-# Export all LP executors
-python scripts/export_lp_executor.py
-
-# Filter by trading pair
-python scripts/export_lp_executor.py --pair SOL-USDC
-
-# Filter by status
-python scripts/export_lp_executor.py --status TERMINATED
-
-# Summary stats only (no CSV)
-python scripts/export_lp_executor.py --summary
-
-# Custom output path
-python scripts/export_lp_executor.py --output exports/lp_executors.csv
-
-# Combine filters
-python scripts/export_lp_executor.py --pair SOL-USDC --status TERMINATED --output data/sol.csv
+python scripts/export_lp_executor.py --id <executor_id>
+python scripts/export_lp_executor.py --id <executor_id> --output exports/my_run.csv
+python scripts/export_lp_executor.py --id <executor_id> --print   # JSON to stdout
 ```
 
 CSV columns (LP executor schema):
@@ -672,30 +658,22 @@ CSV columns (LP executor schema):
 - **Config (deployment):** `pool_address, lower_price, upper_price, base_amount_config, quote_amount_config, side, position_offset_pct, auto_close_above_range_seconds, auto_close_below_range_seconds, keep_position`
 - **custom_info (live/final):** `state, position_address, current_price, lower_price_actual, upper_price_actual, base_amount_current, quote_amount_current, base_fee, quote_fee, fees_earned_quote, total_value_quote, unrealized_pnl_quote, position_rent, position_rent_refunded, tx_fee, out_of_range_seconds, max_retries_reached, initial_base_amount, initial_quote_amount`
 
-**Visualize LP executor dashboard (HTML):**
+**Visualize a single LP executor (HTML dashboard):**
 
 ```bash
-# All LP executors — multi-executor overview with KPI cards and PnL bar chart
-python scripts/visualize_lp_executor.py
-
-# Filter by pair
-python scripts/visualize_lp_executor.py --pair SOL-USDC
-
-# Filter by status
-python scripts/visualize_lp_executor.py --status TERMINATED
-
-# Single executor detail view (fetches 5m price candles from KuCoin when available)
 python scripts/visualize_lp_executor.py --id <executor_id>
-
-# Custom output path and skip auto-open
-python scripts/visualize_lp_executor.py --pair SOL-USDC --output report.html --no-open
+python scripts/visualize_lp_executor.py --id <executor_id> --output report.html
+python scripts/visualize_lp_executor.py --id <executor_id> --no-open
 ```
 
-**Dashboard features:**
-- **Multi-executor view:** KPI cards (total PnL, fees earned, win/loss count, win rate), executor table with status/state/range, PnL-per-executor bar chart
-- **Single executor view (`--id`):** Price chart with LP range + open/close markers (5m KuCoin candles; skipped for exotic pairs), token balance initial vs final bar chart, PnL breakdown (fees vs IL vs net), full LP position summary table with Solscan links
+**Dashboard panels:**
+- KPI cards: status, net PnL, fees earned, duration, LP range
+- Price chart with LP lower/upper bounds + open/close markers (5m KuCoin candles; auto-skipped for exotic pairs)
+- Token balance bar: initial vs final base + quote amounts
+- PnL breakdown: fees earned vs IL/price impact vs net PnL
+- Full position summary table with Solscan links for pool and position addresses
 - Dark theme (`#0d1117` / `#161b27`), responsive layout, Chart.js from CDN
-- Auth config auto-loaded from `~/mcp/.env` (keys: `HUMMINGBOT_API_URL`, `HUMMINGBOT_USERNAME`, `HUMMINGBOT_PASSWORD`)
+- Auth auto-loaded from `~/mcp/.env` (`HUMMINGBOT_API_URL`, `HUMMINGBOT_USERNAME`, `HUMMINGBOT_PASSWORD`)
 
 ---
 
