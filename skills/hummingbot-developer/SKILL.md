@@ -375,15 +375,44 @@ Build a Hummingbot wheel and/or Docker image from source.
 ```bash
 cd <HUMMINGBOT_DIR>
 conda activate hummingbot
-python setup.py bdist_wheel
+pip install build wheel  # if not already installed
+python -m build --wheel --no-isolation
 ```
 
 Wheel is output to `dist/hummingbot-*.whl`.
+
+**Important:** The wheel must be built with Python 3.12 to match hummingbot-api's environment.
 
 **Use this wheel to install into other envs:**
 ```bash
 pip install dist/hummingbot-*.whl --force-reinstall --no-deps
 ```
+
+### Build Linux wheel for Docker
+
+When building hummingbot-api Docker images, you need a **Linux wheel** (not macOS/Windows). Build inside Docker to ensure compatibility:
+
+```bash
+cd <HUMMINGBOT_DIR>
+
+# Build Linux wheel using Docker (Python 3.12 to match hummingbot-api)
+docker run --rm -v $(pwd):/hummingbot -w /hummingbot continuumio/miniconda3 bash -c "
+  apt-get update -qq && apt-get install -y -qq gcc g++ build-essential > /dev/null 2>&1 &&
+  conda create -n build python=3.12 cython numpy -y -q &&
+  conda run -n build pip install -q build wheel &&
+  conda run -n build python -m build --wheel
+"
+
+# Verify the Linux wheel was created
+ls dist/*linux*.whl
+# Example: hummingbot-20260126-cp312-cp312-linux_aarch64.whl
+```
+
+**Platform wheel suffixes:**
+- `linux_x86_64` — Linux AMD/Intel 64-bit
+- `linux_aarch64` — Linux ARM64 (Apple Silicon Docker, AWS Graviton)
+- `macosx_11_0_arm64` — macOS Apple Silicon (native only, NOT for Docker)
+- `macosx_10_9_x86_64` — macOS Intel (native only, NOT for Docker)
 
 ### Build Docker image
 
