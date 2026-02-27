@@ -580,13 +580,58 @@ python scripts/manage_executor.py stop <executor_id>
 python scripts/manage_executor.py stop <executor_id> --keep-position
 ```
 
+### After Stopping — Analyze Results
+
+**If the user ran an LP Executor** (via `manage_executor.py create` or direct API), immediately offer to analyze it:
+
+> Your executor has been stopped. Want me to generate a performance dashboard?
+
+Then run:
+```bash
+python scripts/visualize_lp_executor.py --id <executor_id>
+```
+
+The executor ID is returned when the executor is created (printed as `Executor ID: <id>`). If the user doesn't have it handy, fetch it from the API:
+
+```bash
+curl -s -u admin:admin -X POST http://localhost:8000/executors/search \
+  -H "Content-Type: application/json" \
+  -d '{"type":"lp_executor"}' | python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+items=data.get('data',data) if isinstance(data,dict) else data
+for ex in (items if isinstance(items,list) else [items]):
+    print(ex.get('executor_id') or ex.get('id'), ex.get('trading_pair'), ex.get('status'))
+"
+```
+
+To also export the raw data to CSV:
+```bash
+python scripts/export_lp_executor.py --id <executor_id>
+```
+
+**If the user ran a Rebalancer Controller bot**, the data lives in a SQLite file — use `analyze-performance` with the SQLite-based scripts instead.
+
 ---
 
 ## Command: analyze-performance
 
 Export data and generate visual dashboards from LP position events. Scripts are in this skill's `scripts/` directory.
 
-LP position events (ADD/REMOVE) are recorded **immediately** when transactions complete on-chain, so analysis works for both running and stopped bots.
+### Which Script to Use?
+
+**Always ask yourself: was this position deployed as an LP Executor (via `manage_executor.py` or direct API) or via a Rebalancer Controller bot?**
+
+| How it was deployed | Script to use |
+|---------------------|--------------|
+| **LP Executor** — `manage_executor.py create` or direct `POST /executors/` API | `visualize_lp_executor.py --id <executor_id>` ✅ |
+| **Rebalancer Controller** — `manage_controller.py deploy` (bot container, SQLite) | `visualize_lp_positions.py --pair <pair>` |
+| Not sure? | Run `curl -s -u admin:admin -X POST http://localhost:8000/executors/search -H "Content-Type: application/json" -d '{"type":"lp_executor"}'` — if the executor ID appears, use the executor scripts |
+
+**If the user has been running an LP Executor in this session** (executor ID is known from context), skip the question and go straight to:
+```bash
+python scripts/visualize_lp_executor.py --id <executor_id>
+```
 
 ### Available Scripts
 
