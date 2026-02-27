@@ -592,8 +592,10 @@ LP position events (ADD/REMOVE) are recorded **immediately** when transactions c
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/export_lp_positions.py` | Export LP position events to CSV |
-| `scripts/visualize_lp_positions.py` | Generate HTML dashboard from position events |
+| `scripts/export_lp_positions.py` | Export LP position events to CSV (SQLite/bot-container based) |
+| `scripts/visualize_lp_positions.py` | Generate HTML dashboard from position events (SQLite/bot-container based) |
+| `scripts/export_executor.py` | Export executor history to CSV via REST API |
+| `scripts/visualize_executor.py` | Generate HTML dashboard for executor performance via REST API |
 
 ### Visualize LP Positions
 
@@ -633,6 +635,69 @@ python scripts/export_lp_positions.py --pair SOL-USDC --output exports/positions
 # Show summary without exporting
 python scripts/export_lp_positions.py --summary
 ```
+
+### Executor Performance (API-based)
+
+These scripts work directly from the **Hummingbot REST API** — no SQLite database needed.
+Use them when executors were deployed via the API directly (e.g., via `manage_executor.py`),
+because those do not always produce SQLite records the way bot containers do.
+
+**Export executor history to CSV:**
+
+```bash
+# Export all executors
+python scripts/export_executor.py
+
+# Filter by trading pair
+python scripts/export_executor.py --pair SOL-USDC
+
+# Filter by connector
+python scripts/export_executor.py --connector meteora/clmm
+
+# Filter by status
+python scripts/export_executor.py --status TERMINATED
+
+# Summary stats only (no CSV)
+python scripts/export_executor.py --summary
+
+# Custom output path
+python scripts/export_executor.py --output exports/executors.csv
+
+# Combine filters
+python scripts/export_executor.py --pair SOL-USDC --status TERMINATED --output data/sol.csv
+```
+
+CSV columns: `executor_id, executor_type, trading_pair, connector_name, status, close_type,
+created_at, close_timestamp, duration_seconds, net_pnl_quote, net_pnl_pct, cum_fees_quote,
+filled_amount_quote, state, lower_price, upper_price, initial_base_amount, initial_quote_amount,
+base_amount_final, quote_amount_final, fees_earned_quote, position_rent, position_rent_refunded,
+tx_fee, out_of_range_seconds, auto_close_above_range_seconds, auto_close_below_range_seconds,
+pool_address, side`
+
+**Visualize executor dashboard (HTML):**
+
+```bash
+# All executors — multi-executor overview with KPI cards and PnL bar chart
+python scripts/visualize_executor.py
+
+# Filter by pair
+python scripts/visualize_executor.py --pair SOL-USDC
+
+# Filter by connector and status
+python scripts/visualize_executor.py --connector meteora/clmm --status TERMINATED
+
+# Single executor detail view (fetches real price candles from KuCoin)
+python scripts/visualize_executor.py --id <executor_id>
+
+# Custom output path and skip auto-open
+python scripts/visualize_executor.py --pair SOL-USDC --output report.html --no-open
+```
+
+**Dashboard features:**
+- **Multi-executor view:** KPI cards (total PnL, fees, win/loss count), sortable executor table, PnL-per-executor bar chart
+- **Single executor view (`--id`):** Price chart with LP range overlaid (5m KuCoin candles), PnL breakdown bar, full position summary table
+- Dark theme (`#0d1117` / `#161b27`), responsive layout, Chart.js from CDN
+- Auth config auto-loaded from `~/mcp/.env` (keys: `HUMMINGBOT_API_URL`, `HUMMINGBOT_USERNAME`, `HUMMINGBOT_PASSWORD`)
 
 ---
 
@@ -699,8 +764,10 @@ Both support `--json` output. These scripts are also used internally by `setup_g
 | `get_meteora_pool.py` | Get pool details with liquidity chart |
 | `manage_executor.py` | Create, list, stop LP executors |
 | `manage_controller.py` | Create configs, deploy bots, get status |
-| `export_lp_positions.py` | Export position events to CSV |
-| `visualize_lp_positions.py` | Generate HTML dashboard |
+| `export_lp_positions.py` | Export position events to CSV (SQLite/bot-container) |
+| `visualize_lp_positions.py` | Generate HTML dashboard (SQLite/bot-container) |
+| `export_executor.py` | Export executor history to CSV via REST API |
+| `visualize_executor.py` | Generate HTML dashboard for executors via REST API |
 
 ### Error Troubleshooting
 
