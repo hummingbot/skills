@@ -163,25 +163,32 @@ python scripts/create.py --list-controllers
 # List available scripts
 python scripts/create.py --list-scripts
 
-# Create a controller config interactively
-python scripts/create.py controller <config_name>
+# List existing configs
+python scripts/create.py --list-configs
 
-# Create a controller config with parameters
-python scripts/create.py controller my_mm_config \
-  --template pure_market_making \
-  --connector binance \
-  --trading-pair BTC-USDT \
-  --bid-spread 0.001 \
-  --ask-spread 0.001 \
-  --order-amount 0.001
-
-# Create a script config
-python scripts/create.py script my_script_config \
-  --script v2_with_controllers \
-  --controllers my_mm_config
+# Create a controller config
+python scripts/create.py controller my_mm_config --template pmm_v1
 ```
 
-**Controller templates:** `pure_market_making`, `cross_exchange_market_making`, `arbitrage`, etc.
+### Recommended Market Making Controllers
+
+| Controller | Best For | Description |
+|------------|----------|-------------|
+| **pmm_v1** | CEX spot trading | Clone of legacy PMM V1. Simple spreads, inventory skew, price bands. See [references/pmm_v1.md](references/pmm_v1.md) |
+| **pmm_mister** | Perpetual futures | Advanced PMM with position tracking, leverage, cooldowns, profit protection. See [references/pmm_mister.md](references/pmm_mister.md) |
+
+**PMM V1** - Use for spot market making when you want simple, proven logic:
+- Multi-level spreads (e.g., `buy_spreads: 0.005,0.01,0.015`)
+- Inventory skew to maintain balance
+- Order refresh with tolerance
+- Price ceiling/floor bands
+
+**PMM Mister** - Use for perpetuals when you need sophisticated risk management:
+- Hanging executors with effectivization
+- Separate buy/sell cooldowns after fills
+- Position profit protection (never sell below breakeven)
+- Level-specific tolerance scaling
+- Real-time conditions dashboard
 
 ---
 
