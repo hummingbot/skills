@@ -175,11 +175,11 @@ python scripts/create.py controller my_mm_config --template pmm_v1
 | Controller | Best For | Key Features |
 |------------|----------|--------------|
 | **pmm_v1** | CEX spot trading | Multi-level spreads, inventory skew, order refresh, price bands |
-| **pmm_mister** | Perpetual futures | Position tracking, leverage, cooldowns, profit protection, hanging executors |
+| **pmm_mister** | Spot & perpetuals | Position tracking, leverage, cooldowns, profit protection, hanging executors |
 
 **pmm_v1**: Faithful clone of the legacy Pure Market Making strategy. Configure `buy_spreads`, `sell_spreads`, `order_amount`, and enable `inventory_skew` to maintain balance.
 
-**pmm_mister**: Advanced controller for perpetuals with `leverage`, `take_profit`, `global_stop_loss`, separate `buy_cooldown_time`/`sell_cooldown_time`, and `position_profit_protection` to prevent selling below breakeven.
+**pmm_mister**: Advanced controller for spot and perpetual markets with `leverage`, `take_profit`, `global_stop_loss`, separate `buy_cooldown_time`/`sell_cooldown_time`, and `position_profit_protection` to prevent selling below breakeven.
 
 ---
 
