@@ -30,7 +30,6 @@ npx skills remove                                             # Remove installed
 | [connectors-available](./skills/connectors-available/) | Check exchange availability and search token trading rules | 41 |
 | [slides-generator](./skills/slides-generator/) | Create Hummingbot-branded PDF slides from markdown | 30 |
 | [find-arbitrage-opps](./skills/find-arbitrage-opps/) | Find arbitrage opportunities across exchanges for fungible pairs | 8 |
-| [portfolio](./skills/portfolio/) | View portfolio balances and positions across exchanges | 5 |
 | [hummingbot](./skills/hummingbot/) | Hummingbot CLI commands via API | 4 |
 | [hummingbot-developer](./skills/hummingbot-developer/) | Build and run Hummingbot stack from source | — |
 
