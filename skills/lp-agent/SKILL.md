@@ -594,8 +594,8 @@ LP position events (ADD/REMOVE) are recorded **immediately** when transactions c
 |--------|---------|
 | `scripts/export_lp_positions.py` | Export LP position events to CSV (SQLite/bot-container based) |
 | `scripts/visualize_lp_positions.py` | Generate HTML dashboard from position events (SQLite/bot-container based) |
-| `scripts/export_lp_executor.py` | Export LP executor history to CSV via REST API (no SQLite) |
-| `scripts/visualize_lp_executor.py` | Generate HTML dashboard for LP executor performance via REST API |
+| `scripts/export_lp_executor.py` | Export a single LP executor to CSV by `--id` (REST API, no SQLite) |
+| `scripts/visualize_lp_executor.py` | Generate HTML dashboard for a single LP executor by `--id` (REST API) |
 
 ### Visualize LP Positions
 
@@ -742,8 +742,8 @@ Both support `--json` output. These scripts are also used internally by `setup_g
 | `manage_controller.py` | Create configs, deploy bots, get status |
 | `export_lp_positions.py` | Export position events to CSV (SQLite/bot-container) |
 | `visualize_lp_positions.py` | Generate HTML dashboard (SQLite/bot-container) |
-| `export_lp_executor.py` | Export executor history to CSV via REST API |
-| `visualize_lp_executor.py` | Generate HTML dashboard for executors via REST API |
+| `export_lp_executor.py` | Export single LP executor to CSV by `--id` (REST API) |
+| `visualize_lp_executor.py` | HTML dashboard for single LP executor by `--id` (REST API) |
 
 ### Error Troubleshooting
 
