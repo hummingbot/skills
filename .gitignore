@@ -48,3 +48,5 @@ test-results/
 evals/condor/
 evals/hummingbot-api/
 evals/results/
+evals/*/results/
+__pycache__/
