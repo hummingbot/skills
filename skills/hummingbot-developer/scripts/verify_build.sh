@@ -151,20 +151,59 @@ fi
 header "4. Local Hummingbot in API Env"
 
 if conda env list 2>/dev/null | grep -q "^hummingbot-api "; then
-  HB_IN_API=$(conda run -n hummingbot-api python -c "import hummingbot; print(hummingbot.__file__)" 2>/dev/null || echo "")
-  if [[ "$HB_IN_API" == "$HBOT_DIR"* ]]; then
-    HB_VER=$(conda run -n hummingbot-api python -c "import hummingbot; print(getattr(hummingbot, '__version__', 'unknown'))" 2>/dev/null || echo "?")
-    result PASS "local hummingbot active" "$HB_IN_API"
-  elif [ -n "$HB_IN_API" ]; then
-    result WARN "using PyPI hummingbot" "$HB_IN_API — run: bash scripts/install_all.sh --skip-hbot --skip-gateway"
+  # Check via direct_url.json (works for editable installs in Python 3.12+ namespace packages)
+  DIRECT_URL=$(cat "$HOME/anaconda3/envs/hummingbot-api/lib/python3.12/site-packages/hummingbot-"*.dist-info/direct_url.json 2>/dev/null \
+    || conda run -n hummingbot-api python -c "
+import importlib.metadata, json, pathlib
+try:
+  d = importlib.metadata.distribution('hummingbot')
+  p = pathlib.Path(str(d._path)) / 'direct_url.json'
+  print(p.read_text() if p.exists() else '')
+except: print('')
+" 2>/dev/null)
+
+  if echo "$DIRECT_URL" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('dir_info',{}).get('editable') and '$HBOT_DIR' in d.get('url','')" 2>/dev/null; then
+    HB_VER=$(conda run -n hummingbot-api pip show hummingbot 2>/dev/null | grep "^Version:" | awk '{print $2}')
+    result PASS "local hummingbot active" "editable install → $HBOT_DIR (v$HB_VER)"
+  elif echo "$DIRECT_URL" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('dir_info',{}).get('editable')" 2>/dev/null; then
+    LOCAL_PATH=$(echo "$DIRECT_URL" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('url','').replace('file://',''))")
+    result WARN "editable install points elsewhere" "$LOCAL_PATH (expected $HBOT_DIR)"
   else
-    result FAIL "hummingbot not importable" "check conda env"
+    HB_LOC=$(conda run -n hummingbot-api pip show hummingbot 2>/dev/null | grep "^Location:" | awk '{print $2}')
+    result WARN "using non-editable hummingbot" "$HB_LOC — run: bash scripts/install_all.sh --skip-hbot --skip-gateway"
   fi
 else
   result WARN "hummingbot-api env" "not installed — run: bash scripts/install_all.sh"
 fi
 
-# ─── 5. Docker images ────────────────────────────────────────────────────────
+# ─── 5. Dev .env validation ──────────────────────────────────────────────────
+
+header "5. Dev .env Validation"
+
+ENV_FILE="$API_DIR/.env"
+if [ -f "$ENV_FILE" ]; then
+  # Check for Docker-internal hostnames that break source mode
+  if grep -v "^#" "$ENV_FILE" | grep -q "hummingbot-postgres"; then
+    result FAIL ".env DATABASE_URL" "uses Docker-internal hostname 'hummingbot-postgres' — run install_all.sh to fix"
+  else
+    DB_URL=$(grep "^DATABASE_URL" "$ENV_FILE" | cut -d= -f2-)
+    result PASS ".env DATABASE_URL" "$DB_URL"
+  fi
+
+  if grep -q "BROKER_HOST=emqx\|BROKER_HOST=hummingbot" "$ENV_FILE"; then
+    result FAIL ".env BROKER_HOST" "uses Docker-internal hostname — run install_all.sh to fix"
+  else
+    BROKER=$(grep "^BROKER_HOST" "$ENV_FILE" | cut -d= -f2-)
+    result PASS ".env BROKER_HOST" "$BROKER"
+  fi
+
+  GW_URL=$(grep "^GATEWAY_URL" "$ENV_FILE" | cut -d= -f2-)
+  result PASS ".env GATEWAY_URL" "${GW_URL:-not set}"
+else
+  result WARN ".env missing" "run install_all.sh to create it"
+fi
+
+# ─── 6. Docker images ────────────────────────────────────────────────────────
 
 if [ "$NO_DOCKER" = false ] && command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
   header "5. Docker Images"

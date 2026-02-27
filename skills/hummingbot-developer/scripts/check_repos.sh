@@ -46,8 +46,12 @@ HB_BUILT="false"
 # Check if local hummingbot is active in hummingbot-api env
 HB_LOCAL_IN_API="false"
 if conda env list 2>/dev/null | grep -q "^hummingbot-api "; then
-  HB_PATH=$(conda run -n hummingbot-api python -c "import hummingbot; print(hummingbot.__file__)" 2>/dev/null)
-  [[ "$HB_PATH" == "$HUMMINGBOT_DIR"* ]] && HB_LOCAL_IN_API="true"
+  _DU=$(find "$HOME/anaconda3/envs/hummingbot-api/lib" -name "direct_url.json" -path "*/hummingbot-*" 2>/dev/null | head -1)
+  if [ -n "$_DU" ]; then
+    _URL=$(python3 -c "import json; d=json.load(open('$_DU')); print(d.get('url',''))" 2>/dev/null)
+    _EDIT=$(python3 -c "import json; d=json.load(open('$_DU')); print(d.get('dir_info',{}).get('editable',False))" 2>/dev/null)
+    [[ "$_EDIT" == "True" && "$_URL" == *"$HUMMINGBOT_DIR"* ]] && HB_LOCAL_IN_API="true"
+  fi
 fi
 
 # Gateway

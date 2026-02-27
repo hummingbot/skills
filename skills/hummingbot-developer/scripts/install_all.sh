@@ -153,26 +153,29 @@ if [ "$SKIP_API" = false ]; then
   fi
   ok "conda env 'hummingbot-api' ready"
 
-  step "Run setup (creates .env if missing)"
-  if [ ! -f "$API_DIR/.setup-complete" ]; then
-    cat > "$API_DIR/.env" << EOF
+  step "Write dev .env (localhost URLs — fixes Docker-internal hostnames)"
+  # Always write the dev .env so DATABASE_URL and BROKER_HOST point to localhost.
+  # The Docker-based setup writes internal hostnames (hummingbot-postgres, emqx)
+  # which break when running the API from source outside of Docker.
+  cat > "$API_DIR/.env" << EOF
 USERNAME=admin
 PASSWORD=admin
 CONFIG_PASSWORD=admin
 DEBUG_MODE=false
+# MQTT broker — EMQX running in Docker, exposed on localhost:1883
 BROKER_HOST=localhost
 BROKER_PORT=1883
 BROKER_USERNAME=admin
 BROKER_PASSWORD=password
+# Postgres — running in Docker, exposed on localhost:5432
+# Note: Docker-based setup uses internal hostname 'hummingbot-postgres' — dev mode needs 'localhost'
 DATABASE_URL=postgresql+asyncpg://hbot:hummingbot-api@localhost:5432/hummingbot_api
 BOTS_PATH=$API_DIR/bots
+# Gateway — running from source on localhost:15888
 GATEWAY_URL=http://localhost:15888
 EOF
-    touch "$API_DIR/.setup-complete"
-    ok "Created .env with dev defaults"
-  else
-    ok ".env already configured"
-  fi
+  touch "$API_DIR/.setup-complete"
+  ok "Dev .env written (postgres + EMQX + gateway all on localhost)"
 
   step "Install solders into API env"
   conda run -n hummingbot-api pip install "solders>=0.19.0" --quiet
