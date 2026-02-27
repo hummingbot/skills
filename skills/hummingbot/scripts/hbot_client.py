@@ -2,10 +2,11 @@
 Shared Hummingbot API client helper.
 
 Auth priority:
-  1. ~/mcp/.env  (HUMMINGBOT_API_URL, HUMMINGBOT_USERNAME, HUMMINGBOT_PASSWORD)
+  1. ./hummingbot-api/.env  (USERNAME, PASSWORD from hummingbot-api setup)
   2. ~/.hummingbot/.env
-  3. Environment variables
-  4. Defaults: http://localhost:8000 / admin / admin
+  3. .env (current directory)
+  4. Environment variables
+  5. Defaults: http://localhost:8000 / admin / admin
 """
 
 import os
@@ -14,7 +15,7 @@ from hummingbot_api_client import HummingbotAPIClient
 
 
 ENV_PATHS = [
-    os.path.expanduser("~/mcp/.env"),
+    "hummingbot-api/.env",
     os.path.expanduser("~/.hummingbot/.env"),
     ".env",
 ]
@@ -38,13 +39,16 @@ def load_env():
 
 
 def get_config():
-    """Return (url, username, password) from env."""
+    """Return (url, username, password) from env.
+
+    Accepts both hummingbot-api names (USERNAME, PASSWORD) and
+    prefixed names (HUMMINGBOT_USERNAME, HUMMINGBOT_PASSWORD).
+    """
     load_env()
-    return (
-        os.environ.get("HUMMINGBOT_API_URL", "http://localhost:8000"),
-        os.environ.get("HUMMINGBOT_USERNAME", "admin"),
-        os.environ.get("HUMMINGBOT_PASSWORD", "admin"),
-    )
+    url = os.environ.get("HUMMINGBOT_API_URL", "http://localhost:8000")
+    username = os.environ.get("USERNAME") or os.environ.get("HUMMINGBOT_USERNAME", "admin")
+    password = os.environ.get("PASSWORD") or os.environ.get("HUMMINGBOT_PASSWORD", "admin")
+    return (url, username, password)
 
 
 @asynccontextmanager

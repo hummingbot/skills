@@ -1,290 +1,333 @@
 ---
 name: hummingbot
-description: >
-  General-purpose Hummingbot API skill for portfolio monitoring, CEX trading, bot management,
-  market data, and account management. Use when the user wants to check balances, place orders,
-  manage bots, view market data, or configure exchange accounts. For DEX/LP strategies on
-  Solana, use the lp-agent skill instead.
+description: Agent skill that faithfully reproduces Hummingbot CLI commands (connect, balance, create, start, stop, status, history) via Hummingbot API. V1 focuses on core trading workflows. For DEX/LP strategies on Solana, use lp-agent instead.
 metadata:
   author: hummingbot
   requires: hummingbot-api-client>=1.2.8
 commands:
+  connect:
+    description: List available exchanges and add API keys
+  balance:
+    description: Display asset balances across connected exchanges
+  create:
+    description: Create a new bot configuration (controller or script)
+  start:
+    description: Start a bot with a V2 strategy (controller or script)
+  stop:
+    description: Stop a running bot
   status:
-    description: API health check + running bots + portfolio snapshot
-  portfolio:
-    description: View balances, token distribution, and portfolio value
-  bots:
-    description: List, deploy, start, and stop trading bots
-  market:
-    description: Prices, order books, and candles for any trading pair
-  trade:
-    description: Place/cancel orders, view positions and trade history
-  accounts:
-    description: Manage accounts and exchange credentials
+    description: Display bot status and performance
+  history:
+    description: Display bot trading history
 ---
 
 # hummingbot
 
-General-purpose skill for interacting with the Hummingbot API. Covers portfolio monitoring,
-CEX trading, bot lifecycle management, market data, and account setup.
+When the skill is loaded, print this ASCII art:
 
-**Commands** (run as `/hummingbot <command>`):
+```
+                                      *,.
+                                    *,,.*
+                                   ,,,,    .,*
+                                 *,,,,,,,(       .,,
+                               *,,,,,,,,         .,,,                      *
+                              /,,,,,,,,,,    .*,,,,,,,
+                                 .,,,,,,,,,,,   .,,,,,,,,,,*
+
+                    //                ,,,,,,,,,,,,,,,,,,,,,,,,,,#*%
+                 .,,,,,,,. *,,,,,,,,,,,,,,,,,,,,,,,,,,,,,%%%%&@
+                      ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,%%%%%%%&
+                          ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,%%%%%%%%&
+                    /*,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,((%%%&
+              .**       #,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,((((((((#.
+           **             *,,,,,,,,,,,,,,,,,,,,,,**/(((((((((((*
+                           ,,,,,,,,,,,,,,,,,,,*******((((((((((
+                            (,,,,,,,,,,,************((((((((@
+                              *,,,,,,,,,,****************(#
+                               ,,,,,,,,,,,***************/
+                                ,,,,,,,,,,,***************/
+                                 ,,,,,,,,,,****************
+                                  .,,,,,,,,***************'/
+                                     ,,,,,,*******,
+                                     *,,,,,,********
+                                      ,,,,,,,,/******/
+                                       ,,,,,,,,@   /****/
+                                        ,,,,,,,,
+                                          , */
+
+ ██╗  ██╗██╗   ██╗███╗   ███╗███╗   ███╗██╗███╗   ██╗ ██████╗ ██████╗  ██████╗ ████████╗
+ ██║  ██║██║   ██║████╗ ████║████╗ ████║██║████╗  ██║██╔════╝ ██╔══██╗██╔═══██╗╚══██╔══╝
+ ███████║██║   ██║██╔████╔██║██╔████╔██║██║██╔██╗ ██║██║  ███╗██████╔╝██║   ██║   ██║
+ ██╔══██║██║   ██║██║╚██╔╝██║██║╚██╔╝██║██║██║╚██╗██║██║   ██║██╔══██╗██║   ██║   ██║
+ ██║  ██║╚██████╔╝██║ ╚═╝ ██║██║ ╚═╝ ██║██║██║ ╚████║╚██████╔╝██████╔╝╚██████╔╝   ██║
+ ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝  ╚═════╝    ╚═╝
+```
+
+This skill faithfully reproduces Hummingbot CLI commands via Hummingbot API, bringing the same
+trading workflows you know from Hummingbot to AI agents.
+
+> **Note:** Hummingbot API supports **V2 strategies only** (V2 Controllers and V2 Scripts).
+> V1 strategies are not supported and require the traditional Hummingbot client.
+
+## Commands
 
 | Command | Description |
 |---------|-------------|
-| `status` | API health + running bots + portfolio snapshot |
-| `portfolio` | Balances, distribution, total value |
-| `bots` | List, deploy, start, stop trading bots |
-| `market` | Prices, order books, candles |
-| `trade` | Place/cancel orders, positions, history |
-| `accounts` | Manage accounts and exchange credentials |
-
-## When to Use This Skill vs the MCP Server
-
-Think of them as parallel paths to the same destination:
-
-```
-Claude Code / Claude Desktop / Gemini CLI
-    → MCP protocol → hummingbot MCP server → Hummingbot API
-
-Lupin in OpenClaw (or any OpenClaw agent)
-    → hummingbot skill → hummingbot-api-client → Hummingbot API
-```
-
-The MCP server still has value for anyone using a tool that natively speaks MCP
-(Claude Code, Claude Desktop, Cursor, etc.). The `~/mcp` repo doesn't go away —
-it's just not the path OpenClaw agents use.
-
-This skill is the native OpenClaw integration. Same API, same capabilities,
-different plumbing that fits how OpenClaw actually works.
-
-- **Use this skill** when working through an OpenClaw agent (Telegram, WhatsApp, web chat)
-- **Use the MCP server** when working in Claude Code, Claude Desktop, Cursor, or Gemini CLI
-
-## Related Skills
-
-- **lp-agent** — Specialized DEX liquidity provision on Meteora/Solana. Use for CLMM strategies.
-  lp-agent manages its own API scripts independently. This skill covers CEX and general API usage.
-- **hummingbot-deploy** — First-time setup of the Hummingbot API server. Run this before using this skill.
+| `connect` | List available exchanges and add API keys |
+| `balance` | Display asset balances across connected exchanges |
+| `create` | Create a new bot configuration |
+| `start` | Start a bot with a V2 strategy |
+| `stop` | Stop a running bot |
+| `status` | Display bot status |
+| `history` | Display bot trading history |
 
 ## Prerequisites
 
-- Hummingbot API running at `http://localhost:8000` (deploy with `/hummingbot-deploy` or `/lp-agent deploy-hummingbot-api`)
+- Hummingbot API running at `http://localhost:8000` (deploy with `/hummingbot-deploy`)
 - `hummingbot-api-client` installed: `pip3 install hummingbot-api-client`
-- Credentials in `~/mcp/.env` (or env vars `HUMMINGBOT_API_URL`, `HUMMINGBOT_USERNAME`, `HUMMINGBOT_PASSWORD`)
 
 ## Auth & Config
 
-All scripts read credentials from these sources in order:
-1. `~/mcp/.env` — primary (set up during Hummingbot deploy)
+Scripts read credentials from these sources in order:
+1. `./hummingbot-api/.env` — created during `make setup`
 2. `~/.hummingbot/.env`
-3. Environment variables: `HUMMINGBOT_API_URL`, `HUMMINGBOT_USERNAME`, `HUMMINGBOT_PASSWORD`
+3. Environment variables: `HUMMINGBOT_API_URL`, `USERNAME`, `PASSWORD`
 4. Defaults: `http://localhost:8000`, `admin`, `admin`
 
 ---
 
-## Command: status
+## connect
 
-Quick health check: is the API running, what bots are active, and a portfolio snapshot.
+List available exchanges and add API keys to them.
 
 ```bash
+# List all available connectors
+python scripts/connect.py
+
+# List connectors with connection status
+python scripts/connect.py --status
+
+# Add API keys for an exchange
+python scripts/connect.py binance --api-key YOUR_KEY --secret-key YOUR_SECRET
+
+# Add API keys for exchange requiring passphrase
+python scripts/connect.py kucoin --api-key YOUR_KEY --secret-key YOUR_SECRET --passphrase YOUR_PASS
+
+# Remove credentials for an exchange
+python scripts/connect.py binance --remove
+```
+
+**Common credential fields by exchange:**
+- Binance: `--api-key`, `--secret-key`
+- KuCoin: `--api-key`, `--secret-key`, `--passphrase`
+- Gate.io: `--api-key`, `--secret-key`
+- OKX: `--api-key`, `--secret-key`, `--passphrase`
+
+---
+
+## balance
+
+Display your asset balances across all connected exchanges.
+
+```bash
+# Show all balances
+python scripts/balance.py
+
+# Show balances for a specific connector
+python scripts/balance.py binance
+
+# Show balances in USD
+python scripts/balance.py --usd
+
+# Show only non-zero balances
+python scripts/balance.py --non-zero
+```
+
+**Output columns:**
+- Exchange/Connector name
+- Asset symbol
+- Total balance
+- Available balance
+- USD value (with `--usd`)
+
+---
+
+## create
+
+Create a new bot configuration (controller config or script config).
+
+```bash
+# List available controller templates
+python scripts/create.py --list-controllers
+
+# List available scripts
+python scripts/create.py --list-scripts
+
+# Create a controller config interactively
+python scripts/create.py controller <config_name>
+
+# Create a controller config with parameters
+python scripts/create.py controller my_mm_config \
+  --template pure_market_making \
+  --connector binance \
+  --trading-pair BTC-USDT \
+  --bid-spread 0.001 \
+  --ask-spread 0.001 \
+  --order-amount 0.001
+
+# Create a script config
+python scripts/create.py script my_script_config \
+  --script v2_with_controllers \
+  --controllers my_mm_config
+```
+
+**Controller templates:** `pure_market_making`, `cross_exchange_market_making`, `arbitrage`, etc.
+
+---
+
+## start
+
+Start a bot with a V2 strategy configuration. **V1 strategies are not supported.**
+
+```bash
+# Interactive mode - prompts for strategy type
+python scripts/start.py <bot_name>
+
+# Start with a V2 Controller config
+python scripts/start.py <bot_name> --controller <config_name>
+
+# Start with a V2 Script
+python scripts/start.py <bot_name> --script <script_name>
+
+# Start with a V2 Script and config file
+python scripts/start.py <bot_name> --script <script_name> --config <config_name>
+
+# List running bots
+python scripts/start.py --list
+```
+
+**V2 Strategy Types:**
+- `--controller` — Deploy a V2 controller config (market making, arbitrage, etc.)
+- `--script` — Deploy a V2 script (e.g., `v2_with_controllers`)
+
+**Bot naming:** Use descriptive names like `btc_mm_bot`, `eth_arb_bot`, etc.
+
+---
+
+## stop
+
+Stop a running bot.
+
+```bash
+# Stop a bot by name
+python scripts/stop.py <bot_name>
+
+# Stop a bot and close all positions
+python scripts/stop.py <bot_name> --close-positions
+
+# Stop all running bots
+python scripts/stop.py --all
+
+# Examples
+python scripts/stop.py my_bot
+python scripts/stop.py arb_bot --close-positions
+```
+
+---
+
+## status
+
+Display bot status and performance metrics.
+
+```bash
+# List all bots with status
 python scripts/status.py
+
+# Get detailed status for a specific bot
+python scripts/status.py <bot_name>
+
+# Get status with performance metrics
+python scripts/status.py <bot_name> --performance
+
+# Get live status (refreshes)
+python scripts/status.py <bot_name> --live
 ```
 
-**Interpreting output:**
+**Status values:** `running`, `stopped`, `error`, `starting`
 
-| Output | Meaning |
-|--------|---------|
-| `✓ API running at http://localhost:8000` | Connected |
-| `✗ Cannot connect to API` | API down — run `make deploy` in `~/hummingbot-api` |
-| Running bots table | Shows active bots, status, strategy |
-| Portfolio snapshot | Total value + top holdings |
+**Performance metrics:**
+- Total trades
+- Profit/Loss (absolute and %)
+- Volume traded
+- Uptime
 
 ---
 
-## Command: portfolio
+## history
 
-View portfolio balances, token distribution, and total value across all accounts and exchanges.
-
-```bash
-# Full portfolio state
-python scripts/portfolio.py state
-
-# Total portfolio value (USD)
-python scripts/portfolio.py value
-
-# Token distribution (%)
-python scripts/portfolio.py distribution
-
-# Holdings for a specific token
-python scripts/portfolio.py token USDT
-
-# Filter by account
-python scripts/portfolio.py state --account master_account
-```
-
-**Interpreting output:**
-
-| Output | Meaning |
-|--------|---------|
-| Table of accounts/exchanges/balances | Normal portfolio view |
-| `Total: $X,XXX.XX` | Sum of all holdings in USD |
-| `No balances found` | No connected accounts or all zero balances |
-| `Error: 401 Unauthorized` | Wrong credentials — check `~/mcp/.env` |
-
----
-
-## Command: bots
-
-Manage bot lifecycle: list running bots, deploy new ones, start/stop.
+Display bot trading history.
 
 ```bash
-# List all active bots
-python scripts/bots.py list
+# Show trade history for a bot
+python scripts/history.py <bot_name>
 
-# Deploy a V2 controller bot
-python scripts/bots.py deploy <bot_name> --controller <config_name>
-
-# Deploy a script bot
-python scripts/bots.py deploy <bot_name> --script <script_name> [--config <config_name>]
-
-# Stop a bot
-python scripts/bots.py stop <bot_name>
-
-# Get bot status/logs
-python scripts/bots.py status <bot_name>
-python scripts/bots.py logs <bot_name> [--lines 50]
-
-# List available controllers and scripts
-python scripts/bots.py controllers
-python scripts/bots.py scripts
+# Show summary statistics
+python scripts/history.py <bot_name> --summary
 ```
 
-**Interpreting output:**
-
-| Output | Meaning |
-|--------|---------|
-| Bot table with `running` status | Bot is active |
-| `stopped` or `error` status | Bot not trading — check logs |
-| `✓ Bot deployed` | Successfully started |
-| `Error: Bot already exists` | Use `stop` first, then redeploy |
-
----
-
-## Command: market
-
-Fetch real-time market data: prices, order books, candles.
-
-```bash
-# Current price for a pair
-python scripts/market.py price binance_paper_trade BTC-USDT
-
-# Multiple pairs
-python scripts/market.py price binance_paper_trade BTC-USDT ETH-USDT SOL-USDT
-
-# Order book (top 10 levels)
-python scripts/market.py orderbook binance_paper_trade BTC-USDT [--depth 10]
-
-# Candles (OHLCV)
-python scripts/market.py candles binance_paper_trade BTC-USDT --interval 1m [--limit 100]
-
-# Funding rates (perpetuals)
-python scripts/market.py funding binance_perpetual BTC-USDT
-```
-
-**Connector examples:** `binance`, `binance_paper_trade`, `kucoin`, `gate_io`, `binance_perpetual`
-
----
-
-## Command: trade
-
-Place and manage trades across exchanges.
-
-```bash
-# Place a market order
-python scripts/trade.py order master_account binance BTC-USDT buy 0.001
-
-# Place a limit order
-python scripts/trade.py order master_account binance BTC-USDT buy 0.001 --price 85000 --type limit
-
-# List active orders
-python scripts/trade.py orders [--account master_account] [--connector binance]
-
-# Cancel an order
-python scripts/trade.py cancel master_account binance <order_id>
-
-# View open positions (perpetuals)
-python scripts/trade.py positions [--account master_account]
-
-# Trade history
-python scripts/trade.py history [--limit 50] [--account master_account]
-```
-
-**⚠️ Before placing real orders:** confirm exchange account is set up (`/hummingbot accounts`) and has funded balances (`/hummingbot portfolio`).
-
----
-
-## Command: accounts
-
-Manage trading accounts and exchange credentials.
-
-```bash
-# List all accounts
-python scripts/accounts.py list
-
-# Create a new account
-python scripts/accounts.py add <account_name>
-
-# Add exchange credentials to an account
-python scripts/accounts.py credentials <account_name> <connector>
-
-# List credentials for an account
-python scripts/accounts.py credentials <account_name>
-
-# Remove credentials
-python scripts/accounts.py remove-credentials <account_name> <connector>
-```
-
-**Connector credential fields vary by exchange.** The script will show required fields for the selected connector. Common fields:
-- Binance: `api_key`, `secret_key`
-- KuCoin: `api_key`, `secret_key`, `passphrase`
-- Gate.io: `api_key`, `secret_key`
+**History columns:**
+- Timestamp
+- Trading pair
+- Side (buy/sell)
+- Price
+- Amount
+- Fee
+- PnL
 
 ---
 
 ## Quick Reference
 
-### Common Workflows
+### Typical Workflow
 
-**Check everything is working:**
 ```bash
-python scripts/status.py
-```
+# 1. Connect to an exchange
+python scripts/connect.py binance --api-key XXX --secret-key YYY
 
-**View my portfolio:**
-```bash
-python scripts/portfolio.py value
-python scripts/portfolio.py distribution
-```
+# 2. Check your balances
+python scripts/balance.py binance
 
-**Check price and place a trade:**
-```bash
-python scripts/market.py price binance BTC-USDT
-python scripts/trade.py order master_account binance BTC-USDT buy 0.001 --price 85000 --type limit
-```
+# 3. Create a bot config
+python scripts/create.py controller btc_mm \
+  --template pure_market_making \
+  --connector binance \
+  --trading-pair BTC-USDT
 
-**Deploy a bot:**
-```bash
-python scripts/bots.py controllers          # See available configs
-python scripts/bots.py deploy my_bot --controller my_config
-python scripts/bots.py status my_bot
+# 4. Start the bot
+python scripts/start.py btc_bot --controller btc_mm
+
+# 5. Monitor status
+python scripts/status.py btc_bot
+
+# 6. Check history
+python scripts/history.py btc_bot
+
+# 7. Stop when done
+python scripts/stop.py btc_bot
 ```
 
 ### Troubleshooting
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `Cannot connect to API` | API not running | `cd ~/hummingbot-api && make deploy` |
-| `401 Unauthorized` | Bad credentials | Check `~/mcp/.env` |
-| `404 Not Found` | Wrong endpoint/bot name | Check spelling, use `list` first |
-| `hummingbot_api_client not found` | Package not installed | `pip3 install hummingbot-api-client` |
+| `Cannot connect to API` | API not running | `cd ./hummingbot-api && make deploy` |
+| `401 Unauthorized` | Bad credentials | Check `./hummingbot-api/.env` |
+| `Connector not found` | Invalid exchange name | Run `python scripts/connect.py` to list valid names |
+| `No credentials` | Exchange not connected | Run `python scripts/connect.py <exchange> --api-key ...` |
+
+---
+
+## Related Skills
+
+- **lp-agent** — Specialized DEX liquidity provision on Meteora/Solana. Use for CLMM strategies.
+- **hummingbot-deploy** — First-time setup of the Hummingbot API server. Run this before using this skill.
