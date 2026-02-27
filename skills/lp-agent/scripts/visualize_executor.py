@@ -737,6 +737,9 @@ def build_single_executor_html(executor, candles):
         def_row("Position Address", f'<span style="font-family:monospace;font-size:9px;word-break:break-all;">{position_address or "—"}</span>'),
     ])
 
+    lower_price_str = "{:.2f}".format(lower_price) if lower_price is not None else "—"
+    upper_price_str = "{:.2f}".format(upper_price) if upper_price is not None else "—"
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -798,7 +801,7 @@ def build_single_executor_html(executor, candles):
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Price Range</div>
-      <div class="kpi-value" style="font-size:13px;color:#e8eaed;">{lower_price:.2f if lower_price is not None else '—'} – {upper_price:.2f if upper_price is not None else '—'}</div>
+      <div class="kpi-value" style="font-size:13px;color:#e8eaed;">{lower_price_str} – {upper_price_str}</div>
       <div class="kpi-sub">LP bounds</div>
     </div>
   </div>
