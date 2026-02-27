@@ -51,8 +51,8 @@ API_BRANCH="${API_BRANCH:-development}"
 
 API_URL="${HUMMINGBOT_API_URL:-http://localhost:8000}"
 GATEWAY_URL="${GATEWAY_URL:-http://localhost:15888}"
-USERNAME="${USERNAME:-admin}"
-PASSWORD="${PASSWORD:-admin}"
+API_USER="${API_USER:-admin}"
+API_PASS="${API_PASS:-admin}"
 
 # Load .env
 for _p in "$API_DIR/.env" "$HOME/.hummingbot/.env" ".env"; do
@@ -259,7 +259,7 @@ if [ "$NO_RUNNING" = false ]; then
 
   # Quick integration check if both running
   if curl -s --max-time 3 "$API_URL/health" &>/dev/null && curl -s --max-time 3 "$GATEWAY_URL/" &>/dev/null; then
-    GW_STATUS=$(curl -s --max-time 5 -u "$USERNAME:$PASSWORD" "$API_URL/gateway/status" 2>/dev/null)
+    GW_STATUS=$(curl -s --max-time 5 -u "$API_USER:$API_PASS" "$API_URL/gateway/status" 2>/dev/null)
     if echo "$GW_STATUS" | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if d else 1)" 2>/dev/null; then
       result PASS "API→Gateway connected" "full stack operational"
     else

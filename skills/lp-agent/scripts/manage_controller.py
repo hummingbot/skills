@@ -26,8 +26,8 @@ Usage:
 
 Environment:
     HUMMINGBOT_API_URL - API base URL (default: http://localhost:8000)
-    USERNAME - API username (default: admin)
-    PASSWORD - API password (default: admin)
+    API_USER - API username (default: admin)
+    API_PASS - API password (default: admin)
 """
 
 import argparse
@@ -57,8 +57,8 @@ def get_api_config():
     load_env()
     return {
         "url": os.environ.get("HUMMINGBOT_API_URL", "http://localhost:8000"),
-        "user": os.environ.get("USERNAME", "admin"),
-        "password": os.environ.get("PASSWORD", "admin"),
+        "user": os.environ.get("API_USER", "admin"),
+        "password": os.environ.get("API_PASS", "admin"),
     }
 
 

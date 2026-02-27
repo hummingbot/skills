@@ -2,7 +2,7 @@
 Shared Hummingbot API client helper.
 
 Auth priority:
-  1. ./hummingbot-api/.env  (USERNAME, PASSWORD from hummingbot-api setup)
+  1. ./hummingbot-api/.env  (API_USER, API_PASS)
   2. ~/.hummingbot/.env
   3. .env (current directory)
   4. Environment variables
@@ -41,13 +41,13 @@ def load_env():
 def get_config():
     """Return (url, username, password) from env.
 
-    Accepts both hummingbot-api names (USERNAME, PASSWORD) and
-    prefixed names (HUMMINGBOT_USERNAME, HUMMINGBOT_PASSWORD).
+    Accepts both new names (API_USER, API_PASS) and
+    prefixed names (API_USER, API_PASS).
     """
     load_env()
     url = os.environ.get("HUMMINGBOT_API_URL", "http://localhost:8000")
-    username = os.environ.get("USERNAME") or os.environ.get("HUMMINGBOT_USERNAME", "admin")
-    password = os.environ.get("PASSWORD") or os.environ.get("HUMMINGBOT_PASSWORD", "admin")
+    username = os.environ.get("API_USER") or os.environ.get("API_USER", "admin")
+    password = os.environ.get("API_PASS") or os.environ.get("API_PASS", "admin")
     return (url, username, password)
 
 

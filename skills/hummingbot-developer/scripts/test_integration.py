@@ -25,8 +25,8 @@ import urllib.error
 
 API_URL = os.environ.get("HUMMINGBOT_API_URL", "http://localhost:8000")
 GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://localhost:15888")
-USERNAME = os.environ.get("USERNAME") or os.environ.get("HUMMINGBOT_USERNAME", "admin")
-PASSWORD = os.environ.get("PASSWORD") or os.environ.get("HUMMINGBOT_PASSWORD", "admin")
+API_USER = os.environ.get("API_USER") or os.environ.get("API_USER", "admin")
+API_PASS = os.environ.get("API_PASS") or os.environ.get("API_PASS", "admin")
 
 # Load .env file (first match wins)
 _ENV_PATHS = [
@@ -45,8 +45,8 @@ for _p in _ENV_PATHS:
         break
 
 API_URL = os.environ.get("HUMMINGBOT_API_URL", API_URL)
-USERNAME = os.environ.get("USERNAME") or os.environ.get("HUMMINGBOT_USERNAME", USERNAME)
-PASSWORD = os.environ.get("PASSWORD") or os.environ.get("HUMMINGBOT_PASSWORD", PASSWORD)
+API_USER = os.environ.get("API_USER") or os.environ.get("API_USER", USERNAME)
+API_PASS = os.environ.get("API_PASS") or os.environ.get("API_PASS", PASSWORD)
 
 
 def http_get(url, auth=None, timeout=5):
@@ -110,7 +110,7 @@ def run_tests(json_output=False):
     test("Gateway health", status == 200, f"{GATEWAY_URL}" if status == 200 else f"HTTP {status} — start with: pnpm start --passphrase=hummingbot --dev")
 
     # 4. API → Gateway connectivity
-    status, body = http_get(f"{API_URL}/gateway/status", auth=(USERNAME, PASSWORD))
+    status, body = http_get(f"{API_URL}/gateway/status", auth=(API_USER, API_PASS))
     gw_connected = status in (200, 503)  # 503 = gateway not available (API reached though)
     if status == 200:
         try:
@@ -127,7 +127,7 @@ def run_tests(json_output=False):
     test("API → Gateway", status == 200, detail)
 
     # 5. Connectors list
-    status, body = http_get(f"{API_URL}/connectors/", auth=(USERNAME, PASSWORD))
+    status, body = http_get(f"{API_URL}/connectors/", auth=(API_USER, API_PASS))
     if status == 200:
         try:
             connectors = json.loads(body)
@@ -139,7 +139,7 @@ def run_tests(json_output=False):
         test("Connectors list", False, f"HTTP {status}")
 
     # 6. Gateway wallets endpoint
-    status, body = http_get(f"{API_URL}/accounts/gateway/wallets", auth=(USERNAME, PASSWORD))
+    status, body = http_get(f"{API_URL}/accounts/gateway/wallets", auth=(API_USER, API_PASS))
     test("Gateway wallets endpoint", status in (200, 503), f"HTTP {status}")
 
     all_ok = all(r["ok"] for r in results)

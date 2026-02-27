@@ -88,8 +88,8 @@ Best Opportunities:
 
 ```bash
 export HUMMINGBOT_API_URL=http://localhost:8000
-export USERNAME=admin
-export PASSWORD=admin
+export API_USER=admin
+export API_PASS=admin
 ```
 
 Scripts check for `.env` in: `./hummingbot-api/.env` → `~/.hummingbot/.env` → `.env`

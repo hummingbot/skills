@@ -12,8 +12,8 @@ done
 
 CONNECTOR=""
 API_URL="${HUMMINGBOT_API_URL:-http://localhost:8000}"
-API_USER="${USERNAME:-admin}"
-API_PASS="${PASSWORD:-admin}"
+API_USER="${API_USER:-admin}"
+API_PASS="${API_PASS:-admin}"
 TIMEOUT=10
 
 while [[ $# -gt 0 ]]; do

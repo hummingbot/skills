@@ -66,13 +66,13 @@ export USER=${USER:-root}
 # Create .env manually (skip interactive setup)
 # Note: In containers, services communicate via Docker network (use container names, not localhost)
 cat > .env << EOF
-USERNAME=admin
-PASSWORD=admin
-CONFIG_PASSWORD=admin
+API_USER=admin
+API_PASS=admin
+CONFIG_API_PASS=admin
 DEBUG_MODE=false
 BROKER_HOST=hummingbot-broker
 BROKER_PORT=1883
-BROKER_USERNAME=admin
+BROKER_API_USER=admin
 BROKER_PASSWORD=password
 DATABASE_URL=postgresql+asyncpg://hbot:hummingbot-api@hummingbot-postgres:5432/hummingbot_api
 BOTS_PATH=/hummingbot-api/bots
@@ -104,7 +104,7 @@ Install the MCP server using your CLI's native command. Use the same credentials
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/hummingbot/skills/main/skills/hummingbot-deploy/scripts/install_mcp.sh) \
-  --agent <YOUR_CLI> --user <USERNAME> --pass <PASSWORD>
+  --agent <YOUR_CLI> --user <API_USER> --pass <API_PASS>
 ```
 
 Example for Claude (substitute your actual CLI name and credentials):

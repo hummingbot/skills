@@ -91,7 +91,7 @@ trading workflows you know from Hummingbot to AI agents.
 Scripts read credentials from these sources in order:
 1. `./hummingbot-api/.env` — created during `make setup`
 2. `~/.hummingbot/.env`
-3. Environment variables: `HUMMINGBOT_API_URL`, `USERNAME`, `PASSWORD`
+3. Environment variables: `HUMMINGBOT_API_URL`, `API_USER`, `API_PASS`
 4. Defaults: `http://localhost:8000`, `admin`, `admin`
 
 ---
