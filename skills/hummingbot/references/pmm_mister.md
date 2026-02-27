@@ -1,13 +1,13 @@
 # PMM Mister Controller
 
-An advanced Pure Market Making controller with sophisticated position management, designed for perpetual futures and margin trading.
+An advanced Pure Market Making controller with sophisticated position management, designed for both spot and perpetual futures markets.
 
 ## Overview
 
-PMM Mister extends basic market making with features critical for leveraged trading: hanging executors, position tracking, breakeven awareness, cooldowns, and dynamic risk management.
+PMM Mister extends basic market making with features critical for serious trading: hanging executors, position tracking, breakeven awareness, cooldowns, and dynamic risk management.
 
 **Best for:**
-- Perpetual futures market making
+- Spot and perpetual futures market making
 - Strategies requiring position-aware decisions
 - Advanced users who need fine-grained control over order timing and risk
 
