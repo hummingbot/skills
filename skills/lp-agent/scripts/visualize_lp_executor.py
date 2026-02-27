@@ -27,7 +27,7 @@ import webbrowser
 from datetime import datetime
 
 # ---------------------------------------------------------------------------
-# Auth / config  (API_URL / API_USER / API_PASS — same as other lp-agent scripts)
+# Auth / config  (HUMMINGBOT_API_URL / USERNAME / PASSWORD — same as other lp-agent scripts)
 # ---------------------------------------------------------------------------
 
 def load_env():
@@ -47,9 +47,9 @@ def get_api_config():
     """Get API configuration from environment."""
     load_env()
     return {
-        "url":      os.environ.get("API_URL",  "http://localhost:8000"),
-        "user":     os.environ.get("API_USER", "admin"),
-        "password": os.environ.get("API_PASS", "admin"),
+        "url":      os.environ.get("HUMMINGBOT_API_URL", "http://localhost:8000"),
+        "user":     os.environ.get("USERNAME", "admin"),
+        "password": os.environ.get("PASSWORD", "admin"),
     }
 
 
