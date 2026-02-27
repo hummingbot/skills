@@ -6,6 +6,8 @@ metadata:
 commands:
   start:
     description: Check dev environment — repo branches, prereqs, running services
+  install-deps:
+    description: Auto-install missing dev dependencies (conda, node, pnpm, docker, git)
   select-branches:
     description: Interactively pick branches for hummingbot, gateway, and hummingbot-api
   install-all:
@@ -62,7 +64,7 @@ Developer workflow skill for building and running the full Hummingbot stack from
 
 **Typical dev workflow:**
 ```
-select-branches → install-all → build-all → verify-build → run-dev-stack → test-integration
+install-deps → select-branches → install-all → build-all → verify-build → run-dev-stack → test-integration
 ```
 
 **Repo locations (all in workspace):**
@@ -74,6 +76,35 @@ select-branches → install-all → build-all → verify-build → run-dev-stack
 | hummingbot-api | `~/.openclaw/workspace/hummingbot-api` |
 
 Override with env vars: `HUMMINGBOT_DIR`, `GATEWAY_DIR`, `HUMMINGBOT_API_DIR`, or `WORKSPACE`.
+
+---
+
+## Command: install-deps
+
+Auto-install all missing dev dependencies. Safe to re-run — skips anything already installed.
+
+```bash
+bash scripts/install_deps.sh
+```
+
+**Installs (only if missing):**
+- Homebrew (macOS)
+- Xcode Command Line Tools (macOS — needed for Cython `build_ext`)
+- Miniconda (conda)
+- Node.js v22 (via nvm, Homebrew, or installs nvm)
+- pnpm (via npm or Homebrew)
+- Git
+- Docker Desktop (macOS — via Homebrew cask or opens download page)
+
+**Options:**
+```bash
+--check         # check only, don't install anything
+--conda         # only install conda
+--node          # only install node + nvm
+--pnpm          # only install pnpm
+```
+
+**After installing**, restart your terminal (or `source ~/.zshrc`) to apply PATH changes, then run `check_env.sh` to confirm.
 
 ---
 
