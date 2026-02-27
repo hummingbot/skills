@@ -26,8 +26,8 @@ for f in hummingbot-api/.env ~/.hummingbot/.env .env; do
 done
 
 API_URL="${HUMMINGBOT_API_URL:-http://localhost:8000}"
-API_USER="${USERNAME:-admin}"
-API_PASS="${PASSWORD:-admin}"
+API_USER="${API_USER:-admin}"
+API_PASS="${API_PASS:-admin}"
 
 check_gateway() {
     local auth status running
