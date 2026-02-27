@@ -23,14 +23,16 @@ npx skills remove                                             # Remove installed
 
 ## Available Skills
 
-| Skill | Description |
-|-------|-------------|
-| [hummingbot-deploy](./skills/hummingbot-deploy/) | Deploy Hummingbot API server, MCP server, and Condor Telegram bot |
-| [hummingbot](./skills/hummingbot/) | Hummingbot CLI commands (connect, balance, create, start, stop, status, history) via API |
-| [lp-agent](./skills/lp-agent/) | Automated liquidity provision on CLMM DEXs (Meteora/Solana) |
-| [connectors-available](./skills/connectors-available/) | Check exchange availability and search token trading rules |
-| [find-arbitrage-opps](./skills/find-arbitrage-opps/) | Find arbitrage opportunities across exchanges for fungible pairs |
-| [slides-generator](./skills/slides-generator/) | Create Hummingbot-branded PDF slides from markdown |
+| Skill | Description | Installs |
+|-------|-------------|:--------:|
+| [hummingbot-deploy](./skills/hummingbot-deploy/) | Deploy Hummingbot API server, MCP server, and Condor Telegram bot | 55 |
+| [lp-agent](./skills/lp-agent/) | Automated liquidity provision on CLMM DEXs (Meteora/Solana) | 49 |
+| [connectors-available](./skills/connectors-available/) | Check exchange availability and search token trading rules | 41 |
+| [slides-generator](./skills/slides-generator/) | Create Hummingbot-branded PDF slides from markdown | 30 |
+| [find-arbitrage-opps](./skills/find-arbitrage-opps/) | Find arbitrage opportunities across exchanges for fungible pairs | 8 |
+| [portfolio](./skills/portfolio/) | View portfolio balances and positions across exchanges | 5 |
+| [hummingbot](./skills/hummingbot/) | Hummingbot CLI commands via API | 4 |
+| [hummingbot-developer](./skills/hummingbot-developer/) | Build and run Hummingbot stack from source | — |
 
 ## Usage
 
