@@ -718,7 +718,7 @@ python scripts/visualize_lp_executor.py --id <executor_id> --no-open
 - PnL breakdown: fees earned vs IL/price impact vs net PnL
 - Full position summary table with Solscan links for pool and position addresses
 - Dark theme (`#0d1117` / `#161b27`), responsive layout, Chart.js from CDN
-- Auth auto-loaded from `~/mcp/.env` (`HUMMINGBOT_API_URL`, `HUMMINGBOT_USERNAME`, `HUMMINGBOT_PASSWORD`)
+- Auth auto-loaded from `.env` or `~/.hummingbot/.env` or `~/.env` (keys: `API_URL`, `API_USER`, `API_PASS`)
 
 ---
 

@@ -25,41 +25,37 @@ import urllib.request
 import urllib.error
 import webbrowser
 from datetime import datetime
-from pathlib import Path
-
 
 # ---------------------------------------------------------------------------
-# Auth / config
+# Auth / config  (API_URL / API_USER / API_PASS — same as other lp-agent scripts)
 # ---------------------------------------------------------------------------
 
 def load_env():
-    for env_file in [Path.home() / "mcp" / ".env", Path.home() / ".hummingbot" / ".env", Path(".env")]:
-        if env_file.exists():
-            try:
-                with open(env_file) as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and not line.startswith("#") and "=" in line:
-                            k, _, v = line.partition("=")
-                            k = k.strip()
-                            v = v.strip().strip('"').strip("'")
-                            if k and k not in os.environ:
-                                os.environ[k] = v
-            except Exception:
-                pass
+    """Load environment from .env files (first found wins)."""
+    for path in [".env", os.path.expanduser("~/.hummingbot/.env"), os.path.expanduser("~/.env")]:
+        if os.path.exists(path):
+            with open(path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, value = line.split("=", 1)
+                        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+            break
 
 
 def get_api_config():
+    """Get API configuration from environment."""
     load_env()
-    return (
-        os.environ.get("HUMMINGBOT_API_URL", "http://localhost:8000").rstrip("/"),
-        os.environ.get("HUMMINGBOT_USERNAME", "admin"),
-        os.environ.get("HUMMINGBOT_PASSWORD", "admin"),
-    )
+    return {
+        "url":      os.environ.get("API_URL",  "http://localhost:8000"),
+        "user":     os.environ.get("API_USER", "admin"),
+        "password": os.environ.get("API_PASS", "admin"),
+    }
 
 
-def auth_header(username, password):
-    return "Basic " + base64.b64encode(f"{username}:{password}".encode()).decode()
+def make_auth_header(cfg):
+    creds = base64.b64encode(f"{cfg['user']}:{cfg['password']}".encode()).decode()
+    return f"Basic {creds}"
 
 
 # ---------------------------------------------------------------------------
@@ -614,12 +610,12 @@ def main():
                         help="Don't auto-open in browser")
     args = parser.parse_args()
 
-    base_url, username, password = get_api_config()
-    hdrs = {"Authorization": auth_header(username, password)}
+    cfg  = get_api_config()
+    hdrs = {"Authorization": make_auth_header(cfg)}
 
-    print(f"Fetching executor {args.executor_id} from {base_url} ...")
+    print(f"Fetching executor {args.executor_id} from {cfg['url']} ...")
     try:
-        ex = fetch_executor(base_url, hdrs, args.executor_id)
+        ex = fetch_executor(cfg["url"], hdrs, args.executor_id)
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -637,7 +633,7 @@ def main():
     if pair and created_ts:
         end = close_ts if close_ts else int(time.time()) + 300
         print(f"Fetching 5m candles for {pair} from KuCoin ...")
-        candles = fetch_candles(base_url, hdrs, pair,
+        candles = fetch_candles(cfg["url"], hdrs, pair,
                                 start_time=created_ts - 300,
                                 end_time=end + 300)
         if candles:
