@@ -723,6 +723,93 @@ python scripts/test_integration.py
 
 ---
 
+## Docker-Based API Development
+
+For testing with Docker containers (instead of source), build a custom hummingbot-api image with your hummingbot wheel.
+
+### Step 1: Build Linux wheel for Docker
+
+```bash
+cd <HUMMINGBOT_DIR>
+
+# Build Linux wheel using Docker (Python 3.12)
+docker run --rm -v $(pwd):/hummingbot -w /hummingbot continuumio/miniconda3 bash -c "
+  apt-get update -qq && apt-get install -y -qq gcc g++ build-essential > /dev/null 2>&1 &&
+  conda create -n build python=3.12 cython numpy -y -q &&
+  conda run -n build pip install -q build wheel &&
+  conda run -n build python -m build --wheel
+"
+
+ls dist/*linux*.whl
+```
+
+### Step 2: Build hummingbot-api Docker image
+
+```bash
+cd <HUMMINGBOT_API_DIR>
+
+# Copy wheel to API directory
+cp <HUMMINGBOT_DIR>/dist/hummingbot-*-cp312-*-linux_*.whl .
+
+# Update environment.docker.yml with wheel filename
+# Then build using Dockerfile.dev
+docker build -f Dockerfile.dev -t hummingbot/hummingbot-api:dev .
+```
+
+### Step 3: Deploy with docker-compose.dev.yml
+
+```bash
+cd <HUMMINGBOT_API_DIR>
+docker compose -f docker-compose.dev.yml up -d
+```
+
+### Step 4: Verify development features
+
+```bash
+# Check lp_executor is available (only in development hummingbot)
+curl -s -u admin:admin http://localhost:8000/executors/types/available | grep lp_executor
+```
+
+---
+
+## Deploying Bots with Custom Images
+
+When deploying bots via the API, specify which hummingbot Docker image to use.
+
+### Deploy with development image
+
+```bash
+curl -X POST http://localhost:8000/bot-orchestration/deploy-v2-controllers \
+  -u admin:admin \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instance_name": "my-bot",
+    "credentials_profile": "master_account",
+    "controllers_config": ["my_controller.yml"],
+    "image": "hummingbot/hummingbot:development"
+  }'
+```
+
+### Available hummingbot images
+
+| Image | Description |
+|-------|-------------|
+| `hummingbot/hummingbot:latest` | Stable PyPI release (default) |
+| `hummingbot/hummingbot:development` | Development branch from Docker Hub |
+| `hummingbot/hummingbot:dev` | Locally built image |
+
+### DEX connectors require Gateway
+
+For connectors like `meteora/clmm`, Gateway must be running:
+
+```bash
+docker run -d --name gateway -p 15888:15888 \
+  -e GATEWAY_PASSPHRASE=admin \
+  hummingbot/gateway:development
+```
+
+---
+
 ## Quick Reference
 
 ### Full Dev Setup (first time)
