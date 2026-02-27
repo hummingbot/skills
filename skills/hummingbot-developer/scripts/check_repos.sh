@@ -7,6 +7,11 @@ for arg in "$@"; do
   [ "$arg" = "--json" ] && JSON=true
 done
 
+# Augment PATH for non-interactive shells
+for _p in "$HOME/anaconda3/bin" "$HOME/miniconda3/bin" "$HOME/miniforge3/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+  [ -d "$_p" ] && export PATH="$_p:$PATH"
+done
+
 WORKSPACE="${WORKSPACE:-$HOME/.openclaw/workspace}"
 # Resolve repo paths (env override or workspace defaults)
 HUMMINGBOT_DIR="${HUMMINGBOT_DIR:-$WORKSPACE/hummingbot}"

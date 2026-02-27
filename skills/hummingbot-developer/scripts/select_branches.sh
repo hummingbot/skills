@@ -16,6 +16,11 @@
 
 set -e
 
+# Augment PATH for non-interactive shells
+for _p in "$HOME/anaconda3/bin" "$HOME/miniconda3/bin" "$HOME/miniforge3/bin" "/opt/homebrew/bin" "/usr/local/bin"; do
+  [ -d "$_p" ] && export PATH="$_p:$PATH"
+done
+
 WORKSPACE="${WORKSPACE:-$HOME/.openclaw/workspace}"
 HBOT_DIR="$WORKSPACE/hummingbot"
 GATEWAY_DIR="$WORKSPACE/hummingbot-gateway"

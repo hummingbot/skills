@@ -11,6 +11,17 @@ ok()   { echo "  ✓ $*"; }
 fail() { echo "  ✗ $*"; }
 warn() { echo "  ! $*"; }
 
+# Augment PATH with common install locations for non-interactive shells
+for p in \
+  "$HOME/anaconda3/bin" \
+  "$HOME/miniconda3/bin" \
+  "$HOME/miniforge3/bin" \
+  "/opt/homebrew/bin" \
+  "/usr/local/bin" \
+  "/opt/homebrew/lib/node_modules/.bin"; do
+  [ -d "$p" ] && export PATH="$p:$PATH"
+done
+
 check_cmd() {
   local name="$1"
   local cmd="$2"
