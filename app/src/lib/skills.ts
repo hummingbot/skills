@@ -1,6 +1,7 @@
 import { SkillsData, Skill } from "./types";
 import { promises as fs } from "fs";
 import path from "path";
+import installsData from "@/data/installs.json";
 
 interface SkillFrontmatter {
   name: string;
@@ -50,12 +51,14 @@ export async function getSkillsData(): Promise<SkillsData> {
         const frontmatter = parseFrontmatter(content);
 
         if (frontmatter && frontmatter.name) {
+          const installs = (installsData as Record<string, number>)[entry.name] ?? 0;
           skills.push({
             id: entry.name,
             name: frontmatter.name,
             description: frontmatter.description,
             path: `skills/${entry.name}`,
             author: frontmatter.metadata?.author,
+            installs,
           });
         }
       } catch {
@@ -63,8 +66,8 @@ export async function getSkillsData(): Promise<SkillsData> {
       }
     }
 
-    // Sort by name
-    skills.sort((a, b) => a.name.localeCompare(b.name));
+    // Sort by installs (descending)
+    skills.sort((a, b) => b.installs - a.installs);
 
     return {
       repo: {

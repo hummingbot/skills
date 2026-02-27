@@ -35,6 +35,10 @@ export default async function Home() {
           <p className="text-muted-foreground font-mono text-xs tracking-widest uppercase mb-1">Skills</p>
           <p className="text-foreground font-mono text-2xl">{data.skills.length}</p>
         </div>
+        <div>
+          <p className="text-muted-foreground font-mono text-xs tracking-widest uppercase mb-1">Installs</p>
+          <p className="text-foreground font-mono text-2xl">{data.skills.reduce((sum, s) => sum + s.installs, 0)}</p>
+        </div>
       </div>
 
       {/* Search */}
@@ -59,6 +63,9 @@ export default async function Home() {
               </th>
               <th className="text-left px-4 py-3 text-muted-foreground font-mono text-xs tracking-widest uppercase hidden md:table-cell">
                 Creator
+              </th>
+              <th className="text-right px-4 py-3 text-muted-foreground font-mono text-xs tracking-widest uppercase hidden sm:table-cell">
+                Installs
               </th>
             </tr>
           </thead>
@@ -92,6 +99,11 @@ export default async function Home() {
                       <span className="text-sm">{skill.author}</span>
                     </a>
                   )}
+                </td>
+                <td className="px-4 py-4 text-right hidden sm:table-cell">
+                  <span className="text-muted-foreground font-mono text-sm">
+                    {skill.installs}
+                  </span>
                 </td>
               </tr>
             ))}

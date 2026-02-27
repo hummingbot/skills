@@ -25,9 +25,12 @@ npx skills remove                                             # Remove installed
 
 | Skill | Description |
 |-------|-------------|
-| [hummingbot-deploy](./skills/hummingbot-deploy/) | Deploy Hummingbot infrastructure |
-| [hummingbot](./skills/hummingbot/) | Portfolio, trading, bots, and market data via Hummingbot API (OpenClaw native) |
-| [lp-agent](./skills/lp-agent/) | CLMM liquidity provision agent |
+| [hummingbot-deploy](./skills/hummingbot-deploy/) | Deploy Hummingbot API server, MCP server, and Condor Telegram bot |
+| [hummingbot](./skills/hummingbot/) | Hummingbot CLI commands (connect, balance, create, start, stop, status, history) via API |
+| [lp-agent](./skills/lp-agent/) | Automated liquidity provision on CLMM DEXs (Meteora/Solana) |
+| [connectors-available](./skills/connectors-available/) | Check exchange availability and search token trading rules |
+| [find-arbitrage-opps](./skills/find-arbitrage-opps/) | Find arbitrage opportunities across exchanges for fungible pairs |
+| [slides-generator](./skills/slides-generator/) | Create Hummingbot-branded PDF slides from markdown |
 
 ## Usage
 
