@@ -594,8 +594,8 @@ LP position events (ADD/REMOVE) are recorded **immediately** when transactions c
 |--------|---------|
 | `scripts/export_lp_positions.py` | Export LP position events to CSV (SQLite/bot-container based) |
 | `scripts/visualize_lp_positions.py` | Generate HTML dashboard from position events (SQLite/bot-container based) |
-| `scripts/export_executor.py` | Export executor history to CSV via REST API |
-| `scripts/visualize_executor.py` | Generate HTML dashboard for executor performance via REST API |
+| `scripts/export_lp_executor.py` | Export LP executor history to CSV via REST API (no SQLite) |
+| `scripts/visualize_lp_executor.py` | Generate HTML dashboard for LP executor performance via REST API |
 
 ### Visualize LP Positions
 
@@ -645,57 +645,55 @@ because those do not always produce SQLite records the way bot containers do.
 **Export executor history to CSV:**
 
 ```bash
-# Export all executors
-python scripts/export_executor.py
+# Export all LP executors
+python scripts/export_lp_executor.py
 
 # Filter by trading pair
-python scripts/export_executor.py --pair SOL-USDC
-
-# Filter by connector
-python scripts/export_executor.py --connector meteora/clmm
+python scripts/export_lp_executor.py --pair SOL-USDC
 
 # Filter by status
-python scripts/export_executor.py --status TERMINATED
+python scripts/export_lp_executor.py --status TERMINATED
 
 # Summary stats only (no CSV)
-python scripts/export_executor.py --summary
+python scripts/export_lp_executor.py --summary
 
 # Custom output path
-python scripts/export_executor.py --output exports/executors.csv
+python scripts/export_lp_executor.py --output exports/lp_executors.csv
 
 # Combine filters
-python scripts/export_executor.py --pair SOL-USDC --status TERMINATED --output data/sol.csv
+python scripts/export_lp_executor.py --pair SOL-USDC --status TERMINATED --output data/sol.csv
 ```
 
-CSV columns: `executor_id, executor_type, trading_pair, connector_name, status, close_type,
-created_at, close_timestamp, duration_seconds, net_pnl_quote, net_pnl_pct, cum_fees_quote,
-filled_amount_quote, state, lower_price, upper_price, initial_base_amount, initial_quote_amount,
-base_amount_final, quote_amount_final, fees_earned_quote, position_rent, position_rent_refunded,
-tx_fee, out_of_range_seconds, auto_close_above_range_seconds, auto_close_below_range_seconds,
-pool_address, side`
+CSV columns (LP executor schema):
+- **Identity:** `id, account_name, controller_id, connector_name, trading_pair`
+- **State:** `status, close_type, is_active, is_trading, error_count`
+- **Timing:** `created_at, closed_at, close_timestamp, duration_seconds`
+- **PnL:** `net_pnl_quote, net_pnl_pct, cum_fees_quote, filled_amount_quote`
+- **Config (deployment):** `pool_address, lower_price, upper_price, base_amount_config, quote_amount_config, side, position_offset_pct, auto_close_above_range_seconds, auto_close_below_range_seconds, keep_position`
+- **custom_info (live/final):** `state, position_address, current_price, lower_price_actual, upper_price_actual, base_amount_current, quote_amount_current, base_fee, quote_fee, fees_earned_quote, total_value_quote, unrealized_pnl_quote, position_rent, position_rent_refunded, tx_fee, out_of_range_seconds, max_retries_reached, initial_base_amount, initial_quote_amount`
 
-**Visualize executor dashboard (HTML):**
+**Visualize LP executor dashboard (HTML):**
 
 ```bash
-# All executors — multi-executor overview with KPI cards and PnL bar chart
-python scripts/visualize_executor.py
+# All LP executors — multi-executor overview with KPI cards and PnL bar chart
+python scripts/visualize_lp_executor.py
 
 # Filter by pair
-python scripts/visualize_executor.py --pair SOL-USDC
+python scripts/visualize_lp_executor.py --pair SOL-USDC
 
-# Filter by connector and status
-python scripts/visualize_executor.py --connector meteora/clmm --status TERMINATED
+# Filter by status
+python scripts/visualize_lp_executor.py --status TERMINATED
 
-# Single executor detail view (fetches real price candles from KuCoin)
-python scripts/visualize_executor.py --id <executor_id>
+# Single executor detail view (fetches 5m price candles from KuCoin when available)
+python scripts/visualize_lp_executor.py --id <executor_id>
 
 # Custom output path and skip auto-open
-python scripts/visualize_executor.py --pair SOL-USDC --output report.html --no-open
+python scripts/visualize_lp_executor.py --pair SOL-USDC --output report.html --no-open
 ```
 
 **Dashboard features:**
-- **Multi-executor view:** KPI cards (total PnL, fees, win/loss count), sortable executor table, PnL-per-executor bar chart
-- **Single executor view (`--id`):** Price chart with LP range overlaid (5m KuCoin candles), PnL breakdown bar, full position summary table
+- **Multi-executor view:** KPI cards (total PnL, fees earned, win/loss count, win rate), executor table with status/state/range, PnL-per-executor bar chart
+- **Single executor view (`--id`):** Price chart with LP range + open/close markers (5m KuCoin candles; skipped for exotic pairs), token balance initial vs final bar chart, PnL breakdown (fees vs IL vs net), full LP position summary table with Solscan links
 - Dark theme (`#0d1117` / `#161b27`), responsive layout, Chart.js from CDN
 - Auth config auto-loaded from `~/mcp/.env` (keys: `HUMMINGBOT_API_URL`, `HUMMINGBOT_USERNAME`, `HUMMINGBOT_PASSWORD`)
 
@@ -766,8 +764,8 @@ Both support `--json` output. These scripts are also used internally by `setup_g
 | `manage_controller.py` | Create configs, deploy bots, get status |
 | `export_lp_positions.py` | Export position events to CSV (SQLite/bot-container) |
 | `visualize_lp_positions.py` | Generate HTML dashboard (SQLite/bot-container) |
-| `export_executor.py` | Export executor history to CSV via REST API |
-| `visualize_executor.py` | Generate HTML dashboard for executors via REST API |
+| `export_lp_executor.py` | Export executor history to CSV via REST API |
+| `visualize_lp_executor.py` | Generate HTML dashboard for executors via REST API |
 
 ### Error Troubleshooting
 
