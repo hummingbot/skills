@@ -209,6 +209,8 @@ Start the Gateway service, check its status, and configure key network parameter
 
 **Prerequisite:** Hummingbot API must be running (`deploy-hummingbot-api`). The script checks this automatically.
 
+> ⚠️ **Custom RPC is required — not optional.** The public Solana RPC is rate-limited and will cause transaction failures that look like "Insufficient funds" or "Transaction simulation failed". Always configure a custom RPC before deploying any bot. Get a free key at https://helius.dev.
+
 ### Usage
 
 ```bash
@@ -329,9 +331,26 @@ python scripts/add_wallet.py balances --account master_account
 python scripts/add_wallet.py balances --all
 ```
 
+### Adding a Custom Token to Gateway
+
+When using non-standard tokens (e.g. memecoins), add them to Gateway first:
+
+```bash
+# Use exact symbol from the pool (check with get_meteora_pool.py)
+python scripts/add_wallet.py add-token \
+  --symbol Percolator \
+  --address 8PzFWyLpCVEmbZmVJcaRTU5r69XKJx1rd7YGpWvnpump \
+  --decimals 6
+```
+
+> ⚠️ **Symbol must match the pool exactly.** Use `get_meteora_pool.py` to find the exact token symbol. If the pool shows `Percolator`, use `Percolator` — not `PRCLT` or any abbreviation. A mismatch causes "No CLMM pool found" errors when the bot tries to fetch price data.
+
+Then restart Gateway for the token to be recognized.
+
 ### Requirements
 
 - **SOL for fees**: Wallet needs SOL for transaction fees (~0.06 SOL per LP position for rent)
+- **Check actual balance before deploying**: Use `balances` command — the available amount in the SPL token account may differ from on-chain total (multiple accounts, staked, etc.)
 - **Default chain**: Solana mainnet-beta
 
 ---
@@ -484,20 +503,29 @@ Run, monitor, and manage LP strategies.
 
 Auto-rebalances positions when price moves out of range. Best for hands-off LP management.
 
+> **Key concepts:**
+> - `--amount` (`total_amount_quote`) = amount in **quote asset** (2nd token in pair). For `Percolator-SOL` → SOL. For `SOL-USDC` → USDC. Always quote, regardless of side.
+> - All `*_pct` params are already in percent. `position_width_pct: 10` = 10% width. Do NOT pass decimals (not 0.10).
+> - Price limits (`--buy-min/max`, `--sell-min/max`) default to `null` = no limit. Only set if you want a stop zone.
+
 ```bash
-# 1. Create LP Rebalancer config
+# 1. Create LP Rebalancer config (pool and pair are required)
 python scripts/manage_controller.py create-config my_lp_config \
     --pool <pool_address> \
     --pair SOL-USDC \
-    --amount 100 \
-    --side 1 \
-    --width 0.5 \
-    --offset 0.01 \
-    --rebalance-seconds 60 \
-    --sell-max 100 \
-    --sell-min 75 \
-    --buy-max 90 \
-    --buy-min 70
+    --amount 10 \       # 10 USDC (quote asset for SOL-USDC)
+    --side 0 \          # 0=BOTH, 1=BUY (quote only), 2=SELL (base only)
+    --width 10 \        # 10% range around current price
+    --offset 1 \        # center range 1% from current price
+    --rebalance-seconds 300 \
+    --rebalance-threshold 1
+
+# Side=2 example: deploy base token only (e.g. 110k PRCLT ≈ 1.33 SOL)
+python scripts/manage_controller.py create-config percolator_sell \
+    --pool ATrBUW2reZiyftzMQA1hEo8b7w7o8ZLrhPd7M7sPMSms \
+    --pair Percolator-SOL \
+    --amount 1.33 \     # 1.33 SOL worth (quote for Percolator-SOL pair)
+    --side 2
 
 # 2. Deploy bot with the config
 python scripts/manage_controller.py deploy my_lp_bot --configs my_lp_config
@@ -508,14 +536,17 @@ python scripts/manage_controller.py status
 
 **Key Parameters:**
 
-| Parameter | Description |
-|-----------|-------------|
-| `--amount` | Position size in quote currency |
-| `--side` | 0=BOTH, 1=BUY (quote-only), 2=SELL (base-only) |
-| `--width` | Position width % (must fit bin_step limits) |
-| `--rebalance-seconds` | Seconds out-of-range before rebalancing |
-| `--buy-max/--buy-min` | Price limits for BUY positions (anchor points) |
-| `--sell-max/--sell-min` | Price limits for SELL positions (anchor points) |
+| Parameter | Field | Default | Description |
+|-----------|-------|---------|-------------|
+| `--amount` | `total_amount_quote` | required | Amount in **quote asset** (2nd token). SOL for X-SOL pairs, USDC for X-USDC pairs. |
+| `--side` | `side` | `0` | `0`=BOTH, `1`=BUY (quote only), `2`=SELL (base only) |
+| `--width` | `position_width_pct` | `10` | Range width in % (e.g. `10` = ±10% around price). Already in pct — do not use decimals. |
+| `--offset` | `position_offset_pct` | `0.1` | Center offset from current price in %. Already in pct. |
+| `--rebalance-seconds` | `rebalance_seconds` | `300` | Seconds out-of-range before closing and reopening |
+| `--rebalance-threshold` | `rebalance_threshold_pct` | `1` | Min price move % to trigger rebalance. Already in pct. |
+| `--sell-max/--sell-min` | `sell_price_max/min` | `null` | Price limits for SELL side (`null` = no limit) |
+| `--buy-max/--buy-min` | `buy_price_max/min` | `null` | Price limits for BUY side (`null` = no limit) |
+| `--strategy-type` | `strategy_type` | `0` | Meteora shape: `0`=Spot (uniform), `1`=Curve (center-heavy), `2`=Bid-Ask (edge-heavy) |
 
 ### Single LP Executor (Alternative)
 
@@ -796,4 +827,113 @@ Both support `--json` output. These scripts are also used internally by `setup_g
 |-------|-------|----------|
 | "InvalidRealloc" | Position range too wide | Reduce `--width` (check bin_step limits) |
 | State stuck "OPENING" | Transaction failed | Stop executor, reduce range, retry |
+| "Insufficient funds" (wallet has funds) | RPC rate limit or wrong amount units | Add custom RPC key; verify `--amount` is in quote asset |
+| "Transaction simulation failed" | RPC rate limit masking as sim failure | Add custom RPC key (Helius/QuickNode) |
+| `'meteora/clmm'` KeyError | Gateway connector not registered yet | Use hummingbot-api PR #120+ (`feat/lp-executor` branch) |
+| "No CLMM pool found for X-Y" | Token symbol mismatch | Use exact symbol from pool (e.g. `Percolator` not `PRCLT`) |
+| "meteora/clmm is not ready" | Bot can't reach Gateway | Run Gateway as Docker container with `--network host`; dev-mode Gateway on macOS not reachable from containers |
+| "Failed to load strategy" / password error | Missing `.password_verification` in bot conf | Copy from `bots/credentials/master_account/.password_verification` to `bots/bots/instances/<bot>/conf/` |
+| `candles_config / markets extra inputs` | Stale script config format | Use minimal config: only `controllers_config` and `script_file_name` |
+| Bot shows "stopped" in API but running in Docker | MQTT not connected | Bot is running but API can't see it via MQTT; check bot logs directly |
+
+---
+
+## Critical Gotchas
+
+These caused real confusion in production — read before deploying.
+
+### 1. `total_amount_quote` is ALWAYS in quote asset
+
+The quote asset is the **2nd token** in the trading pair:
+
+| Pair | Quote Asset | Example: deploy 100k base tokens worth ~$100 |
+|------|-------------|----------------------------------------------|
+| `Percolator-SOL` | SOL | `--amount 1.33` (1.33 SOL ≈ $108) |
+| `SOL-USDC` | USDC | `--amount 108` (108 USDC) |
+| `RAY-SOL` | SOL | `--amount 2.5` (2.5 SOL) |
+
+Even for `--side 2` (SELL/base-only), you express the value in quote units. Convert: `base_tokens × price_in_quote = total_amount_quote`.
+
+### 2. All `*_pct` params are already in percent
+
+| Param | Correct | Wrong |
+|-------|---------|-------|
+| `position_width_pct: 10` | 10% range | ~~0.10~~ |
+| `position_offset_pct: 1` | 1% offset | ~~0.01~~ |
+| `rebalance_threshold_pct: 1` | 1% threshold | ~~0.01~~ |
+
+### 3. Token symbol must match pool exactly
+
+When adding a token to Gateway and configuring `--pair`, use the **exact symbol from the pool** (from `get_meteora_pool.py` or Meteora UI):
+
+```bash
+# Check pool token symbols first
+python scripts/get_meteora_pool.py <pool_address>
+# Look at "Symbol" column — use that exact string in --pair and when adding token to Gateway
+```
+
+Example: Percolator token symbol is `Percolator` (not `PRCLT`). Use `--pair Percolator-SOL`.
+
+### 4. Custom RPC is required before deploying (not optional)
+
+The public Solana RPC (`api.mainnet-beta.solana.com`) will rate-limit your bot, causing:
+- "Insufficient funds" errors (even when wallet has funds)
+- "Transaction simulation failed"
+- Failed position opens after 10 retries
+
+**Always configure a custom RPC before deploying:**
+```bash
+# Edit Gateway conf
+GATEWAY_DIR=~/.openclaw/workspace/hummingbot-gateway  # or your gateway dir
+nano "$GATEWAY_DIR/conf/chains/solana/mainnet-beta.yml"
+# Set: nodeURL: https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
+```
+Free key at https://helius.dev. Restart Gateway after.
+
+### 5. Gateway must run as Docker (not dev mode) on macOS
+
+On macOS, Docker containers cannot reach processes running on the host (even with `--network host`). The bot container **cannot** connect to a Gateway running in dev mode (`pnpm start`).
+
+**Always run Gateway as Docker:**
+```bash
+docker run -d --name gateway \
+  --network host \
+  -e GATEWAY_PASSPHRASE=hummingbot \
+  -v ~/.openclaw/workspace/hummingbot-gateway/conf:/home/gateway/conf \
+  -v ~/.openclaw/workspace/hummingbot-gateway/certs:/home/gateway/certs \
+  hummingbot/gateway:development
+```
+
+Then in bot's `conf_client.yml`: `gateway_api_host: localhost` (host networking resolves correctly inside Docker on macOS when gateway is also Docker with host network).
+
+### 6. Use `hummingbot:development` image, not `latest`
+
+The `latest` image may not have LP executor support. Always deploy with:
+```bash
+python scripts/manage_controller.py deploy my_bot --configs my_config
+# manage_controller.py defaults to hummingbot/hummingbot:development
+```
+
+### 7. Check wallet balance BEFORE calculating `--amount`
+
+```bash
+python scripts/add_wallet.py balances
+```
+
+Check which token account has funds — the wallet may have multiple SPL token accounts and balances can differ from expectations. Only the available balance in the specific token account can be deployed.
+
+### 8. Closing positions
+
+To close all positions on a pool:
+```bash
+# List open positions
+curl -s "http://localhost:15888/connectors/meteora/clmm/positions-owned?network=mainnet-beta&walletAddress=<WALLET>" 
+
+# Close each position
+curl -s -X POST http://localhost:15888/connectors/meteora/clmm/close-position \
+  -H "Content-Type: application/json" \
+  -d '{"network":"mainnet-beta","address":"<WALLET>","positionAddress":"<POSITION>"}'
+```
+
+Note: Gateway must be accessible. On macOS use `docker run --rm --network host alpine/curl ...` if Gateway is in Docker with host networking.
 | "Insufficient balance" | Not enough tokens | Check wallet has tokens + 0.06 SOL for rent |

@@ -62,7 +62,7 @@ def get_api_config():
     }
 
 
-def api_request(method: str, endpoint: str, data: dict | None = None) -> dict:
+def api_request(method: str, endpoint: str, data=None) -> dict:
     """Make authenticated API request."""
     config = get_api_config()
     url = f"{config['url']}{endpoint}"
@@ -334,21 +334,21 @@ def main():
     # create-config command
     create_parser = subparsers.add_parser("create-config", help="Create LP Rebalancer config")
     create_parser.add_argument("config_name", help="Config name")
-    create_parser.add_argument("--pool", default="HTvjzsfX3yU6BUodCjZ5vZkUrAxMDTrBs3CJaq43ashR", help="Pool address")
-    create_parser.add_argument("--pair", default="SOL-USDC", help="Trading pair (e.g., SOL-USDC)")
+    create_parser.add_argument("--pool", required=True, help="Pool address (from Meteora UI or list_meteora_pools.py)")
+    create_parser.add_argument("--pair", required=True, help="Trading pair matching pool tokens (e.g., SOL-USDC, Percolator-SOL). Use exact token symbols from Gateway.")
     create_parser.add_argument("--connector", default="meteora/clmm", help="Connector name")
     create_parser.add_argument("--network", default="solana-mainnet-beta", help="Network")
-    create_parser.add_argument("--amount", type=float, default=50, help="Total amount in quote currency")
-    create_parser.add_argument("--side", type=int, default=1, choices=[0, 1, 2], help="Side: 0=BOTH, 1=BUY, 2=SELL")
-    create_parser.add_argument("--width", type=float, default=0.5, help="Position width %%")
-    create_parser.add_argument("--offset", type=float, default=0.01, help="Position offset %%")
-    create_parser.add_argument("--rebalance-seconds", type=int, default=60, help="Rebalance seconds")
-    create_parser.add_argument("--rebalance-threshold", type=float, default=0.1, help="Rebalance threshold %%")
-    create_parser.add_argument("--sell-max", type=float, default=100, help="Sell price max (anchor)")
-    create_parser.add_argument("--sell-min", type=float, default=75, help="Sell price min")
-    create_parser.add_argument("--buy-max", type=float, default=90, help="Buy price max")
-    create_parser.add_argument("--buy-min", type=float, default=70, help="Buy price min (anchor)")
-    create_parser.add_argument("--strategy-type", type=int, default=0, choices=[0, 1, 2], help="Meteora strategy: 0=Spot, 1=Curve, 2=Bid-Ask")
+    create_parser.add_argument("--amount", type=float, required=True, help="Total amount in QUOTE asset (2nd token in pair). E.g. for Percolator-SOL this is SOL. For SOL-USDC this is USDC.")
+    create_parser.add_argument("--side", type=int, default=0, choices=[0, 1, 2], help="Side: 0=BOTH, 1=BUY (quote only), 2=SELL (base only)")
+    create_parser.add_argument("--width", type=float, default=10.0, help="Position width in pct (e.g. 10 = 10%% of current price above and below)")
+    create_parser.add_argument("--offset", type=float, default=0.1, help="Position offset in pct — how far center of range is from current price (default: 0.1%%)")
+    create_parser.add_argument("--rebalance-seconds", type=int, default=300, help="Seconds out-of-range before rebalancing (default: 300)")
+    create_parser.add_argument("--rebalance-threshold", type=float, default=1.0, help="Rebalance threshold in pct — minimum price movement to trigger rebalance (default: 1.0)")
+    create_parser.add_argument("--sell-max", type=float, default=None, help="Max price for SELL orders (default: null = no limit)")
+    create_parser.add_argument("--sell-min", type=float, default=None, help="Min price for SELL orders (default: null = no limit)")
+    create_parser.add_argument("--buy-max", type=float, default=None, help="Max price for BUY orders (default: null = no limit)")
+    create_parser.add_argument("--buy-min", type=float, default=None, help="Min price for BUY orders (default: null = no limit)")
+    create_parser.add_argument("--strategy-type", type=int, default=0, choices=[0, 1, 2], help="Meteora liquidity shape: 0=Spot (uniform), 1=Curve (concentrated center), 2=Bid-Ask (edges)")
     create_parser.add_argument("--json", action="store_true", help="Output as JSON")
     create_parser.set_defaults(func=create_config)
 
@@ -374,7 +374,7 @@ def main():
     deploy_parser.add_argument("bot_name", help="Bot name")
     deploy_parser.add_argument("--configs", nargs="+", required=True, help="Controller config names")
     deploy_parser.add_argument("--account", default="master_account", help="Account name (default: master_account)")
-    deploy_parser.add_argument("--image", default="hummingbot/hummingbot:latest", help="Docker image")
+    deploy_parser.add_argument("--image", default="hummingbot/hummingbot:development", help="Docker image")
     deploy_parser.add_argument("--max-global-drawdown", type=float, help="Max global drawdown in quote")
     deploy_parser.add_argument("--max-controller-drawdown", type=float, help="Max controller drawdown in quote")
     deploy_parser.add_argument("--script-config", help="Script config name (auto-generated if not provided)")
