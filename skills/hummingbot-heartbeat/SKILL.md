@@ -1,11 +1,11 @@
 ---
 name: hummingbot-heartbeat
-description: Hourly status heartbeat for Hummingbot API, Gateway, active bots/controllers, executors, and portfolio. Run as a cron job to get proactive status updates.
+description: OpenClaw cron job that delivers hourly Hummingbot status updates to your chat — API health, Gateway container, active bots/controllers, executors, and portfolio balances.
 ---
 
 # hummingbot-heartbeat
 
-Delivers a formatted hourly status report covering Hummingbot API health, Gateway container, active bots/controllers, executors, and portfolio balances.
+An OpenClaw cron skill that runs every hour and delivers a formatted Hummingbot status report to your connected chat channel (Telegram, Discord, etc.). Covers API health, Gateway container, active bots/controllers, executors, and portfolio balances.
 
 ## Installation
 
@@ -17,27 +17,18 @@ Or manually clone into your skills directory.
 
 ## Quick Start
 
-### 1. Run manually
+### 1. Set up the OpenClaw cron job
+
+Ask your OpenClaw agent:
+
+> "Set up the hummingbot-heartbeat cron job"
+
+The agent will resolve the skill path and register it with `openclaw cron`. Or do it manually:
 
 ```bash
-# From the skill directory
-python3 scripts/bot_status.py
-
-# JSON output
-python3 scripts/bot_status.py --json
-```
-
-### 2. Set up hourly cron
-
-Ask your agent:
-
-> "Set up the hummingbot-heartbeat cron job to run every hour and send me status on Telegram"
-
-Or run the CLI yourself — replace `<SKILL_PATH>` with wherever the skill is installed (e.g. `~/.openclaw/workspace/skills/hummingbot-heartbeat`):
-
-```bash
+# Replace <SKILL_PATH> with the actual installed path
 openclaw cron add \
-  --name "bot-status" \
+  --name "hummingbot-heartbeat" \
   --description "Hourly Hummingbot status check" \
   --every 1h \
   --announce \
@@ -45,7 +36,12 @@ openclaw cron add \
   --message "Run this and send output verbatim: python3 <SKILL_PATH>/scripts/bot_status.py"
 ```
 
-> **Note:** When an agent installs this skill, it should resolve `<SKILL_PATH>` to the actual installed path before creating the cron job.
+### 2. Run manually (debug)
+
+```bash
+python3 scripts/bot_status.py
+python3 scripts/bot_status.py --json
+```
 
 ## Configuration
 
