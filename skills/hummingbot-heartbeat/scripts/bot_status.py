@@ -112,12 +112,11 @@ def main():
         for e in active_executors
     ]
 
-    # 5. Portfolio
-    portfolio_data, _ = api_request("/portfolio/history", method="POST", data={})
-    if portfolio_data and portfolio_data.get("data"):
-        latest = portfolio_data["data"][-1].get("state", {})
-        tokens = []
-        for account, networks in latest.items():
+    # 5. Portfolio — try live refresh first, fall back to history cache
+    portfolio_data, _ = api_request("/portfolio/state", method="POST", data={"refresh": True})
+    tokens = []
+    if portfolio_data:
+        for account, networks in portfolio_data.items():
             for network, balances in networks.items():
                 for b in balances:
                     if b.get("value", 0) > 0.01:
@@ -127,8 +126,25 @@ def main():
                             "price": b.get("price", 0),
                             "value": b.get("value", 0),
                         })
-        tokens.sort(key=lambda x: x["value"], reverse=True)
-        result["portfolio"] = tokens
+
+    if not tokens:
+        # Fall back to history cache
+        history_data, _ = api_request("/portfolio/history", method="POST", data={})
+        if history_data and history_data.get("data"):
+            latest = history_data["data"][-1].get("state", {})
+            for account, networks in latest.items():
+                for network, balances in networks.items():
+                    for b in balances:
+                        if b.get("value", 0) > 0.01:
+                            tokens.append({
+                                "token": b["token"],
+                                "units": b["units"],
+                                "price": b.get("price", 0),
+                                "value": b.get("value", 0),
+                            })
+
+    tokens.sort(key=lambda x: x["value"], reverse=True)
+    result["portfolio"] = tokens
 
     if args.json:
         print(json.dumps(result, indent=2))
