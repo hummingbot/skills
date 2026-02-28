@@ -341,7 +341,7 @@ def main():
     create_parser.add_argument("--amount", type=float, required=True, help="Total amount in QUOTE asset (2nd token in pair). E.g. for Percolator-SOL this is SOL. For SOL-USDC this is USDC.")
     create_parser.add_argument("--side", type=int, default=0, choices=[0, 1, 2], help="Side: 0=BOTH, 1=BUY (quote only), 2=SELL (base only)")
     create_parser.add_argument("--width", type=float, default=10.0, help="Position width in pct (e.g. 10 = 10%% of current price above and below)")
-    create_parser.add_argument("--offset", type=float, default=1.0, help="Position offset in pct — how far center of range is from current price")
+    create_parser.add_argument("--offset", type=float, default=0.1, help="Position offset in pct — how far center of range is from current price (default: 0.1%%)")
     create_parser.add_argument("--rebalance-seconds", type=int, default=300, help="Seconds out-of-range before rebalancing (default: 300)")
     create_parser.add_argument("--rebalance-threshold", type=float, default=1.0, help="Rebalance threshold in pct — minimum price movement to trigger rebalance (default: 1.0)")
     create_parser.add_argument("--sell-max", type=float, default=None, help="Max price for SELL orders (default: null = no limit)")

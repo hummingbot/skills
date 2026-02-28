@@ -541,7 +541,7 @@ python scripts/manage_controller.py status
 | `--amount` | `total_amount_quote` | required | Amount in **quote asset** (2nd token). SOL for X-SOL pairs, USDC for X-USDC pairs. |
 | `--side` | `side` | `0` | `0`=BOTH, `1`=BUY (quote only), `2`=SELL (base only) |
 | `--width` | `position_width_pct` | `10` | Range width in % (e.g. `10` = ±10% around price). Already in pct — do not use decimals. |
-| `--offset` | `position_offset_pct` | `1` | Center offset from current price in %. Already in pct. |
+| `--offset` | `position_offset_pct` | `0.1` | Center offset from current price in %. Already in pct. |
 | `--rebalance-seconds` | `rebalance_seconds` | `300` | Seconds out-of-range before closing and reopening |
 | `--rebalance-threshold` | `rebalance_threshold_pct` | `1` | Min price move % to trigger rebalance. Already in pct. |
 | `--sell-max/--sell-min` | `sell_price_max/min` | `null` | Price limits for SELL side (`null` = no limit) |
