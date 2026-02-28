@@ -506,7 +506,7 @@ Auto-rebalances positions when price moves out of range. Best for hands-off LP m
 > **Key concepts:**
 > - `--amount` (`total_amount_quote`) = amount in **quote asset** (2nd token in pair). For `Percolator-SOL` → SOL. For `SOL-USDC` → USDC. Always quote, regardless of side.
 > - All `*_pct` params are already in percent. `position_width_pct: 10` = 10% width. Do NOT pass decimals (not 0.10).
-> - Price limits (`--buy-min/max`, `--sell-min/max`) default to `0` = no limit. Only set if you want a stop zone.
+> - Price limits (`--buy-min/max`, `--sell-min/max`) default to `null` = no limit. Only set if you want a stop zone.
 
 ```bash
 # 1. Create LP Rebalancer config (pool and pair are required)
@@ -544,8 +544,8 @@ python scripts/manage_controller.py status
 | `--offset` | `position_offset_pct` | `1` | Center offset from current price in %. Already in pct. |
 | `--rebalance-seconds` | `rebalance_seconds` | `300` | Seconds out-of-range before closing and reopening |
 | `--rebalance-threshold` | `rebalance_threshold_pct` | `1` | Min price move % to trigger rebalance. Already in pct. |
-| `--sell-max/--sell-min` | `sell_price_max/min` | `0` | Price limits for SELL side (`0` = no limit) |
-| `--buy-max/--buy-min` | `buy_price_max/min` | `0` | Price limits for BUY side (`0` = no limit) |
+| `--sell-max/--sell-min` | `sell_price_max/min` | `null` | Price limits for SELL side (`null` = no limit) |
+| `--buy-max/--buy-min` | `buy_price_max/min` | `null` | Price limits for BUY side (`null` = no limit) |
 | `--strategy-type` | `strategy_type` | `0` | Meteora shape: `0`=Spot (uniform), `1`=Curve (center-heavy), `2`=Bid-Ask (edge-heavy) |
 
 ### Single LP Executor (Alternative)
