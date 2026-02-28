@@ -57,6 +57,8 @@ def check_gateway():
             status = lines[0].split("\t")[1] if "\t" in lines[0] else "Up"
             return True, status
         return False, "Not running"
+    except FileNotFoundError:
+        return None, "Docker not available"
     except Exception as e:
         return False, str(e)
 
@@ -137,7 +139,7 @@ def main():
 
     # Components
     api_str = f"✅ Up (v{api_version})" if api_up else f"❌ Down ({api_err})"
-    gw_str = f"✅ {gw_status}" if gw_up else f"❌ {gw_status}"
+    gw_str = f"✅ {gw_status}" if gw_up else ("⚠️ Docker not available" if gw_up is None else f"❌ {gw_status}")
     lines.append("**Infrastructure**")
     lines.append(f"  API:     {api_str}")
     lines.append(f"  Gateway: {gw_str}")
