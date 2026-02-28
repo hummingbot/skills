@@ -484,20 +484,29 @@ Run, monitor, and manage LP strategies.
 
 Auto-rebalances positions when price moves out of range. Best for hands-off LP management.
 
+> **Key concepts:**
+> - `--amount` (`total_amount_quote`) = amount in **quote asset** (2nd token in pair). For `Percolator-SOL` → SOL. For `SOL-USDC` → USDC. Always quote, regardless of side.
+> - All `*_pct` params are already in percent. `position_width_pct: 10` = 10% width. Do NOT pass decimals (not 0.10).
+> - Price limits (`--buy-min/max`, `--sell-min/max`) default to `0` = no limit. Only set if you want a stop zone.
+
 ```bash
-# 1. Create LP Rebalancer config
+# 1. Create LP Rebalancer config (pool and pair are required)
 python scripts/manage_controller.py create-config my_lp_config \
     --pool <pool_address> \
     --pair SOL-USDC \
-    --amount 100 \
-    --side 1 \
-    --width 0.5 \
-    --offset 0.01 \
-    --rebalance-seconds 60 \
-    --sell-max 100 \
-    --sell-min 75 \
-    --buy-max 90 \
-    --buy-min 70
+    --amount 10 \       # 10 USDC (quote asset for SOL-USDC)
+    --side 0 \          # 0=BOTH, 1=BUY (quote only), 2=SELL (base only)
+    --width 10 \        # 10% range around current price
+    --offset 1 \        # center range 1% from current price
+    --rebalance-seconds 300 \
+    --rebalance-threshold 1
+
+# Side=2 example: deploy base token only (e.g. 110k PRCLT ≈ 1.33 SOL)
+python scripts/manage_controller.py create-config percolator_sell \
+    --pool ATrBUW2reZiyftzMQA1hEo8b7w7o8ZLrhPd7M7sPMSms \
+    --pair Percolator-SOL \
+    --amount 1.33 \     # 1.33 SOL worth (quote for Percolator-SOL pair)
+    --side 2
 
 # 2. Deploy bot with the config
 python scripts/manage_controller.py deploy my_lp_bot --configs my_lp_config
@@ -508,14 +517,17 @@ python scripts/manage_controller.py status
 
 **Key Parameters:**
 
-| Parameter | Description |
-|-----------|-------------|
-| `--amount` | Position size in quote currency |
-| `--side` | 0=BOTH, 1=BUY (quote-only), 2=SELL (base-only) |
-| `--width` | Position width % (must fit bin_step limits) |
-| `--rebalance-seconds` | Seconds out-of-range before rebalancing |
-| `--buy-max/--buy-min` | Price limits for BUY positions (anchor points) |
-| `--sell-max/--sell-min` | Price limits for SELL positions (anchor points) |
+| Parameter | Field | Default | Description |
+|-----------|-------|---------|-------------|
+| `--amount` | `total_amount_quote` | required | Amount in **quote asset** (2nd token). SOL for X-SOL pairs, USDC for X-USDC pairs. |
+| `--side` | `side` | `0` | `0`=BOTH, `1`=BUY (quote only), `2`=SELL (base only) |
+| `--width` | `position_width_pct` | `10` | Range width in % (e.g. `10` = ±10% around price). Already in pct — do not use decimals. |
+| `--offset` | `position_offset_pct` | `1` | Center offset from current price in %. Already in pct. |
+| `--rebalance-seconds` | `rebalance_seconds` | `300` | Seconds out-of-range before closing and reopening |
+| `--rebalance-threshold` | `rebalance_threshold_pct` | `1` | Min price move % to trigger rebalance. Already in pct. |
+| `--sell-max/--sell-min` | `sell_price_max/min` | `0` | Price limits for SELL side (`0` = no limit) |
+| `--buy-max/--buy-min` | `buy_price_max/min` | `0` | Price limits for BUY side (`0` = no limit) |
+| `--strategy-type` | `strategy_type` | `0` | Meteora shape: `0`=Spot (uniform), `1`=Curve (center-heavy), `2`=Bid-Ask (edge-heavy) |
 
 ### Single LP Executor (Alternative)
 

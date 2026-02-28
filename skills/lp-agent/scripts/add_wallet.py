@@ -56,7 +56,7 @@ def get_api_config():
     }
 
 
-def api_request(method: str, endpoint: str, data: dict | None = None) -> dict:
+def api_request(method: str, endpoint: str, data=None) -> dict:
     """Make authenticated API request."""
     config = get_api_config()
     url = f"{config['url']}{endpoint}"
@@ -111,8 +111,11 @@ def list_wallets(args):
     for w in wallets:
         if isinstance(w, dict):
             chain = w.get("chain", "")
-            addr = w.get("address", "")
-            print(f"  [{chain}] {addr}")
+            addresses = w.get("walletAddresses", [w.get("address", "")])
+            if isinstance(addresses, str):
+                addresses = [addresses]
+            for addr in addresses:
+                print(f"  [{chain}] {addr}")
         else:
             print(f"  {w}")
 
@@ -189,9 +192,9 @@ def get_balances(args):
             if isinstance(tokens, list):
                 for token in tokens:
                     if isinstance(token, dict):
-                        symbol = token.get("symbol", token.get("token", "?"))
-                        balance = token.get("balance", token.get("amount", 0))
-                        value = token.get("value_usd", token.get("value", ""))
+                        symbol = token.get("token", token.get("symbol", "?"))
+                        balance = token.get("units", token.get("balance", token.get("amount", 0)))
+                        value = token.get("value", token.get("value_usd", ""))
                         if float(balance) > 0 or args.all:
                             value_str = f" (${value:.2f})" if value else ""
                             print(f"    {symbol}: {balance}{value_str}")

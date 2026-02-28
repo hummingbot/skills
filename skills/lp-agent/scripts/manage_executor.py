@@ -66,7 +66,7 @@ def get_api_config():
     }
 
 
-def api_request(method: str, endpoint: str, data: dict | None = None) -> dict:
+def api_request(method: str, endpoint: str, data=None) -> dict:
     """Make authenticated API request."""
     config = get_api_config()
     url = f"{config['url']}{endpoint}"
