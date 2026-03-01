@@ -25,14 +25,15 @@ npx skills remove                                             # Remove installed
 
 | Skill | Description | Installs |
 |-------|-------------|:--------:|
-| [hummingbot-deploy](./skills/hummingbot-deploy/) | Deploy Hummingbot API server, MCP server, and Condor Telegram bot | 55 |
-| [lp-agent](./skills/lp-agent/) | Automated liquidity provision on CLMM DEXs (Meteora/Solana) | 49 |
-| [connectors-available](./skills/connectors-available/) | Check exchange availability and search token trading rules | 41 |
-| [slides-generator](./skills/slides-generator/) | Create Hummingbot-branded PDF slides from markdown | 30 |
-| [find-arbitrage-opps](./skills/find-arbitrage-opps/) | Find arbitrage opportunities across CEX and DEX (Jupiter/Uniswap/PancakeSwap) | 8 |
-| [find-xemm-opps](./skills/find-xemm-opps/) | Find Cross-Exchange Market Making opportunities via order book depth analysis | — |
-| [hummingbot](./skills/hummingbot/) | Hummingbot CLI commands via API | 4 |
-| [hummingbot-developer](./skills/hummingbot-developer/) | Build and run Hummingbot stack from source | — |
+| [hummingbot-deploy](./skills/hummingbot-deploy/) | Deploy Hummingbot API server, MCP server, and Condor Telegram bot | 77 |
+| [lp-agent](./skills/lp-agent/) | Automated liquidity provision on CLMM DEXs (Meteora/Solana) | 67 |
+| [connectors-available](./skills/connectors-available/) | Check exchange availability and search token trading rules | 59 |
+| [slides-generator](./skills/slides-generator/) | Create Hummingbot-branded PDF slides from markdown | 46 |
+| [find-arbitrage-opps](./skills/find-arbitrage-opps/) | Find arbitrage opportunities across CEX and DEX (Jupiter/Uniswap/PancakeSwap) | 29 |
+| [hummingbot](./skills/hummingbot/) | Hummingbot CLI commands via API | 25 |
+| [hummingbot-developer](./skills/hummingbot-developer/) | Build and run Hummingbot stack from source | 17 |
+| [hummingbot-heartbeat](./skills/hummingbot-heartbeat/) | Hourly Hummingbot status updates delivered to Telegram or Discord | 8 |
+| [find-xemm-opps](./skills/find-xemm-opps/) | Find Cross-Exchange Market Making opportunities via order book depth analysis | 6 |
 
 ## Usage
 
