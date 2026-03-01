@@ -293,6 +293,12 @@ def main():
     parser.add_argument("--include-ndax", action="store_true", default=False,
                         help="Include ndax (Canadian residents only)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--create-config", action="store_true",
+                        help="Interactively create an xemm_multiple_levels config in Hummingbot API after scanning")
+    parser.add_argument("--total-amount", type=float, default=100.0,
+                        help="Total amount in quote token for the strategy (default: 100)")
+    parser.add_argument("--config-name", type=str, default=None,
+                        help="Config name to save (default: xemm_<maker>_<taker>)")
     args = parser.parse_args()
 
     base_tokens = [t.strip() for t in args.base.split(",")]
@@ -495,6 +501,56 @@ def main():
         print(f"    sell_levels_targets_amount:{min_prof:.4f},{amount}-{mid_prof:.4f},{amount*2}-{max_prof:.4f},{amount*3}")
         print(f"    max_executors_imbalance:   1")
         print()
+
+    # ── Create config in Hummingbot API ──────────────────────────────────────
+    if args.create_config and opportunities:
+        top = opportunities[0]
+        create_xemm_config(top, args)
+
+
+def create_xemm_config(opp, args):
+    """Save an xemm_multiple_levels controller config via Hummingbot API."""
+    import uuid
+
+    min_prof = max(opp["taker_spread_pct"] / 100, 0.001)
+    max_prof = min_prof * 3
+    mid_prof = (min_prof + max_prof) / 2
+    amount = args.total_amount / 3  # split across 3 levels
+
+    config_name = args.config_name or f"xemm_{opp['maker']}_{opp['taker']}".replace(" ", "_")
+    levels_str = f"{min_prof:.4f},{amount:.1f}-{mid_prof:.4f},{amount*2:.1f}-{max_prof:.4f},{amount*3:.1f}"
+
+    payload = {
+        "id": str(uuid.uuid4()),
+        "controller_name": "xemm_multiple_levels",
+        "controller_type": "generic",
+        "total_amount_quote": args.total_amount,
+        "maker_connector": opp["maker"],
+        "maker_trading_pair": opp["maker_pair"],
+        "taker_connector": opp["taker"],
+        "taker_trading_pair": opp["taker_pair"],
+        "min_profitability": round(min_prof, 4),
+        "max_profitability": round(max_prof, 4),
+        "buy_levels_targets_amount": levels_str,
+        "sell_levels_targets_amount": levels_str,
+        "max_executors_imbalance": 1,
+        "manual_kill_switch": False,
+    }
+
+    print(f"  Creating config '{config_name}'...")
+    try:
+        result = api_request("POST", f"/controllers/configs/{config_name}", data=payload)
+        print(f"  ✅ {result.get('message', 'Config saved')}")
+        print(f"\n  Config: {config_name}")
+        print(f"  Maker:  {opp['maker']} {opp['maker_pair']}")
+        print(f"  Taker:  {opp['taker']} {opp['taker_pair']}")
+        print(f"  Amount: ${args.total_amount} {opp['taker_pair'].split('-')[1]}")
+        print(f"  Levels: {levels_str}")
+        print(f"\n  To deploy: POST /bot-orchestration/deploy-v2-controllers")
+        print(f"             with controller_config_paths: [\"{config_name}.yml\"]")
+    except RuntimeError as e:
+        print(f"  ❌ Failed to create config: {e}", file=sys.stderr)
+    print()
 
 
 if __name__ == "__main__":
