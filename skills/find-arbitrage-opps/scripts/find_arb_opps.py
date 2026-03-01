@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Find arbitrage opportunities across exchanges.
+Find arbitrage opportunities across CEX and DEX exchanges.
 
 Usage:
     # Basic - find BTC/USDT opportunities
@@ -12,13 +12,20 @@ Usage:
     # Filter by connectors
     python find_arb_opps.py --base BTC --quote USDT --connectors binance,kraken
 
+    # Include DEX prices (Jupiter for Solana, Uniswap for Ethereum)
+    python find_arb_opps.py --base SOL --quote USDC --dex
+
     # Minimum spread filter
     python find_arb_opps.py --base ETH --quote USDT --min-spread 0.1
 
+Notes:
+    - BTC markets are only available to Australian residents on some exchanges.
+
 Environment:
-    HUMMINGBOT_API_URL - API base URL (default: http://localhost:8000)
-    API_USER - API username (default: admin)
-    API_PASS - API password (default: admin)
+    HUMMINGBOT_API_URL  - Hummingbot API base URL (default: http://localhost:8000)
+    API_USER            - API username (default: admin)
+    API_PASS            - API password (default: admin)
+    GATEWAY_URL         - Gateway URL for DEX prices (default: http://localhost:15888)
 """
 
 import argparse
@@ -31,8 +38,23 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
+# ─── DEX defaults ────────────────────────────────────────────────────────────
+
+# Jupiter handles Solana tokens; Uniswap handles Ethereum tokens.
+# These connectors are queried automatically when --dex flag is set.
+DEX_CONNECTORS = [
+    {"connector": "jupiter",  "chain": "solana",   "network": "mainnet-beta"},
+    {"connector": "uniswap",  "chain": "ethereum",  "network": "mainnet"},
+]
+
+# BTC is only available on exchanges open to Australian residents.
+BTC_ONLY_AU = True
+BTC_TOKENS = {"BTC", "WBTC", "CBBTC"}
+
+
+# ─── Environment / config ────────────────────────────────────────────────────
+
 def load_env():
-    """Load environment from .env files."""
     for path in ["hummingbot-api/.env", os.path.expanduser("~/.hummingbot/.env"), ".env"]:
         if os.path.exists(path):
             with open(path) as f:
@@ -45,29 +67,21 @@ def load_env():
 
 
 def get_api_config():
-    """Get API configuration from environment."""
     load_env()
     return {
         "url": os.environ.get("HUMMINGBOT_API_URL", "http://localhost:8000"),
         "user": os.environ.get("API_USER", "admin"),
         "password": os.environ.get("API_PASS", "admin"),
+        "gateway_url": os.environ.get("GATEWAY_URL", "http://localhost:15888"),
     }
 
 
-def api_request(method: str, endpoint: str, data: dict | None = None, timeout: int = 30) -> dict:
-    """Make authenticated API request."""
-    config = get_api_config()
-    url = f"{config['url']}{endpoint}"
+# ─── HTTP helpers ─────────────────────────────────────────────────────────────
 
-    credentials = base64.b64encode(f"{config['user']}:{config['password']}".encode()).decode()
-    headers = {
-        "Authorization": f"Basic {credentials}",
-        "Content-Type": "application/json",
-    }
-
+def _request(url, method="GET", data=None, headers=None, timeout=30):
+    h = headers or {}
     body = json.dumps(data).encode() if data else None
-    req = urllib.request.Request(url, data=body, headers=headers, method=method)
-
+    req = urllib.request.Request(url, data=body, headers=h, method=method)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode())
@@ -78,24 +92,37 @@ def api_request(method: str, endpoint: str, data: dict | None = None, timeout: i
         raise RuntimeError(f"Connection failed: {e.reason}")
 
 
-def get_available_connectors() -> list[str]:
-    """Get list of available connectors from API."""
+def api_request(method, endpoint, data=None, timeout=30):
+    config = get_api_config()
+    creds = base64.b64encode(f"{config['user']}:{config['password']}".encode()).decode()
+    return _request(
+        f"{config['url']}{endpoint}",
+        method=method,
+        data=data,
+        headers={"Authorization": f"Basic {creds}", "Content-Type": "application/json"},
+        timeout=timeout,
+    )
+
+
+def gateway_request(endpoint, timeout=30):
+    config = get_api_config()
+    return _request(f"{config['gateway_url']}{endpoint}", timeout=timeout)
+
+
+# ─── CEX helpers ──────────────────────────────────────────────────────────────
+
+def get_available_connectors():
     try:
         result = api_request("GET", "/connectors/")
-        # API returns a list directly
-        if isinstance(result, list):
-            return result
-        return []
+        return result if isinstance(result, list) else []
     except RuntimeError as e:
         print(f"Warning: Could not fetch connectors: {e}", file=sys.stderr)
         return []
 
 
-def get_connector_trading_pairs(connector: str) -> list[str]:
-    """Get trading pairs for a connector via trading-rules endpoint."""
+def get_connector_trading_pairs(connector):
     try:
         result = api_request("GET", f"/connectors/{connector}/trading-rules", timeout=15)
-        # API returns dict with pair names as keys
         if isinstance(result, dict) and "detail" not in result:
             return list(result.keys())
         return []
@@ -103,44 +130,100 @@ def get_connector_trading_pairs(connector: str) -> list[str]:
         return []
 
 
-def fetch_prices(connector: str, trading_pairs: list[str]) -> dict:
-    """Fetch prices for trading pairs on a connector."""
+def fetch_cex_prices(connector, trading_pairs):
     try:
         result = api_request("POST", "/market-data/prices", {
             "connector_name": connector,
             "trading_pairs": trading_pairs,
         }, timeout=15)
-        # API returns {"connector": ..., "prices": {...}, "timestamp": ...}
-        if "prices" in result:
-            return result["prices"]
-        return result
+        return result.get("prices", result)
     except RuntimeError as e:
         return {"error": str(e)}
 
 
-def find_matching_pairs(trading_pairs: list[str], base_tokens: list[str], quote_tokens: list[str]) -> list[str]:
-    """Find trading pairs that match base/quote token combinations."""
+def find_matching_pairs(trading_pairs, base_tokens, quote_tokens):
     matches = []
     base_set = {t.upper() for t in base_tokens}
     quote_set = {t.upper() for t in quote_tokens}
-
     for pair in trading_pairs:
-        # Handle both BTC-USDT and BTC/USDT formats
         if "-" in pair:
-            base, quote = pair.upper().split("-", 1)
+            b, q = pair.upper().split("-", 1)
         elif "/" in pair:
-            base, quote = pair.upper().split("/", 1)
+            b, q = pair.upper().split("/", 1)
         else:
             continue
-
-        if base in base_set and quote in quote_set:
+        if b in base_set and q in quote_set:
             matches.append(pair)
-
     return matches
 
 
-def format_price(price: float) -> str:
-    """Format price for display."""
+# ─── DEX helpers ─────────────────────────────────────────────────────────────
+
+def fetch_dex_price(connector, network, base_token, quote_token, amount=1.0):
+    """
+    Fetch a price quote from a DEX connector via Gateway.
+
+    - Jupiter  → Solana  mainnet-beta (default)
+    - Uniswap  → Ethereum mainnet     (default)
+
+    Returns a price entry dict or None on failure.
+    """
+    try:
+        params = (
+            f"network={network}"
+            f"&baseToken={base_token}"
+            f"&quoteToken={quote_token}"
+            f"&amount={amount}"
+            f"&side=SELL"
+        )
+        endpoint = f"/connectors/{connector}/router/quote-swap?{params}"
+        result = gateway_request(endpoint, timeout=20)
+        price = result.get("price")
+        if price and float(price) > 0:
+            return {
+                "connector": f"{connector} (DEX)",
+                "pair": f"{base_token}-{quote_token}",
+                "price": float(price),
+                "bid": None,
+                "ask": None,
+                "source": "dex",
+            }
+    except RuntimeError as e:
+        print(f"  ⚠ {connector} DEX quote failed: {e}", file=sys.stderr)
+    return None
+
+
+def fetch_all_dex_prices(base_tokens, quote_tokens, amount=1.0):
+    """
+    Query Jupiter (Solana) and Uniswap (Ethereum) for all base/quote combinations.
+    Returns a list of price entry dicts.
+    """
+    results = []
+    tasks = []
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        for dex in DEX_CONNECTORS:
+            for base in base_tokens:
+                for quote in quote_tokens:
+                    if base.upper() == quote.upper():
+                        continue
+                    tasks.append(executor.submit(
+                        fetch_dex_price,
+                        dex["connector"], dex["network"],
+                        base, quote, amount,
+                    ))
+        for f in as_completed(tasks):
+            try:
+                entry = f.result()
+                if entry:
+                    results.append(entry)
+            except Exception:
+                pass
+    return results
+
+
+# ─── Formatting ───────────────────────────────────────────────────────────────
+
+def format_price(price):
     if price >= 1000:
         return f"${price:,.2f}"
     elif price >= 1:
@@ -149,11 +232,15 @@ def format_price(price: float) -> str:
         return f"${price:.8f}"
 
 
+# ─── Main ─────────────────────────────────────────────────────────────────────
+
 def main():
-    parser = argparse.ArgumentParser(description="Find arbitrage opportunities across exchanges")
+    parser = argparse.ArgumentParser(description="Find arbitrage opportunities across CEX and DEX exchanges")
     parser.add_argument("--base", required=True, help="Base token(s), comma-separated (e.g., BTC,WBTC)")
     parser.add_argument("--quote", required=True, help="Quote token(s), comma-separated (e.g., USDT,USDC)")
-    parser.add_argument("--connectors", help="Filter to specific connectors, comma-separated")
+    parser.add_argument("--connectors", help="CEX connectors to use, comma-separated (default: all)")
+    parser.add_argument("--dex", action="store_true", default=False,
+                        help="Include DEX prices (Jupiter/Solana, Uniswap/Ethereum)")
     parser.add_argument("--min-spread", type=float, default=0.0, help="Minimum spread %% to show (default: 0.0)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
@@ -161,101 +248,91 @@ def main():
     base_tokens = [t.strip() for t in args.base.split(",")]
     quote_tokens = [t.strip() for t in args.quote.split(",")]
 
-    # Get connectors
+    # Warn about BTC Australian-only restriction
+    if any(t.upper() in BTC_TOKENS for t in base_tokens + quote_tokens):
+        print("⚠  Note: BTC markets are only available to Australian residents on some exchanges.\n",
+              file=sys.stderr)
+
+    # ── CEX prices ──────────────────────────────────────────────────────────
     if args.connectors:
         connectors = [c.strip() for c in args.connectors.split(",")]
     else:
         connectors = get_available_connectors()
         if not connectors:
-            print("Error: No connectors available. Check API connection.", file=sys.stderr)
-            sys.exit(1)
+            print("Warning: No CEX connectors available — CEX prices skipped.", file=sys.stderr)
 
-    # Step 1: Find matching trading pairs on each connector
     connector_pairs = {}
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(get_connector_trading_pairs, c): c for c in connectors}
-        for future in as_completed(futures):
-            connector = futures[future]
-            try:
-                all_pairs = future.result()
-                matching = find_matching_pairs(all_pairs, base_tokens, quote_tokens)
-                if matching:
-                    connector_pairs[connector] = matching
-            except Exception:
-                pass  # Silently skip connectors that fail
+    if connectors:
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {executor.submit(get_connector_trading_pairs, c): c for c in connectors}
+            for future in as_completed(futures):
+                connector = futures[future]
+                try:
+                    matching = find_matching_pairs(future.result(), base_tokens, quote_tokens)
+                    if matching:
+                        connector_pairs[connector] = matching
+                except Exception:
+                    pass
 
-    if not connector_pairs:
-        print(f"No trading pairs found matching {base_tokens} / {quote_tokens}", file=sys.stderr)
-        sys.exit(1)
+    prices = []
 
-    # Step 2: Fetch prices from all connectors in parallel
-    prices = []  # List of {connector, pair, price}
-
-    # Create set of valid pairs for filtering
-    valid_pairs = set()
-    for pairs in connector_pairs.values():
-        valid_pairs.update(p.upper() for p in pairs)
-
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {
-            executor.submit(fetch_prices, connector, pairs): (connector, pairs)
-            for connector, pairs in connector_pairs.items()
-        }
-        for future in as_completed(futures):
-            connector, requested_pairs = futures[future]
-            requested_set = {p.upper() for p in requested_pairs}
-            try:
-                result = future.result()
-                if "error" in result:
-                    continue
-
-                # Extract prices from response - filter to only requested pairs
-                for pair, price_data in result.items():
-                    if pair == "error":
+    if connector_pairs:
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {
+                executor.submit(fetch_cex_prices, connector, pairs): (connector, pairs)
+                for connector, pairs in connector_pairs.items()
+            }
+            for future in as_completed(futures):
+                connector, requested_pairs = futures[future]
+                requested_set = {p.upper() for p in requested_pairs}
+                try:
+                    result = future.result()
+                    if "error" in result:
                         continue
-                    # Only include pairs we actually requested
-                    if pair.upper() not in requested_set:
-                        continue
+                    for pair, price_data in result.items():
+                        if pair == "error" or pair.upper() not in requested_set:
+                            continue
+                        if isinstance(price_data, dict):
+                            price = price_data.get("mid_price") or price_data.get("price")
+                            bid = price_data.get("best_bid")
+                            ask = price_data.get("best_ask")
+                        else:
+                            price = price_data
+                            bid = ask = None
+                        if price and float(price) > 0:
+                            prices.append({
+                                "connector": connector,
+                                "pair": pair,
+                                "price": float(price),
+                                "bid": float(bid) if bid else None,
+                                "ask": float(ask) if ask else None,
+                                "source": "cex",
+                            })
+                except Exception:
+                    pass
 
-                    if isinstance(price_data, dict):
-                        price = price_data.get("mid_price") or price_data.get("price")
-                        bid = price_data.get("best_bid")
-                        ask = price_data.get("best_ask")
-                    else:
-                        price = price_data
-                        bid = ask = None
-
-                    if price is not None and float(price) > 0:
-                        prices.append({
-                            "connector": connector,
-                            "pair": pair,
-                            "price": float(price),
-                            "bid": float(bid) if bid else None,
-                            "ask": float(ask) if ask else None,
-                        })
-            except Exception:
-                pass  # Silently skip connectors that fail
+    # ── DEX prices ──────────────────────────────────────────────────────────
+    if args.dex:
+        dex_prices = fetch_all_dex_prices(base_tokens, quote_tokens)
+        prices.extend(dex_prices)
+        if not dex_prices:
+            print("  ⚠ No DEX prices returned (Gateway may be offline).", file=sys.stderr)
 
     if not prices:
-        print("No prices retrieved from any connector", file=sys.stderr)
+        print("No prices retrieved from any source.", file=sys.stderr)
         sys.exit(1)
 
-    # Sort by price
+    # ── Filter outliers ─────────────────────────────────────────────────────
     prices.sort(key=lambda x: x["price"])
-
-    # Filter outliers (prices > 20% from median)
     if len(prices) >= 3:
         median_price = prices[len(prices) // 2]["price"]
-        filtered_prices = [
-            p for p in prices
-            if abs(p["price"] - median_price) / median_price <= 0.20
-        ]
+        filtered_prices = [p for p in prices if abs(p["price"] - median_price) / median_price <= 0.20]
         outliers = [p for p in prices if p not in filtered_prices]
     else:
         filtered_prices = prices
         outliers = []
 
-    # Calculate arbitrage opportunities from filtered prices
+    # ── Arbitrage opportunities ─────────────────────────────────────────────
     opportunities = []
     for i, buy in enumerate(filtered_prices):
         for sell in filtered_prices[i + 1:]:
@@ -271,11 +348,9 @@ def main():
                     "spread_pct": spread,
                     "spread_abs": sell["price"] - buy["price"],
                 })
-
-    # Sort by spread descending
     opportunities.sort(key=lambda x: x["spread_pct"], reverse=True)
 
-    # Output
+    # ── Output ───────────────────────────────────────────────────────────────
     if args.json:
         print(json.dumps({
             "base_tokens": base_tokens,
@@ -285,35 +360,33 @@ def main():
             "opportunities": opportunities[:20],
         }, indent=2))
     else:
-        # Header
         print(f"\n{'='*60}")
         print(f"  {'/'.join(base_tokens)} / {'/'.join(quote_tokens)} Arbitrage Scanner")
+        if args.dex:
+            print(f"  DEX: Jupiter (Solana mainnet-beta), Uniswap (Ethereum mainnet)")
         print(f"{'='*60}")
 
-        # Price summary
         if filtered_prices:
             low = filtered_prices[0]
             high = filtered_prices[-1]
             spread_pct = (high["price"] - low["price"]) / low["price"] * 100
-            print(f"\n  Lowest:  {low['connector']:20} {format_price(low['price'])}")
-            print(f"  Highest: {high['connector']:20} {format_price(high['price'])}")
+            print(f"\n  Lowest:  {low['connector']:25} {format_price(low['price'])}")
+            print(f"  Highest: {high['connector']:25} {format_price(high['price'])}")
             print(f"  Spread:  {spread_pct:.3f}% ({format_price(high['price'] - low['price'])})")
-            print(f"  Sources: {len(filtered_prices)} prices from {len(set(p['connector'] for p in filtered_prices))} connectors")
+            print(f"  Sources: {len(filtered_prices)} prices from {len(set(p['connector'] for p in filtered_prices))} sources")
 
-        # Best opportunities
         if opportunities:
             print(f"\n  Top Arbitrage Opportunities:")
             print(f"  {'-'*56}")
             for i, opp in enumerate(opportunities[:5], 1):
-                print(f"  {i}. Buy  {opp['buy_connector']:18} @ {format_price(opp['buy_price'])}")
-                print(f"     Sell {opp['sell_connector']:18} @ {format_price(opp['sell_price'])}")
+                print(f"  {i}. Buy  {opp['buy_connector']:23} @ {format_price(opp['buy_price'])}")
+                print(f"     Sell {opp['sell_connector']:23} @ {format_price(opp['sell_price'])}")
                 print(f"     Profit: {opp['spread_pct']:.3f}% ({format_price(opp['spread_abs'])})")
                 if i < min(5, len(opportunities)):
                     print()
         else:
             print(f"\n  No opportunities found with spread >= {args.min_spread}%")
 
-        # Outliers warning
         if outliers:
             print(f"\n  ⚠ {len(outliers)} outlier(s) excluded: ", end="")
             print(", ".join(f"{o['connector']} ({format_price(o['price'])})" for o in outliers[:3]))
