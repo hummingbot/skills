@@ -32,8 +32,8 @@ npx skills remove                                             # Remove installed
 | [find-arbitrage-opps](./skills/find-arbitrage-opps/) | Find arbitrage opportunities across CEX and DEX (Jupiter/Uniswap/PancakeSwap) | 29 |
 | [hummingbot](./skills/hummingbot/) | Hummingbot CLI commands via API | 25 |
 | [hummingbot-developer](./skills/hummingbot-developer/) | Build and run Hummingbot stack from source | 17 |
-| [hummingbot-heartbeat](./skills/hummingbot-heartbeat/) | Hourly Hummingbot status updates delivered to Telegram or Discord | 8 |
-| [find-xemm-opps](./skills/find-xemm-opps/) | Find Cross-Exchange Market Making opportunities via order book depth analysis | 6 |
+| [hummingbot-heartbeat](./skills/hummingbot-heartbeat/) | Hourly Hummingbot status updates delivered to Telegram or Discord | — |
+| [find-xemm-opps](./skills/find-xemm-opps/) | Find Cross-Exchange Market Making opportunities via order book depth analysis | — |
 
 ## Usage
 
