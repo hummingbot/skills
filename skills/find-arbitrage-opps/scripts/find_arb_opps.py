@@ -87,6 +87,7 @@ BTC_TOKENS = {"BTC", "WBTC", "CBBTC"}
 # Users can override with --include-btc-markets.
 RESTRICTED_CONNECTORS = {
     "btc_markets",  # Australian residents only (KYC with AU passport required)
+    "ndax",         # Canadian residents only
 }
 
 
@@ -281,6 +282,8 @@ def main():
     parser.add_argument("--connectors", help="CEX connectors to use, comma-separated (default: all)")
     parser.add_argument("--dex", action="store_true", default=False,
                         help="Include DEX prices (Jupiter/Solana, Uniswap/Ethereum)")
+    parser.add_argument("--include-ndax", action="store_true", default=False,
+                        help="Include ndax connector (Canadian residents only — requires CA ID KYC)")
     parser.add_argument("--include-btc-markets", action="store_true", default=False,
                         help="Include btc_markets connector (Australian residents only — requires AU passport KYC)")
     parser.add_argument("--min-spread", type=float, default=0.0, help="Minimum spread %% to show (default: 0.0)")
@@ -304,12 +307,18 @@ def main():
             print("Warning: No CEX connectors available — CEX prices skipped.", file=sys.stderr)
 
     # Filter region-restricted connectors unless user opts in
-    if not args.include_btc_markets:
+    restricted = set(RESTRICTED_CONNECTORS)
+    if args.include_btc_markets:
+        restricted.discard("btc_markets")
+    if args.include_ndax:
+        restricted.discard("ndax")
+    if restricted:
         before = len(connectors)
-        connectors = [c for c in connectors if c not in RESTRICTED_CONNECTORS]
+        connectors = [c for c in connectors if c not in restricted]
         removed = before - len(connectors)
         if removed:
-            print(f"  ℹ  Excluded {removed} region-restricted connector(s) (use --include-btc-markets to include).",
+            names = ", ".join(sorted(restricted))
+            print(f"  ℹ  Excluded {removed} region-restricted connector(s) ({names}).",
                   file=sys.stderr)
 
     connector_pairs = {}
