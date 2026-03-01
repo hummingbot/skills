@@ -47,6 +47,39 @@ DEX_CONNECTORS = [
     {"connector": "uniswap",  "chain": "ethereum",  "network": "mainnet"},
 ]
 
+# Tokens native to each chain — used to skip irrelevant DEX queries.
+# Jupiter only queried if any token is Solana-native.
+# Uniswap only queried if any token is Ethereum-native.
+SOLANA_TOKENS = {
+    "SOL", "WSOL", "RAY", "ORCA", "JUP", "BONK", "WIF", "PYTH",
+    "PERCOLATOR", "PRCLT", "JITO", "MNGO", "DRIFT", "METIS",
+}
+ETHEREUM_TOKENS = {
+    "ETH", "WETH", "USDT", "USDC", "DAI", "WBTC", "LINK", "UNI",
+    "AAVE", "MKR", "SNX", "COMP", "CRV", "BAL", "SUSHI", "1INCH",
+    "LDO", "RPL", "ENS", "GRT", "MATIC", "CBBTC",
+}
+
+
+def dex_applies(dex, base_tokens, quote_tokens):
+    """
+    Return True if this DEX should be queried.
+
+    Logic: at least one base OR quote token must be *exclusively* native to
+    that chain (not cross-chain like USDC/USDT which exist on both).
+    Cross-chain stablecoins (USDC, USDT, DAI) are not used as the deciding
+    factor — only chain-specific tokens are.
+    """
+    CROSS_CHAIN = {"USDC", "USDT", "DAI", "BUSD", "FRAX"}
+    all_upper = {t.upper() for t in base_tokens + quote_tokens}
+    deciding = all_upper - CROSS_CHAIN  # remove cross-chain tokens
+
+    if dex["connector"] == "jupiter":
+        return bool(deciding & SOLANA_TOKENS)
+    if dex["connector"] == "uniswap":
+        return bool(deciding & ETHEREUM_TOKENS)
+    return True
+
 # BTC is only available on exchanges open to Australian residents.
 BTC_ONLY_AU = True
 BTC_TOKENS = {"BTC", "WBTC", "CBBTC"}
@@ -202,6 +235,8 @@ def fetch_all_dex_prices(base_tokens, quote_tokens, amount=1.0):
     tasks = []
     with ThreadPoolExecutor(max_workers=8) as executor:
         for dex in DEX_CONNECTORS:
+            if not dex_applies(dex, base_tokens, quote_tokens):
+                continue
             for base in base_tokens:
                 for quote in quote_tokens:
                     if base.upper() == quote.upper():
