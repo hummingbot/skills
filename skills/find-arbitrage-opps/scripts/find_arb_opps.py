@@ -43,8 +43,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # Jupiter handles Solana tokens; Uniswap handles Ethereum tokens.
 # These connectors are queried automatically when --dex flag is set.
 DEX_CONNECTORS = [
-    {"connector": "jupiter",  "chain": "solana",   "network": "mainnet-beta"},
-    {"connector": "uniswap",  "chain": "ethereum",  "network": "mainnet"},
+    {"connector": "jupiter",      "chain": "solana",   "network": "mainnet-beta"},
+    {"connector": "uniswap",      "chain": "ethereum", "network": "mainnet"},
+    {"connector": "pancakeswap",  "chain": "ethereum", "network": "bsc"},
 ]
 
 # Tokens native to each chain — used to skip irrelevant DEX queries.
@@ -58,6 +59,17 @@ ETHEREUM_TOKENS = {
     "ETH", "WETH", "USDT", "USDC", "DAI", "WBTC", "LINK", "UNI",
     "AAVE", "MKR", "SNX", "COMP", "CRV", "BAL", "SUSHI", "1INCH",
     "LDO", "RPL", "ENS", "GRT", "MATIC", "CBBTC",
+}
+# BSC-native tokens — used to route queries to PancakeSwap
+BSC_TOKENS = {
+    "BNB", "WBNB", "CAKE", "BAKE", "XVS", "ALPACA", "BELT",
+    "AUTO", "EPS", "BIFI", "TWT", "SFP",
+}
+
+# Native token aliases per DEX (Gateway uses wrapped versions internally)
+DEX_TOKEN_ALIASES = {
+    "pancakeswap": {"BNB": "WBNB"},
+    "uniswap":     {"ETH": "WETH"},
 }
 
 
@@ -78,6 +90,10 @@ def dex_applies(dex, base_tokens, quote_tokens):
         return bool(deciding & SOLANA_TOKENS)
     if dex["connector"] == "uniswap":
         return bool(deciding & ETHEREUM_TOKENS)
+    if dex["connector"] == "pancakeswap":
+        # PancakeSwap on BSC — query if any BSC-native token present,
+        # or fall back to Ethereum tokens (USDT/WBTC etc. exist on BSC too)
+        return bool(deciding & (BSC_TOKENS | ETHEREUM_TOKENS))
     return True
 
 # BTC is only available on exchanges open to Australian residents.
@@ -208,6 +224,11 @@ def fetch_dex_price(connector, network, base_token, quote_token, amount=1.0):
     Returns a price entry dict or None on failure.
     """
     try:
+        # Apply connector-specific token aliases (e.g. BNB→WBNB on PancakeSwap)
+        aliases = DEX_TOKEN_ALIASES.get(connector, {})
+        base_token = aliases.get(base_token.upper(), base_token)
+        quote_token = aliases.get(quote_token.upper(), quote_token)
+
         params = (
             f"network={network}"
             f"&baseToken={base_token}"
@@ -423,7 +444,7 @@ def main():
         print(f"\n{'='*60}")
         print(f"  {'/'.join(base_tokens)} / {'/'.join(quote_tokens)} Arbitrage Scanner")
         if args.dex:
-            print(f"  DEX: Jupiter (Solana mainnet-beta), Uniswap (Ethereum mainnet)")
+            print(f"  DEX: Jupiter (Solana), Uniswap (Ethereum), PancakeSwap (BSC)")
         print(f"{'='*60}")
 
         if filtered_prices:
