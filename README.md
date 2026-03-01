@@ -29,7 +29,8 @@ npx skills remove                                             # Remove installed
 | [lp-agent](./skills/lp-agent/) | Automated liquidity provision on CLMM DEXs (Meteora/Solana) | 49 |
 | [connectors-available](./skills/connectors-available/) | Check exchange availability and search token trading rules | 41 |
 | [slides-generator](./skills/slides-generator/) | Create Hummingbot-branded PDF slides from markdown | 30 |
-| [find-arbitrage-opps](./skills/find-arbitrage-opps/) | Find arbitrage opportunities across exchanges for fungible pairs | 8 |
+| [find-arbitrage-opps](./skills/find-arbitrage-opps/) | Find arbitrage opportunities across CEX and DEX (Jupiter/Uniswap/PancakeSwap) | 8 |
+| [find-xemm-opps](./skills/find-xemm-opps/) | Find Cross-Exchange Market Making opportunities via order book depth analysis | — |
 | [hummingbot](./skills/hummingbot/) | Hummingbot CLI commands via API | 4 |
 | [hummingbot-developer](./skills/hummingbot-developer/) | Build and run Hummingbot stack from source | — |
 
@@ -39,6 +40,8 @@ After installing, ask your AI agent:
 
 - "Deploy Hummingbot API"
 - "Open a liquidity position on Meteora"
+- "Find arbitrage opportunities for SOL/USDC across all exchanges including DEXs"
+- "Scan for XEMM opportunities for ETH/USDT and create a strategy config"
 
 ## Prerequisites
 
