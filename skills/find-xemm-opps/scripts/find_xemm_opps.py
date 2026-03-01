@@ -451,7 +451,28 @@ def main():
         elif opp["maker_ratio"] < 0.67:
             print(f"      ⚠  Maker book: sell-heavy (B/A={opp['maker_ratio']:.2f}) — bid side may be thin")
 
-    print()
+    # ── Suggested XEMM config for top opportunity ────────────────────────────
+    if opportunities:
+        top = opportunities[0]
+        mid = top["maker_mid"]
+        # Suggest 3 levels: min, mid, max profitability
+        min_prof = max(top["taker_spread_pct"] / 100, 0.001)
+        max_prof = min_prof * 3
+        mid_prof = (min_prof + max_prof) / 2
+        amount = 10  # placeholder
+
+        print(f"  Suggested xemm_multiple_levels config for #{1}:")
+        print(f"  {'─'*64}")
+        print(f"    maker_connector:           {top['maker']}")
+        print(f"    maker_trading_pair:        {top['maker_pair']}")
+        print(f"    taker_connector:           {top['taker']}")
+        print(f"    taker_trading_pair:        {top['taker_pair']}")
+        print(f"    min_profitability:         {min_prof:.4f}  ({min_prof*100:.3f}%)")
+        print(f"    max_profitability:         {max_prof:.4f}  ({max_prof*100:.3f}%)")
+        print(f"    buy_levels_targets_amount: {min_prof:.4f},{amount}-{mid_prof:.4f},{amount*2}-{max_prof:.4f},{amount*3}")
+        print(f"    sell_levels_targets_amount:{min_prof:.4f},{amount}-{mid_prof:.4f},{amount*2}-{max_prof:.4f},{amount*3}")
+        print(f"    max_executors_imbalance:   1")
+        print()
 
 
 if __name__ == "__main__":
