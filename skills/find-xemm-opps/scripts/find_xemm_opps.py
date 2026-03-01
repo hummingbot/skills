@@ -239,7 +239,20 @@ def score_xemm_opportunity(maker, taker):
     maker_total = maker["metrics"]["bid_depth"] + maker["metrics"]["ask_depth"]
     depth_ratio = taker_total / max(maker_total, 1)
 
-    score = mid_diff_pct * 3 + spread_ratio + (depth_ratio ** 0.5)
+    # Penalize imbalanced order books (B/A too high or too low)
+    # Ideal B/A is ~1.0; penalty ramps up beyond 0.5–2.0 range
+    def imbalance_penalty(ratio):
+        if 0.5 <= ratio <= 2.0:
+            return 1.0  # no penalty
+        elif ratio > 2.0:
+            return 1.0 / (ratio / 2.0)  # e.g. B/A=4 → 0.5x, B/A=20 → 0.1x
+        else:
+            return ratio / 0.5  # e.g. B/A=0.25 → 0.5x
+
+    maker_penalty = imbalance_penalty(maker["metrics"]["bid_ask_ratio"])
+    taker_penalty = imbalance_penalty(taker["metrics"]["bid_ask_ratio"])
+
+    score = (mid_diff_pct * 3 + spread_ratio + (depth_ratio ** 0.5)) * maker_penalty * taker_penalty
     return score, mid_diff_pct, spread_ratio, depth_ratio
 
 
