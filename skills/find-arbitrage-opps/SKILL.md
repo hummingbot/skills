@@ -25,6 +25,7 @@ By default the script queries CEX connectors via the Hummingbot API. Add `--dex`
 |-----|-------|-----------------|
 | **Jupiter** | Solana | `mainnet-beta` |
 | **Uniswap** | Ethereum | `mainnet` |
+| **PancakeSwap** | Ethereum (BSC) | `bsc` |
 
 DEX prices are fetched directly via the Hummingbot Gateway. Make sure Gateway is running on `http://localhost:15888` (or set `GATEWAY_URL`).
 
