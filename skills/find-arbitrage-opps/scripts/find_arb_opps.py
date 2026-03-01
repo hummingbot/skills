@@ -81,8 +81,13 @@ def dex_applies(dex, base_tokens, quote_tokens):
     return True
 
 # BTC is only available on exchanges open to Australian residents.
-BTC_ONLY_AU = True
 BTC_TOKENS = {"BTC", "WBTC", "CBBTC"}
+
+# Connectors restricted to specific regions — excluded from results by default.
+# Users can override with --include-restricted.
+RESTRICTED_CONNECTORS = {
+    "btc_markets",  # Australian residents only (KYC with AU passport required)
+}
 
 
 # ─── Environment / config ────────────────────────────────────────────────────
@@ -276,6 +281,8 @@ def main():
     parser.add_argument("--connectors", help="CEX connectors to use, comma-separated (default: all)")
     parser.add_argument("--dex", action="store_true", default=False,
                         help="Include DEX prices (Jupiter/Solana, Uniswap/Ethereum)")
+    parser.add_argument("--include-restricted", action="store_true", default=False,
+                        help="Include region-restricted exchanges (e.g. btc_markets — AU only)")
     parser.add_argument("--min-spread", type=float, default=0.0, help="Minimum spread %% to show (default: 0.0)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
@@ -295,6 +302,15 @@ def main():
         connectors = get_available_connectors()
         if not connectors:
             print("Warning: No CEX connectors available — CEX prices skipped.", file=sys.stderr)
+
+    # Filter region-restricted connectors unless user opts in
+    if not args.include_restricted:
+        before = len(connectors)
+        connectors = [c for c in connectors if c not in RESTRICTED_CONNECTORS]
+        removed = before - len(connectors)
+        if removed:
+            print(f"  ℹ  Excluded {removed} region-restricted connector(s) (use --include-restricted to include).",
+                  file=sys.stderr)
 
     connector_pairs = {}
     if connectors:
