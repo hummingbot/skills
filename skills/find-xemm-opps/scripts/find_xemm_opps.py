@@ -397,6 +397,15 @@ def main():
                 "score": score,
             })
 
+    # Deduplicate — same exchange pair regardless of order
+    seen = set()
+    deduped = []
+    for opp in opportunities:
+        key = frozenset([opp["maker"], opp["taker"]])
+        if key not in seen:
+            seen.add(key)
+            deduped.append(opp)
+    opportunities = deduped
     opportunities.sort(key=lambda x: x["score"], reverse=True)
 
     # ── Output ───────────────────────────────────────────────────────────────
