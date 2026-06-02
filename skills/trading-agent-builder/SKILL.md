@@ -1,9 +1,9 @@
 ---
-name: Trading Agent Builder
+name: trading-agent-builder
 description: Step-by-step guide for building autonomous trading agents through 5 phases: design, routine, strategy, dry-run, live.
 ---
 
-# Trading Agent Builder — Reference Guide
+# trading-agent-builder — Reference Guide
 
 This skill provides the complete reference for building autonomous trading agents in Condor. Follow the 5-phase workflow below in order.
 
