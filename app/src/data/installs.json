@@ -1,9 +1,11 @@
 {
-  "hummingbot-deploy": 77,
-  "lp-agent": 67,
-  "connectors-available": 59,
-  "slides-generator": 46,
-  "find-arbitrage-opps": 29,
-  "hummingbot": 25,
-  "hummingbot-developer": 17
+  "find-arbitrage-opps": 354,
+  "hummingbot-deploy": 342,
+  "lp-agent": 311,
+  "connectors-available": 297,
+  "hummingbot": 285,
+  "slides-generator": 270,
+  "hummingbot-heartbeat": 257,
+  "hummingbot-developer": 253,
+  "find-xemm-opps": 231
 }
