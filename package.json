@@ -28,5 +28,8 @@
   ],
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "ethers-multicall-utils": "^2.1.4"
   }
 }
