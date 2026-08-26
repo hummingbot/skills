@@ -34,9 +34,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from repos import REPOS, SEGMENT_VALUES, UNSCHEMAD_ROUTES  # noqa: E402
 
 CAMEL_CASE = re.compile(r'["\']([a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*)["\']')
-LP_METHOD = re.compile(r"\s*async def (\w+)\(")
-LP_TRADING_TYPE = re.compile(r'\s*trading_type: str = "(\w+)"')
-LP_ROUTE = re.compile(r'_lp_route\([a-z_]+,\s*"([a-z-]+)"\)')
+# `api_request("post", self._lp_route(trading_type, "open"), ...)`, wrapped across lines.
+# Method and verb are read from one match rather than tracked across lines: the method
+# literal sits on its own line, so "the last api_request( seen" attributed a stale verb.
+LP_CALL = re.compile(r'api_request\(\s*"([a-z]+)"\s*,\s*self\._lp_route\([a-z_]+,\s*"([a-z-]+)"\)')
+LP_METHOD = re.compile(r"\n\s*async def \w+\(")
+LP_TRADING_TYPE = re.compile(r'trading_type: str = "(\w+)"')
 
 
 class Failure(Exception):
@@ -45,8 +48,18 @@ class Failure(Exception):
 
 # --------------------------------------------------------------------------- spec
 
+HTTP_METHODS = ("get", "post", "put", "patch", "delete")
+
+
 def spec_paths(spec: dict) -> set:
     return set(spec.get("paths", {}))
+
+
+def spec_routes(spec: dict) -> set:
+    """Every (method, path) the spec serves."""
+    return {(method, path)
+            for path, operations in spec.get("paths", {}).items()
+            for method in operations if method in HTTP_METHODS}
 
 
 def spec_field_names(spec: dict) -> set:
@@ -75,17 +88,27 @@ def spec_field_names(spec: dict) -> set:
     return names
 
 
-def shape(path: str) -> str:
-    """Compare by segment shape: the spec names ids differently ({address} vs {token})."""
-    return re.sub(r"\{[^}]+\}", "{}", path.split("?")[0].rstrip("/"))
+def shape(call) -> tuple:
+    """(method, segment shape) -- how a client call and a spec route are compared.
+
+    Ids collapse to `{}` because the two sides name them differently: hummingbot-api calls
+    `tokens/{token_address}` and the spec declares `/tokens/{symbolOrAddress}`. That
+    tolerance is why the method has to travel with the path. Gateway serves two routes at
+    `/tokens/{}` -- GET {symbolOrAddress} and DELETE {address} -- and two more at
+    `/pools/{}`, so on the path alone either one satisfies a call to either, and Gateway
+    could delete the GET outright without this check noticing.
+    """
+    method, path = call
+    return method.lower(), re.sub(r"\{[^}]+\}", "{}", path.split("?")[0].rstrip("/"))
 
 
-def expand(path: str) -> list:
+def expand(call) -> list:
+    method, path = call
     candidates = [f"/{path.lstrip('/')}"]
     for token, values in SEGMENT_VALUES.items():
         if any(token in c for c in candidates):
             candidates = [c.replace(token, v) for c in candidates for v in values]
-    return candidates
+    return [(method, c) for c in candidates]
 
 
 # --------------------------------------------------------------------------- source
@@ -152,22 +175,24 @@ def lp_routes(source: str) -> set:
     against both types, because the LP surfaces are not symmetric: collect-fees is CLMM
     only, and pairing every verb with every type invents routes nobody calls.
     """
-    routes, trading_type = set(), None
-    for line in source.splitlines():
-        if LP_METHOD.match(line):
-            trading_type = None
-        default = LP_TRADING_TYPE.match(line)
-        if default:
-            trading_type = default.group(1)
-        verb = LP_ROUTE.search(line)
-        if verb:
-            if not trading_type:
-                raise Failure(
-                    f"_lp_route(..., {verb.group(1)!r}) sits in a method with no "
-                    "`trading_type: str = ...` default, so this check cannot tell which "
-                    "surface it targets. Give the parameter a default, or check it by hand."
-                )
-            routes.add(f"trading/{trading_type}/{verb.group(1)}")
+    method_starts = [m.start() for m in LP_METHOD.finditer(source)]
+    defaults = [(m.start(), m.group(1)) for m in LP_TRADING_TYPE.finditer(source)]
+
+    routes = set()
+    for call in LP_CALL.finditer(source):
+        # The `trading_type` default belonging to the method this call sits in -- the last
+        # one declared after that method's `async def` and before the call itself.
+        enclosing = max((start for start in method_starts if start < call.start()), default=-1)
+        trading_type = next(
+            (value for start, value in reversed(defaults) if enclosing < start < call.start()), None
+        )
+        if not trading_type:
+            raise Failure(
+                f"_lp_route(..., {call.group(2)!r}) sits in a method with no "
+                "`trading_type: str = ...` default, so this check cannot tell which "
+                "surface it targets. Give the parameter a default, or check it by hand."
+            )
+        routes.add((call.group(1), f"trading/{trading_type}/{call.group(2)}"))
     return routes
 
 
@@ -182,27 +207,27 @@ def check_routes(repo: dict, root: Path, spec: dict) -> str:
     # Guard the guard: a regex that matched nothing would pass the real check vacuously.
     if len(called) < 15:
         raise Failure(
-            f"Only {len(called)} paths found in {repo['client']}. The extraction regex has "
+            f"Only {len(called)} routes found in {repo['client']}. The extraction regex has "
             "gone stale -- fix it in repos.py before trusting a pass here."
         )
-    shapes = {shape(p) for p in spec_paths(spec)}
-    if len(shapes) < 20:
-        raise Failure(f"Only {len(shapes)} paths in the spec -- is it truncated?")
+    served = {shape(route) for route in spec_routes(spec)}
+    if len(served) < 20:
+        raise Failure(f"Only {len(served)} routes in the spec -- is it truncated?")
 
     missing = [
-        candidate
+        f"{method.upper():6} {path}"
         for call in sorted(called)
-        for candidate in expand(call)
-        if shape(candidate) not in shapes and candidate not in UNSCHEMAD_ROUTES
+        for method, path in expand(call)
+        if shape((method, path)) not in served and (method.lower(), path) not in UNSCHEMAD_ROUTES
     ]
     if missing:
         raise Failure(
-            "The client calls paths this Gateway does not serve:\n    "
+            "The client calls routes this Gateway does not serve:\n    "
             + "\n    ".join(missing)
             + "\n  Either the client is stale and should follow the rename, or the spec is "
             "from a Gateway older than the client targets."
         )
-    return f"{len(called)} client routes, all served by the spec's {len(shapes)}"
+    return f"{len(called)} client routes, all served by the spec's {len(served)}"
 
 
 def check_keys(repo: dict, root: Path, spec: dict) -> str:

@@ -20,9 +20,9 @@ SEGMENT_VALUES = {
 
 # Real Gateway routes that carry no TypeBox schema, so @fastify/swagger omits them from
 # the spec. Named with where they live, so the exemption stays reviewable and a genuinely
-# deleted route cannot hide behind it.
+# deleted route cannot hide behind it. Keyed by (method, path), like everything else here.
 UNSCHEMAD_ROUTES = {
-    "/restart",  # src/app.ts -- server.post('/restart'), no schema attached
+    ("post", "/restart"),  # src/app.ts -- server.post('/restart'), no schema attached
 }
 
 
@@ -35,8 +35,8 @@ REPOS = {
         "root": _default("HUMMINGBOT_DIR", "hummingbot"),
         # The module that builds the requests.
         "client": "hummingbot/core/gateway/gateway_http_client.py",
-        # Path literals passed to api_request(), plain or f-string.
-        "path_regex": r'api_request\(\s*\n?\s*"[a-z]+"\s*,\s*\n?\s*f?"([^"]+)"',
+        # (method, path) literals passed to api_request(), path plain or f-string.
+        "path_regex": r'api_request\(\s*\n?\s*"([a-z]+)"\s*,\s*\n?\s*f?"([^"]+)"',
         # The LP routes never appear as a literal: _lp_route(trading_type, verb) assembles
         # them and hands the result to api_request as a variable. Reading the verbs
         # separately is what makes the check cover them -- while it did not, three sat on
@@ -87,8 +87,9 @@ REPOS = {
     "hummingbot-api": {
         "root": _default("HUMMINGBOT_API_DIR", "hummingbot-api"),
         "client": "services/gateway_client.py",
-        # Both plain and f-strings, since the trading routes interpolate the type.
-        "path_regex": r'_request\(\s*"[A-Z]+"\s*,\s*f?"([^"]+)"',
+        # (method, path); the path is plain or f-string, since the trading routes
+        # interpolate the type.
+        "path_regex": r'_request\(\s*"([A-Z]+)"\s*,\s*f?"([^"]+)"',
         "lp_routes": False,
         "wire_sources": ["services/gateway_client.py"],
         "config_tree_keys": {"apiKeys", "defaultNetwork", "defaultWallet"},

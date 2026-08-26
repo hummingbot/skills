@@ -71,7 +71,7 @@ document from the route table without starting a server. It restores gateway's c
 
 ```
 hummingbot  (/Users/you/hummingbot)
-  ok   routes   35 client routes, all served by the spec's 67
+  ok   routes   37 client routes, all served by the spec's 71
   ok   keys     46 camelCase keys, all declared by the spec
   ok   models   hummingbot/core/gateway/gateway_models.py is byte-identical to what this spec generates
   ok   mirrors  6 hand-written models match the schemas they mirror
@@ -112,7 +112,7 @@ print('added:', sorted(new - old))
 
 | check | what it reads | what it catches |
 |---|---|---|
-| `routes` | every path literal the client hands to its request method, plus hummingbot's `_lp_route`-assembled LP paths | a renamed or deleted route — the 404 class |
+| `routes` | every (method, path) the client hands to its request method, plus hummingbot's `_lp_route`-assembled LP paths | a renamed or deleted route, or one that lost a verb — the 404 class |
 | `keys` | every camelCase string literal in the modules that speak Gateway's wire format | a renamed field read through `.get()` — the silent-`None` class |
 | `models` | regenerates the committed generated-models file from this spec and compares | the models drifting from the Gateway they claim to mirror |
 | `mirrors` | hand-written response models vs the generated schema each is built from | a hand-transcribed model expecting a field Gateway no longer sends |

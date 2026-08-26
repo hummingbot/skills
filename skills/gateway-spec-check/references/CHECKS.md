@@ -6,14 +6,29 @@ where it lives.
 
 ## routes
 
-Reads the path literals each client hands to its request method — `api_request()` in
-hummingbot, `_request()` in hummingbot-api — and checks each against `paths` in the spec.
+Reads the **(method, path)** literals each client hands to its request method —
+`api_request()` in hummingbot, `_request()` in hummingbot-api — and checks each against
+the operations the spec declares.
 
 Comparison is by *segment shape*: `{...}` collapses to `{}`, because the spec names its
-ids differently from the client (`{address}` vs `{token}`). Interpolated segments the
-client chooses at runtime are expanded to every value they can take —
-`trading/{trading_type}/quote-swap` is checked as all three of router, clmm and amm —
-so the check stays exact instead of pattern-matching.
+ids differently from the client — hummingbot-api calls `tokens/{token_address}` where the
+spec declares `/tokens/{symbolOrAddress}`. Interpolated segments the client chooses at
+runtime are expanded to every value they can take — `trading/{trading_type}/quote-swap` is
+checked as all three of router, clmm and amm — so the check stays exact instead of
+pattern-matching.
+
+**The method has to travel with the path**, and that is what the shape tolerance costs.
+Gateway serves two routes at `/tokens/{}` — `GET {symbolOrAddress}` and
+`DELETE {address}` — and two more at `/pools/{}`. On the path alone either one satisfies a
+call to either, so Gateway could rename or delete the GET outright and a path-only check
+would pass: the surviving DELETE covers for it. Carrying the method also catches a route
+that keeps its path but loses or changes a verb. Both were verified by mutation: deleting
+`/tokens/{symbolOrAddress}`, dropping only the GET from `/pools/{tradingPair}`, and
+flipping `/trading/clmm/open` from POST to PUT each go unnoticed without it.
+
+Because the method is part of the comparison, the two clients report independently and
+correctly: hummingbot only GETs `tokens/{...}` and hummingbot-api only DELETEs it, so a
+change to one verb fires in one repo and stays properly silent in the other.
 
 **hummingbot's LP routes never appear as a literal.** `_lp_route(trading_type, verb)`
 assembles them and hands the result to `api_request` as a variable, so the literal regex
@@ -23,6 +38,11 @@ symmetric (`collect-fees` is CLMM only), and pairing every verb with every type 
 routes nobody calls. While this was not done, three LP routes sat on Gateway's pre-rename
 names (`quote-position`, `add-liquidity`, `remove-liquidity`) and the check reported
 everything fine.
+
+Their HTTP method is read from the same `api_request(` match rather than tracked across
+lines. The method literal sits on its own line, one above the `_lp_route(...)` argument,
+so "the last `api_request(` seen" attributed a stale verb — every LP route came out GET,
+and the seven POSTs among them reported as unserved.
 
 ### Exemption: `UNSCHEMAD_ROUTES`
 
