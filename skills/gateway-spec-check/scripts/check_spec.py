@@ -34,10 +34,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from repos import REPOS, SEGMENT_VALUES, UNSCHEMAD_ROUTES  # noqa: E402
 
 CAMEL_CASE = re.compile(r'["\']([a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*)["\']')
-# `ModelNameRequest(\n    key=..., ...)` -- the shape every model-built call site uses.
-MODEL_CALL = re.compile(r"\b([A-Z][A-Za-z0-9]*Request)\(\s*\n((?:\s+\w+=.*\n)+)")
-MODEL_KWARG = re.compile(r"^\s+(\w+)=", re.M)
-
 LP_METHOD = re.compile(r"\s*async def (\w+)\(")
 LP_TRADING_TYPE = re.compile(r'\s*trading_type: str = "(\w+)"')
 LP_ROUTE = re.compile(r'_lp_route\([a-z_]+,\s*"([a-z-]+)"\)')
@@ -346,6 +342,86 @@ def check_mirrors(repo: dict, root: Path) -> str:
     return f"{len(mirrors['pairs'])} hand-written models match the schemas they mirror"
 
 
+def model_constructions(source: str) -> list:
+    """[(model name, [keyword, ...])] for every generated-request-model construction.
+
+    Two shapes, and the second is why this reads the AST rather than the text. Most call
+    sites name the class -- `ClmmAddRequest(chainNetwork=..., ...)`. The swap and pool-info
+    routes instead pick the class out of a dict at runtime and call the variable:
+
+        request_model = _POOL_INFO_REQUESTS.get(trading_type)
+        ... request_model(connector=..., poolAddress=...)
+
+    A regex over the source cannot tell which model `request_model` is, so those call
+    sites -- quote_swap, execute_swap and pool_info, the busiest routes in both clients --
+    went unchecked entirely. They are resolved through the dispatch table here and checked
+    against every class it can yield, because any of them may be the one selected and a
+    keyword has to be a field of all of them.
+
+    Resolution is per function, not per module. Both clients spell the variable
+    `request_model` in three different methods, each assigned from a different table, so
+    resolving by bare name would check the pool-info keywords against the swap models and
+    report `poolAddress` -- which the router models really do not declare -- as drift in a
+    client that never sends it there.
+    """
+    tree = ast.parse(source)
+
+    parents = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
+
+    def scope_of(node):
+        """The function a node sits in, or None for module level."""
+        while node in parents:
+            node = parents[node]
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return node
+        return None
+
+    # NAME = {..: SomeRequest, ..} at module level.
+    tables = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Dict):
+            continue
+        models = {v.id for v in node.value.values if isinstance(v, ast.Name) and v.id.endswith("Request")}
+        if models and len(models) == len(node.value.values):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    tables[target.id] = models
+
+    def dispatched(node) -> set:
+        """The models a `TABLE[k]` or `TABLE.get(k)` expression can evaluate to."""
+        if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
+            return tables.get(node.value.id, set())
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "get" and isinstance(node.func.value, ast.Name)):
+            return tables.get(node.func.value.id, set())
+        return set()
+
+    # request_model = TABLE[k] / TABLE.get(k), recorded against the scope that binds it.
+    aliases = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        models = dispatched(node.value)
+        for target in node.targets if models else []:
+            if isinstance(target, ast.Name):
+                aliases.setdefault(scope_of(node), {}).setdefault(target.id, set()).update(models)
+
+    calls = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if isinstance(node.func, ast.Name):
+            name = node.func.id
+            candidates = ({name} if name.endswith("Request")
+                          else aliases.get(scope_of(node), {}).get(name, set()))
+        else:
+            candidates = dispatched(node.func)  # TABLE[k](...) called in place
+        keywords = [kw.arg for kw in node.keywords if kw.arg]
+        if candidates and keywords:
+            calls += [(model, keywords) for model in sorted(candidates)]
+    return calls
+
+
 def check_kwargs(repo: dict, root: Path) -> str:
     """Every keyword passed to a generated request model must be a field of it.
 
@@ -354,14 +430,12 @@ def check_kwargs(repo: dict, root: Path) -> str:
     silence, and the request goes out without the slippage the caller asked for.
     """
     fields = field_names_by_class((root / repo["generated"]).read_text())
-    calls = [
-        (m.group(1), MODEL_KWARG.findall(m.group(2)))
-        for m in MODEL_CALL.finditer((root / repo["client"]).read_text())
-    ]
+    calls = model_constructions((root / repo["client"]).read_text())
     if len(calls) < 10:
         raise Failure(
             f"Only {len(calls)} model constructions found in {repo['client']} -- has the "
-            "regex gone stale, or did the /trading methods go back to hand-written dicts?"
+            "client gone back to hand-written dicts, or is it building requests a way "
+            "model_constructions() does not recognise?"
         )
 
     unknown = []

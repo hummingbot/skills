@@ -75,7 +75,7 @@ hummingbot  (/Users/you/hummingbot)
   ok   keys     46 camelCase keys, all declared by the spec
   ok   models   hummingbot/core/gateway/gateway_models.py is byte-identical to what this spec generates
   ok   mirrors  6 hand-written models match the schemas they mirror
-  ok   kwargs   13 model constructions, every keyword a real field
+  ok   kwargs   21 model constructions, every keyword a real field
 ```
 
 Narrow it with `--repo hummingbot` / `--repo hummingbot-api`, or
@@ -116,7 +116,7 @@ print('added:', sorted(new - old))
 | `keys` | every camelCase string literal in the modules that speak Gateway's wire format | a renamed field read through `.get()` — the silent-`None` class |
 | `models` | regenerates the committed generated-models file from this spec and compares | the models drifting from the Gateway they claim to mirror |
 | `mirrors` | hand-written response models vs the generated schema each is built from | a hand-transcribed model expecting a field Gateway no longer sends |
-| `kwargs` | keywords passed to generated request models | a misspelled optional field, which pydantic drops in silence |
+| `kwargs` | keywords passed to generated request models, including the ones whose class is picked out of a dispatch dict at runtime | a misspelled optional field, which pydantic drops in silence |
 
 `references/CHECKS.md` has the detail: what each one exempts and why, and the bug behind
 each exemption.
@@ -162,6 +162,7 @@ the wire format, the generated-models file and its target Python version, and th
 hand-written models paired with the Gateway schemas they mirror. A third client is a
 sixth entry in that table.
 
-If a check reports "the extraction regex has gone stale", the client changed how it
-builds requests and the regex in `repos.py` no longer sees them. Fix the regex before
-trusting a pass.
+If a check reports that it found too few routes or constructions, the client changed how
+it builds requests and the extraction no longer sees them — the path regex in `repos.py`
+for routes, `model_constructions()` in `check_spec.py` for keywords. Fix the extraction
+before trusting a pass.

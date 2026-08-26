@@ -135,6 +135,25 @@ from a generated model, so the names are keyword arguments. Pydantic catches a m
 optional one: `slippagePc=1` for `slippagePct` sends the request without the slippage the
 caller asked for.
 
-This reads the `ModelNameRequest(\n key=..., ...)` call sites out of the client and holds
-each keyword against that model's fields, accepting either spelling — the attribute name
-or the alias — since both construct the model.
+This reads the constructions out of the client's AST and holds each keyword against that
+model's fields, accepting either spelling — the attribute name or the alias — since both
+construct the model.
+
+The AST is not decoration. Most call sites name the class, but the swap and pool-info
+routes — the busiest in both clients — pick it out of a dict at runtime:
+
+```python
+request_model = _POOL_INFO_REQUESTS.get(trading_type)
+... request_model(connector=..., poolAddress=...)
+```
+
+No regex over the source can tell which model `request_model` is, so an earlier
+text-based version of this check skipped those call sites in silence — roughly a third of
+the constructions in each client, including every `/trading` swap. Dispatched calls are
+resolved through the table and checked against every class it can yield, because any of
+them may be the one selected and a keyword has to be a field of all of them.
+
+Resolution is per function, not per module. Both clients spell the variable
+`request_model` in three different methods, each assigned from a different table.
+Resolving by bare name unions all three and reports `poolAddress` against the router swap
+models — which genuinely do not declare it — in a client that never sends it there.
