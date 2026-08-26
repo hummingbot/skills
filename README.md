@@ -32,6 +32,7 @@ npx skills remove                                             # Remove installed
 | [find-arbitrage-opps](./skills/find-arbitrage-opps/) | Find arbitrage opportunities across exchanges for fungible pairs | 8 |
 | [hummingbot](./skills/hummingbot/) | Hummingbot CLI commands via API | 4 |
 | [hummingbot-developer](./skills/hummingbot-developer/) | Build and run Hummingbot stack from source | — |
+| [gateway-spec-check](./skills/gateway-spec-check/) | Check the hummingbot and hummingbot-api Gateway clients against a Gateway OpenAPI spec | — |
 
 ## Usage
 
